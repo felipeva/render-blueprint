@@ -166,8 +166,10 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   ├── golden.test.ts               fixtures/canonical/render.ts → byte-equal render.yaml (§6.2)
 │   ├── schema-conformance.test.ts   parse the golden YAML, validate against the Render schema (§6.3)
 │   ├── cli.test.ts                  spawn the binary in a temp dir; assert exit codes 0/1/2 (§6.6)
-│   ├── key-order-conformance.test.ts   every emission tuple against the property order its
-│   │                                definition carries in the published schema (issue #12)
+│   ├── key-order-conformance.test.ts   every emission tuple that names a published definition,
+│   │                                against the property order that definition lists them in.
+│   │                                SOURCE_FIELDS is not one of them: it is the set of keys the
+│   │                                source branches own, not an emission order (issue #12)
 │   ├── fixtures/canonical/render.ts   design B §3 verbatim — the scenario every design doc shares
 │   ├── fixtures/canonical/render.yaml the golden output; the only file `vitest -u` may rewrite
 │   ├── fixtures/cli/                seed directories — clean, drifted, invalid, warned. Each
