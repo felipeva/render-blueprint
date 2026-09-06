@@ -6,5 +6,5 @@ export default defineConfig({
   fixedExtension: false,
   dts: true,
   treeshake: { moduleSideEffects: false },
-  deps: { neverBundle: ['yaml', 'better-result', 'zod'] },
+  deps: { neverBundle: ['@drizzle-team/brocli', 'yaml', 'better-result', 'zod'] },
 });

@@ -33,6 +33,7 @@
     "fixtures:update": "UPDATE_FIXTURES=1 vitest run test/fixtures.test.ts"
   },
   "dependencies": {
+    "@drizzle-team/brocli": "0.12.1",
     "better-result": "3.0.1",
     "yaml": "2.9.0",
     "zod": "4.5.4"
