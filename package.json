@@ -2,6 +2,12 @@
   "name": "render-blueprint",
   "version": "0.0.0",
   "description": "Typed factories that describe Render resources and synthesize render.yaml",
+  "bin": {
+    "render-blueprint": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -10,29 +16,13 @@
       "default": "./dist/index.js"
     }
   },
-  "bin": {
-    "render-blueprint": "./dist/cli.js"
-  },
-  "files": [
-    "dist"
-  ],
-  "engines": {
-    "node": ">=22.12.0"
-  },
-  "devEngines": {
-    "runtime": {
-      "name": "node",
-      "version": "^22.18.0 || ^24.11.0 || >=26.0.0"
-    }
-  },
-  "packageManager": "pnpm@10.33.4",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "oxlint",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "test": "vitest run",
-    "test:types": "vitest run --typecheck",
+    "test:types": "vitest run --typecheck.only",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:types",
     "build": "tsdown",
     "schema:refresh": "node scripts/refresh-render-schema.mjs"
@@ -49,5 +39,15 @@
     "tsdown": "0.23.0",
     "typescript": "7.0.2",
     "vitest": "5.0.0"
-  }
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "^22.18.0 || ^24.11.0 || >=26.0.0"
+    }
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "packageManager": "pnpm@10.33.4"
 }

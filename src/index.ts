@@ -1,1 +1,1 @@
-export const packageName: "render-blueprint" = "render-blueprint";
+export const packageName = "render-blueprint" as const;
