@@ -105,8 +105,8 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `main` is
   slices bottom-up and delegate each resolve to the agent that owns the upper branch.
 - Merge only on an instruction from the user that names the merge. A green CI is permission to
   ask, never to merge.
-- Clean up with `cleanup.sh <repo> --match <substr>`; always pass `--match`; read the
-  `verdict=` line.
+- Clean up with `cleanup.sh <repo> --match <substr>`; always pass `--match`; it matches the worktree
+  directory (`feat-5-env-sentinels-groups`), not the agent name; read the `verdict=` line.
 - `status.sh <repo>` answers "where is everything" at any point.
 
 ## Codebase conventions
@@ -179,7 +179,8 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `main` is
 - No `unknown` or `object` parameters (`cause` excepted), no `Record<string, unknown>`, no `any`.
   The escape hatch is `JsonObject` from `src/json.ts`. Every non-const assertion carries a
   `SAFETY:` comment with real prose on the line above.
-- No `typeof` narrowing for control flow — discriminate on the union's own literal fields. No
+- No `typeof` narrowing for control flow — discriminate on the union's own literal fields. The
+  `in` operator is fine on a union whose members are told apart by a required key. No
   module mocking; `src/fs/` is the test seam, so pass an in-memory reader/writer.
 - Tests assert the discriminated Result: narrow with `Result.isOk` / `Result.isError`, assert
   variants with `SomeError.is(...)` and `_tag`. Never assert on a thrown exception. `describe`
