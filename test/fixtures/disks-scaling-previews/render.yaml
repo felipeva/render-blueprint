@@ -30,6 +30,45 @@ services:
       plan: starter
       numInstances: 1
     maxShutdownDelaySeconds: 60
+  - type: web
+    name: admin
+    region: oregon
+    plan: standard
+    runtime: node
+    repo: https://github.com/acme/api
+    branch: main
+    rootDir: apps/admin
+    scaling:
+      minInstances: 1
+      maxInstances: 4
+      targetCPUPercent: 65
+    buildCommand: pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm start:admin
+    previews:
+      generation: automatic
+  - type: pserv
+    name: auth
+    region: oregon
+    plan: 1c-2g
+    runtime: node
+    repo: https://github.com/acme/api
+    branch: main
+    rootDir: apps/auth
+    numInstances: 1
+    buildCommand: pnpm install --frozen-lockfile
+    startCommand: pnpm serve:auth
+    disk:
+      name: keys
+      mountPath: /var/keys
+      sizeGB: 5
+    buildFilter:
+      paths:
+        - apps/auth/**
+    previews:
+      generation: manual
+      plan: 1c-2g
+      numInstances: 1
+    maxShutdownDelaySeconds: 45
   - type: worker
     name: jobs
     region: oregon
