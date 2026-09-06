@@ -1,29 +1,29 @@
-import { describe, expectTypeOf, it } from "vitest";
+import { describe, expectTypeOf, it } from 'vitest';
 
-import { web, type WebService } from "./web.js";
+import { web, type WebService } from './web.js';
 
-describe("web", () => {
-  it("returns a WebService", () => {
-    expectTypeOf(web("api", { runtime: "node" })).toEqualTypeOf<WebService>();
+describe('web', () => {
+  it('returns a WebService', () => {
+    expectTypeOf(web('api', { runtime: 'node' })).toEqualTypeOf<WebService>();
   });
 
-  it("rejects a config field Render does not define", () => {
+  it('rejects a config field Render does not define', () => {
     // @ts-expect-error `nope` is not a WebConfig field.
-    web("api", { runtime: "node", nope: true });
+    web('api', { runtime: 'node', nope: true });
   });
 
-  it("requires a runtime", () => {
+  it('requires a runtime', () => {
     // @ts-expect-error `runtime` is the one required WebConfig field.
-    web("api", {});
+    web('api', {});
   });
 
-  it("rejects a health check path without a leading slash", () => {
+  it('rejects a health check path without a leading slash', () => {
     // @ts-expect-error `healthCheckPath` is typed `/${string}`.
-    web("api", { runtime: "node", healthCheckPath: "healthz" });
+    web('api', { runtime: 'node', healthCheckPath: 'healthz' });
   });
 
-  it("rejects a runtime outside the native set", () => {
+  it('rejects a runtime outside the native set', () => {
     // @ts-expect-error `docker` is not a native runtime.
-    web("api", { runtime: "docker" });
+    web('api', { runtime: 'docker' });
   });
 });

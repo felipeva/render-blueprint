@@ -1,4 +1,4 @@
-import type { BlueprintResource } from "../resources/resource.js";
+import type { BlueprintResource } from '../resources/resource.js';
 
 export interface BlueprintConfig {
   readonly resources?: readonly BlueprintResource[];

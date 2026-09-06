@@ -1,11 +1,11 @@
-import type { Result as ResultType } from "better-result";
-import type { ToStringOptions } from "yaml";
+import type { Result as ResultType } from 'better-result';
+import type { ToStringOptions } from 'yaml';
 
-import type { Blueprint } from "../blueprint/blueprint.js";
-import type { BlueprintInvalid } from "../validation/blueprint-invalid.js";
-import type { ValidationWarning } from "../validation/issue.js";
-import { validate, type ValidatedBlueprint } from "../validation/validate.js";
-import { document } from "./document.js";
+import type { Blueprint } from '../blueprint/blueprint.js';
+import type { BlueprintInvalid } from '../validation/blueprint-invalid.js';
+import type { ValidationWarning } from '../validation/issue.js';
+import { validate, type ValidatedBlueprint } from '../validation/validate.js';
+import { document } from './document.js';
 
 export interface SynthesisReport {
   readonly yaml: string;

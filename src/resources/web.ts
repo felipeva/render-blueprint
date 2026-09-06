@@ -1,9 +1,9 @@
-import type { AutoDeployTrigger } from "../enums/auto-deploy-trigger.js";
-import type { ServerPlan } from "../enums/plan.js";
-import type { Region } from "../enums/region.js";
-import type { NativeRuntime } from "../enums/runtime.js";
-import type { EnvironmentMap } from "../env/env-value.js";
-import type { JsonObject } from "../json.js";
+import type { AutoDeployTrigger } from '../enums/auto-deploy-trigger.js';
+import type { ServerPlan } from '../enums/plan.js';
+import type { Region } from '../enums/region.js';
+import type { NativeRuntime } from '../enums/runtime.js';
+import type { EnvironmentMap } from '../env/env-value.js';
+import type { JsonObject } from '../json.js';
 
 export type HealthCheckPath = `/${string}`;
 
@@ -24,31 +24,31 @@ export interface WebConfig {
 }
 
 export interface WebService {
-  readonly kind: "web";
+  readonly kind: 'web';
   readonly name: string;
   readonly config: WebConfig;
 }
 
 // Emission order follows the schema's serverService property order.
 export const WEB_SERVICE_FIELDS = [
-  "type",
-  "name",
-  "region",
-  "plan",
-  "runtime",
-  "repo",
-  "branch",
-  "rootDir",
-  "healthCheckPath",
-  "buildCommand",
-  "startCommand",
-  "preDeployCommand",
-  "envVars",
-  "autoDeployTrigger",
+  'type',
+  'name',
+  'region',
+  'plan',
+  'runtime',
+  'repo',
+  'branch',
+  'rootDir',
+  'healthCheckPath',
+  'buildCommand',
+  'startCommand',
+  'preDeployCommand',
+  'envVars',
+  'autoDeployTrigger',
 ] as const;
 
 export const web = (name: string, config: WebConfig): WebService => ({
-  kind: "web",
+  kind: 'web',
   name,
   config,
 });

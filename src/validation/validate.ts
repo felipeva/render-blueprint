@@ -1,15 +1,15 @@
-import { Result, type Result as ResultType } from "better-result";
+import { Result, type Result as ResultType } from 'better-result';
 
-import type { Blueprint } from "../blueprint/blueprint.js";
-import type { BlueprintResource } from "../resources/resource.js";
-import { BlueprintInvalid } from "./blueprint-invalid.js";
-import type { ValidationWarning } from "./issue.js";
-import { deprecatedField } from "./rules/deprecated-field.js";
-import { duplicateEnvKey } from "./rules/duplicate-env-key.js";
-import { duplicateResourceName } from "./rules/duplicate-resource-name.js";
-import { extraFieldConflict } from "./rules/extra-field-conflict.js";
-import { missingBuildCommand } from "./rules/missing-build-command.js";
-import { missingStartCommand } from "./rules/missing-start-command.js";
+import type { Blueprint } from '../blueprint/blueprint.js';
+import type { BlueprintResource } from '../resources/resource.js';
+import { BlueprintInvalid } from './blueprint-invalid.js';
+import type { ValidationWarning } from './issue.js';
+import { deprecatedField } from './rules/deprecated-field.js';
+import { duplicateEnvKey } from './rules/duplicate-env-key.js';
+import { duplicateResourceName } from './rules/duplicate-resource-name.js';
+import { extraFieldConflict } from './rules/extra-field-conflict.js';
+import { missingBuildCommand } from './rules/missing-build-command.js';
+import { missingStartCommand } from './rules/missing-start-command.js';
 
 export interface ValidatedBlueprint {
   readonly resources: readonly BlueprintResource[];

@@ -1,6 +1,6 @@
-import { resolveEnv } from "../../env/resolve-env.js";
-import type { BlueprintResource } from "../../resources/resource.js";
-import type { ValidationIssue } from "../issue.js";
+import { resolveEnv } from '../../env/resolve-env.js';
+import type { BlueprintResource } from '../../resources/resource.js';
+import type { ValidationIssue } from '../issue.js';
 
 export const duplicateEnvKey = (
   resources: readonly BlueprintResource[],
@@ -15,7 +15,7 @@ export const duplicateEnvKey = (
     for (const entry of resolveEnv(env)) {
       if (seen.has(entry.key)) {
         issues.push({
-          code: "DuplicateEnvKey",
+          code: 'DuplicateEnvKey',
           at: { resource: resource.name, field: `env.${entry.key}` },
           message: `The environment variable "${entry.key}" is declared more than once on "${resource.name}". Render has no precedence rule for a repeated key, so declare it once.`,
         });

@@ -1,4 +1,4 @@
-import type { JsonObject, JsonValue } from "../json.js";
+import type { JsonObject, JsonValue } from '../json.js';
 
 export interface MappingValues {
   readonly [key: string]: JsonValue | undefined;

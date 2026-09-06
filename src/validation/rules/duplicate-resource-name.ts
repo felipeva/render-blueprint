@@ -1,5 +1,5 @@
-import type { BlueprintResource } from "../../resources/resource.js";
-import type { ValidationIssue } from "../issue.js";
+import type { BlueprintResource } from '../../resources/resource.js';
+import type { ValidationIssue } from '../issue.js';
 
 export const duplicateResourceName = (
   resources: readonly BlueprintResource[],
@@ -10,8 +10,8 @@ export const duplicateResourceName = (
   for (const resource of resources) {
     if (seen.has(resource.name)) {
       issues.push({
-        code: "DuplicateResourceName",
-        at: { resource: resource.name, field: "name" },
+        code: 'DuplicateResourceName',
+        at: { resource: resource.name, field: 'name' },
         message: `More than one resource is named "${resource.name}". Render identifies a resource by its name, so every name in a blueprint must be unique.`,
       });
     }

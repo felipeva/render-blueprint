@@ -1,4 +1,4 @@
-import type { EnvironmentMap, EnvValue } from "./env-value.js";
+import type { EnvironmentMap, EnvValue } from './env-value.js';
 
 export interface EnvEntry {
   readonly key: string;

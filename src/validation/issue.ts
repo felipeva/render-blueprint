@@ -1,13 +1,13 @@
 export const VALIDATION_CODES = [
-  "DuplicateResourceName",
-  "DuplicateEnvKey",
-  "ExtraFieldConflict",
-  "DeprecatedField",
+  'DuplicateResourceName',
+  'DuplicateEnvKey',
+  'ExtraFieldConflict',
+  'DeprecatedField',
 ] as const;
 
 export type ValidationCode = (typeof VALIDATION_CODES)[number];
 
-export const WARNING_CODES = ["MissingBuildCommand", "MissingStartCommand"] as const;
+export const WARNING_CODES = ['MissingBuildCommand', 'MissingStartCommand'] as const;
 
 export type WarningCode = (typeof WARNING_CODES)[number];
 
