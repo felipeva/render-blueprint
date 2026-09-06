@@ -36,7 +36,7 @@ export const unknownServiceEnvVarKey = (
     const env = resourceEnv(resource);
     if (env === undefined) continue;
 
-    for (const entry of resolveEnv(env)) {
+    for (const entry of resolveEnv(env, undefined)) {
       if (entry.form !== 'fromService' || !('envVarKey' in entry.reference)) continue;
 
       const target = declared.get(entry.reference.name);

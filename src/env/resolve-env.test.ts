@@ -58,7 +58,7 @@ describe('resolveEnv', () => {
       origin: 'blueprint',
     }).hostport;
 
-    expect(resolveEnv({ API_HOSTPORT: reference })).toEqual([
+    expect(resolveEnv({ API_HOSTPORT: reference }, undefined)).toEqual([
       { form: 'fromService', key: 'API_HOSTPORT', reference },
     ]);
   });
@@ -70,7 +70,7 @@ describe('resolveEnv', () => {
       origin: 'blueprint',
     }).envVar('MINIO_ROOT_PASSWORD');
 
-    expect(resolveEnv({ MINIO_PASSWORD: reference })).toEqual([
+    expect(resolveEnv({ MINIO_PASSWORD: reference }, undefined)).toEqual([
       { form: 'fromService', key: 'MINIO_PASSWORD', reference },
     ]);
   });

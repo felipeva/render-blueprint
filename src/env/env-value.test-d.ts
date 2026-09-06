@@ -19,7 +19,7 @@ describe('EnvironmentMap', () => {
         LOG_FORMAT: literal('json', { previewValue: 'pretty' }),
         STRIPE_KEY: secret(),
         SESSION_SECRET: generated(),
-        DATABASE_URL: postgresReference('elephant').connectionString,
+        DATABASE_URL: postgresReference('elephant', 'blueprint').connectionString,
       }),
     ).toEqualTypeOf<EnvironmentMap>();
   });
@@ -58,7 +58,9 @@ describe('EnvGroupEnvironment', () => {
   });
 
   it('rejects a database reference, which a group has no form for', () => {
+    const url = postgresReference('elephant', 'blueprint').connectionString;
+
     // @ts-expect-error spec §6.1 gives a group's items the key-value form only.
-    envGroupEnvironment({ DATABASE_URL: postgresReference('elephant').connectionString });
+    envGroupEnvironment({ DATABASE_URL: url });
   });
 });

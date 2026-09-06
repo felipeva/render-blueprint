@@ -36,7 +36,7 @@ describe('envGroup', () => {
   });
 
   it('rejects a database reference, which a group has no form for', () => {
-    const url = postgresReference('elephant').connectionString;
+    const url = postgresReference('elephant', 'blueprint').connectionString;
 
     // @ts-expect-error spec §6.1 gives a group's items the key-value form only.
     envGroup('shared-settings', { env: { DATABASE_URL: url } });
