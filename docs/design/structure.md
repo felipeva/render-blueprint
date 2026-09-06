@@ -95,10 +95,19 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   │                            they live in static-site.ts with the factory (issue #6)
 │   │   ├── web.ts  private-service.ts  worker.ts  cron.ts  static-site.ts  key-value.ts
 │   │   │   postgres.ts  env-group.ts   each: the factory, its Config, and its output type
-│   │   └── read-replica.ts          referenceable, deliberately outside BlueprintResource
+│   │   ├── read-replica.ts          referenceable, deliberately outside BlueprintResource
+│   │   └── defaults-provenance.ts   what a defaults scope leaves on a resource it filled: the
+│                                    declarations it was created through and the defaults that
+│                                    landed, each attributed to the scope that declared it. Inert,
+│                                    never emitted, read by validation (issue #13)
 │   ├── defaults/                    the withDefaults scope
-│   │   ├── resource-defaults.ts  apply-defaults.ts   ResourceDefaults/PlanDefaults; the kind × field
-│   │   └── with-defaults.ts         matrix filter, per-resource always winning; the nestable scope
+│   │   ├── resource-defaults.ts     ResourceDefaults/PlanDefaults, one plan key per kind that has
+│   │   │                            a plan, and the guard holding those keys equal to DefaultKey
+│   │   ├── apply-defaults.ts        the kind × field matrix: region and plan never reach a static
+│   │   │                            site, no repository field reaches a datastore, and `runtime`
+│   │   │                            keeps one off an image source; a per-resource value always wins
+│   │   └── with-defaults.ts         the nestable scope: the frozen per-scope declaration, the
+│                                    outer-to-inner merge, and the provenance each resource carries
 │   ├── blueprint/                   the explicit root and its placement axes
 │   │   ├── blueprint.ts  group.ts  project.ts  environment.ts   all total; none validates
 │   │   └── placement.ts             flattens root / projects[].environments[] / ungrouped into one list
@@ -111,9 +120,10 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │                                     service-env-var-key, extra-field-conflict, warnings,
 │                                     env-key-collision, unknown-service-env-var-key,
 │                                     secret-skips-previews, web-only-field,
-│                                     instances-ignored-by-scaling. The scaling, numeric-range and
-│                                     high-availability families are refinements beside their own
-│                                     config instead, because each reads one config and no other
+│                                     instances-ignored-by-scaling, unused-default. The scaling,
+│                                     numeric-range and high-availability families are refinements
+│                                     beside their own config instead, because each reads one config
+│                                     and no other
 │   ├── synth/                       the ONLY module that knows YAML exists
 │   │   ├── synthesize.ts  document.ts   validate → document → emit; ValidatedBlueprint → a Document
 │   │   ├── mapping.ts  key-order.ts   the ordered builder that never writes an undefined value (§5),
@@ -273,7 +283,8 @@ branch owns on a config whose runtime picked another (issue #10), `OutOfRange` f
 bound the spec sets, and `ScalingTargetMissing` and `DiskPreventsScaling` for the two pairs a
 serverService config may not hold at once (issue #12). `WarningCode` follows the same
 convention one tier down, for a rule that never blocks synthesis — `SecretSkipsPreviews`,
-`UnknownServiceEnvVarKey`, `WebOnlyField` and `InstancesIgnoredByScaling` among them.
+`UnknownServiceEnvVarKey`, `WebOnlyField`, `InstancesIgnoredByScaling` and `UnusedDefault` among
+them.
 
 **Enums.** `erasableSyntaxOnly` bans `enum`. Every closed set is a SCREAMING_SNAKE `as const`
 tuple plus its derived union, in one file; the tuple is exported because validation and tests

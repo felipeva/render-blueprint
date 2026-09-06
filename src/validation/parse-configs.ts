@@ -95,7 +95,7 @@ export const translate = (
 
 // A defaults scope never validates: the merged config is what the schema parses, so a bad default
 // lands on every resource that took it. The resource is the author's coordinate, and the message
-// says the value to fix is the scope's.
+// says the value to change is the scope's.
 const fromScope = (issue: ValidationIssue, applied: readonly AppliedDefault[]): ValidationIssue =>
   applied.some((entry) => entry.field === issue.at.field)
     ? {
