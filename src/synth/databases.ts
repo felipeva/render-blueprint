@@ -73,6 +73,7 @@ const databaseNode = (resource: BlueprintResource): YAMLMap | undefined => {
       return database(resource);
     case 'web':
     case 'staticSite':
+    case 'envGroup':
       return undefined;
   }
 };

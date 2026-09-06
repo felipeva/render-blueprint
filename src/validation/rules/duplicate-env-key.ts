@@ -1,28 +1,18 @@
-import { resolveEnv } from '../../env/resolve-env.js';
-import { resourceEnv, type BlueprintResource } from '../../resources/resource.js';
+import type { BlueprintResource } from '../../resources/resource.js';
+import { describeGroups, envKeyOrigins } from '../env-key-origins.js';
 import type { ValidationIssue } from '../issue.js';
 
+// An environment map cannot repeat a key, so a repeat reaches a service through its group imports.
+// The issue is reported against envGroups, because the resource itself declares no such key.
 export const duplicateEnvKey = (
   resources: readonly BlueprintResource[],
-): readonly ValidationIssue[] => {
-  const issues: ValidationIssue[] = [];
-
-  for (const resource of resources) {
-    const env = resourceEnv(resource);
-    if (env === undefined) continue;
-
-    const seen = new Set<string>();
-    for (const entry of resolveEnv(env)) {
-      if (seen.has(entry.key)) {
-        issues.push({
-          code: 'DuplicateEnvKey',
-          at: { resource: resource.name, field: `env.${entry.key}` },
-          message: `The environment variable "${entry.key}" is declared more than once on "${resource.name}". Render has no precedence rule for a repeated key, so declare it once.`,
-        });
-      }
-      seen.add(entry.key);
-    }
-  }
-
-  return issues;
-};
+): readonly ValidationIssue[] =>
+  envKeyOrigins(resources).flatMap(({ resource, origins }) =>
+    origins
+      .filter((origin) => !origin.direct && origin.groups.length > 1)
+      .map((origin): ValidationIssue => ({
+        code: 'DuplicateEnvKey',
+        at: { resource: resource.name, field: 'envGroups' },
+        message: `The environment variable "${origin.key}" reaches "${resource.name}" from the environment ${describeGroups(origin.groups)}. Render has no precedence rule for a repeated key, so declare it in one group.`,
+      })),
+  );

@@ -1,7 +1,7 @@
 import type { JsonValue } from '../json.js';
 import type { BlueprintResource } from '../resources/resource.js';
 
-export const DEPRECATION_SCOPES = ['root', 'service', 'datastore'] as const;
+export const DEPRECATION_SCOPES = ['root', 'service', 'datastore', 'envGroup'] as const;
 
 export type DeprecationScope = (typeof DEPRECATION_SCOPES)[number];
 
@@ -28,6 +28,9 @@ export const deprecation = (
   value: JsonValue,
   scope: DeprecationScope,
 ): Deprecation | undefined => {
+  // spec §6.1: a group carries a name and its variables, so no retired field of §13 is one of
+  // its fields; naming a replacement for a field a group never had would misdirect the author.
+  if (scope === 'envGroup') return undefined;
   if (scope === 'datastore' && CURRENT_ON_A_DATASTORE.has(key)) return undefined;
 
   const replacement = REPLACEMENTS.get(key);
@@ -42,5 +45,7 @@ export const deprecationScope = (kind: BlueprintResource['kind']): DeprecationSc
       return 'service';
     case 'postgres':
       return 'datastore';
+    case 'envGroup':
+      return 'envGroup';
   }
 };

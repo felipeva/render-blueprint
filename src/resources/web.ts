@@ -7,6 +7,7 @@ import { nativeRuntimeSchema, type NativeRuntime } from '../enums/runtime.js';
 import type { EnvironmentMap } from '../env/env-value.js';
 import type { Equal, Expect } from '../equal.js';
 import type { JsonObject } from '../json.js';
+import type { EnvironmentGroup } from './env-group.js';
 import { optionalCommonServiceFields } from './service-fields.js';
 
 export type HealthCheckPath = `/${string}`;
@@ -24,6 +25,7 @@ export interface WebConfig {
   readonly preDeployCommand?: string;
   readonly autoDeployTrigger?: AutoDeployTrigger;
   readonly env?: EnvironmentMap;
+  readonly envGroups?: readonly EnvironmentGroup[];
   readonly extraFields?: JsonObject;
 }
 

@@ -62,8 +62,10 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   ├── env/                         env values and the map→list problem
 │   │   ├── env-value.ts             EnvValue, EnvGroupValue, EnvironmentMap, EnvGroupEnvironment
 │   │   ├── literal.ts  secret.ts  generated.ts   the three "value lives elsewhere" sentinels
-│   │   └── resolve-env.ts           map | (self)=>map + envGroups → ordered entries; detects the
-│                                    group/direct collision and duplicate keys (ADR-0001, from D)
+│   │   └── resolve-env.ts           map | (self)=>map + envGroups → ordered entries, one per env
+│                                    var form. The group/direct collision and the duplicate key are
+│                                    validation/env-key-origins.ts (ADR-0001, from D), which
+│                                    resolves an imported group by name the way Render does
 │   ├── resources/                   one factory per kind; each returns an inert value
 │   │   ├── service-fields.ts        the shared maps of common repo-sourced service fields, required and
 │   │   │                            exact-optional forms; factories spread them (ADR-0003, issue #20)

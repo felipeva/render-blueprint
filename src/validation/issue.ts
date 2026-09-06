@@ -5,6 +5,7 @@ export const VALIDATION_CODES = [
   'CyclicExtraFields',
   'DuplicateResourceName',
   'DuplicateEnvKey',
+  'EnvKeyCollision',
   'ExtraFieldConflict',
   'DeprecatedField',
   'ResourceInMultipleLocations',
@@ -20,6 +21,7 @@ export const WARNING_CODES = [
   'MissingStartCommand',
   'MissingStaticPublishPath',
   'BranchDisablesPreviews',
+  'SecretSkipsPreviews',
 ] as const;
 
 export type WarningCode = (typeof WARNING_CODES)[number];

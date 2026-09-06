@@ -4,6 +4,7 @@ import { autoDeployTriggerSchema, type AutoDeployTrigger } from '../enums/auto-d
 import { environmentMapSchema, type EnvironmentMap } from '../env/env-value.js';
 import { jsonObjectSchema, type JsonObject } from '../json.js';
 import { raise } from '../raise.js';
+import { environmentGroupSchema, type EnvironmentGroup } from './env-group.js';
 
 const rootDirSchema: z.ZodString = z.string().superRefine((value, ctx) => {
   // spec §4.1 makes rootDir relative to the repository root. INFERRED: the schema does not.
@@ -25,6 +26,7 @@ export interface CommonServiceFields {
   readonly preDeployCommand: z.ZodString;
   readonly autoDeployTrigger: z.ZodEnum<z.core.util.ToEnum<AutoDeployTrigger>>;
   readonly env: z.ZodType<EnvironmentMap>;
+  readonly envGroups: z.ZodReadonly<z.ZodArray<z.ZodType<EnvironmentGroup>>>;
   readonly extraFields: z.ZodType<JsonObject>;
 }
 
@@ -36,6 +38,7 @@ export const commonServiceFields: CommonServiceFields = {
   preDeployCommand: z.string(),
   autoDeployTrigger: autoDeployTriggerSchema,
   env: environmentMapSchema,
+  envGroups: z.array(environmentGroupSchema).readonly(),
   extraFields: jsonObjectSchema,
 };
 
@@ -51,5 +54,6 @@ export const optionalCommonServiceFields: OptionalCommonServiceFields = {
   preDeployCommand: commonServiceFields.preDeployCommand.exactOptional(),
   autoDeployTrigger: commonServiceFields.autoDeployTrigger.exactOptional(),
   env: commonServiceFields.env.exactOptional(),
+  envGroups: commonServiceFields.envGroups.exactOptional(),
   extraFields: commonServiceFields.extraFields.exactOptional(),
 };

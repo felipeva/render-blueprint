@@ -34,6 +34,7 @@ export const BLUEPRINT_FIELDS = [
   'previews',
   'services',
   'databases',
+  'envVarGroups',
   'projects',
   'ungrouped',
 ] as const;

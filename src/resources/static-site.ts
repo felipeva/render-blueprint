@@ -5,6 +5,7 @@ import { routeTypeSchema, type RouteType } from '../enums/route-type.js';
 import type { EnvironmentMap } from '../env/env-value.js';
 import type { Equal, Expect } from '../equal.js';
 import type { JsonObject } from '../json.js';
+import type { EnvironmentGroup } from './env-group.js';
 import { optionalCommonServiceFields } from './service-fields.js';
 
 export interface Route {
@@ -31,6 +32,7 @@ export interface StaticSiteConfig {
   readonly domains?: readonly string[];
   readonly autoDeployTrigger?: AutoDeployTrigger;
   readonly env?: EnvironmentMap;
+  readonly envGroups?: readonly EnvironmentGroup[];
   readonly extraFields?: JsonObject;
 }
 

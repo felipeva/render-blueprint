@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 
 import { blueprint } from '../blueprint/blueprint.js';
 import type { EnvValue } from '../env/env-value.js';
+import { secret } from '../env/secret.js';
 import type { JsonObject } from '../json.js';
+import { envGroup, type EnvGroupConfig } from '../resources/env-group.js';
 import { postgres, type PostgresConfig } from '../resources/postgres.js';
 import { readReplica } from '../resources/read-replica.js';
 import type { BlueprintResource } from '../resources/resource.js';
@@ -19,6 +21,7 @@ const unchecked: (json: string) => WebConfig = JSON.parse;
 const uncheckedStatic: (json: string) => StaticSiteConfig = JSON.parse;
 const uncheckedDatabase: (json: string) => PostgresConfig = JSON.parse;
 const uncheckedEnvValue: (json: string) => EnvValue = JSON.parse;
+const uncheckedGroup: (json: string) => EnvGroupConfig = JSON.parse;
 const uncheckedName: (json: string) => string = JSON.parse;
 const uncheckedResource: (json: string) => BlueprintResource = JSON.parse;
 
@@ -577,5 +580,128 @@ describe('validate', () => {
     if (!Result.isError(result)) return;
     expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
     expect(result.error.issues[0].at.field).toBe('ipAllowList.0.oops');
+  });
+
+  it('reports a field the library does not model on an environment group', () => {
+    const result = validate(
+      blueprint({
+        resources: [envGroup('shared-settings', uncheckedGroup('{"env":{},"plan":"starter"}'))],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'shared-settings', field: 'plan' });
+  });
+
+  it('reports a secret inside an environment group, which Render ignores there', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          envGroup(
+            'shared-settings',
+            uncheckedGroup('{"env":{"STRIPE_KEY":{"sentinel":"secret"}}}'),
+          ),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['InvalidConfig']);
+    expect(result.error.issues[0].at).toEqual({
+      resource: 'shared-settings',
+      field: 'env.STRIPE_KEY',
+    });
+  });
+
+  it('reports a database reference inside an environment group', () => {
+    const elephant = postgres('elephant', {});
+    const result = validate(
+      blueprint({
+        resources: [
+          elephant,
+          envGroup(
+            'shared-settings',
+            uncheckedGroup(
+              '{"env":{"DATABASE_URL":{"reference":"fromDatabase","name":"elephant","property":"host"}}}',
+            ),
+          ),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['InvalidConfig']);
+    expect(result.error.issues[0].at.field).toBe('env.DATABASE_URL');
+  });
+
+  it('reports a key a service sets directly and imports from a group', () => {
+    const settings = envGroup('shared-settings', { env: { LOG_LEVEL: 'info' } });
+    const result = validate(
+      blueprint({
+        resources: [
+          settings,
+          web('api', {
+            runtime: 'node',
+            buildCommand: 'pnpm build',
+            startCommand: 'pnpm start',
+            env: { LOG_LEVEL: 'debug' },
+            envGroups: [settings],
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['EnvKeyCollision']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'env.LOG_LEVEL' });
+  });
+
+  it('reports a key that reaches a service from two imported groups', () => {
+    const settings = envGroup('shared-settings', { env: { LOG_LEVEL: 'info' } });
+    const regional = envGroup('regional', { env: { LOG_LEVEL: 'debug' } });
+    const result = validate(
+      blueprint({
+        resources: [
+          settings,
+          regional,
+          web('api', {
+            runtime: 'node',
+            buildCommand: 'pnpm build',
+            startCommand: 'pnpm start',
+            envGroups: [settings, regional],
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['DuplicateEnvKey']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'envGroups' });
+  });
+
+  it('carries the secret preview warning on an accepted blueprint', () => {
+    const result = validate(
+      blueprint({
+        previews: { generation: 'automatic' },
+        resources: [
+          web('api', {
+            runtime: 'node',
+            buildCommand: 'pnpm build',
+            startCommand: 'pnpm start',
+            env: { STRIPE_KEY: secret() },
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isOk(result)).toBe(true);
+    if (!Result.isOk(result)) return;
+    expect(result.value.warnings.map((warning) => warning.code)).toEqual(['SecretSkipsPreviews']);
   });
 });

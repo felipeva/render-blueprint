@@ -2,13 +2,14 @@ import type { RootPreviews } from '../../blueprint/blueprint.js';
 import type { BlueprintResource } from '../../resources/resource.js';
 import type { ValidationWarning } from '../issue.js';
 
-// spec §9: a database has no repo, so no branch pins it.
+// spec §9: a database has no repo, and spec §6.1 gives a group none either, so no branch pins one.
 const branchOf = (resource: BlueprintResource): string | undefined => {
   switch (resource.kind) {
     case 'web':
     case 'staticSite':
       return resource.config.branch;
     case 'postgres':
+    case 'envGroup':
       return undefined;
   }
 };

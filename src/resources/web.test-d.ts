@@ -1,5 +1,7 @@
 import { describe, expectTypeOf, it } from 'vitest';
 
+import { envGroup } from './env-group.js';
+import { postgres } from './postgres.js';
 import { web, WEB_CONFIG_SCHEMA_MATCHES_INTERFACE, type WebService } from './web.js';
 
 describe('web', () => {
@@ -25,6 +27,17 @@ describe('web', () => {
   it('rejects a runtime outside the native set', () => {
     // @ts-expect-error `docker` is not a native runtime.
     web('api', { runtime: 'docker' });
+  });
+
+  it('takes the environment groups it imports', () => {
+    expectTypeOf(
+      web('api', { runtime: 'node', envGroups: [envGroup('shared-settings', { env: {} })] }),
+    ).toEqualTypeOf<WebService>();
+  });
+
+  it('rejects a resource that is not an environment group among the groups it imports', () => {
+    // @ts-expect-error only an EnvironmentGroup carries the kind envGroups accepts.
+    web('api', { runtime: 'node', envGroups: [postgres('elephant', {})] });
   });
 
   it('rejects an explicit undefined on an optional field', () => {

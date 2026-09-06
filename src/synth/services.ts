@@ -31,7 +31,7 @@ const webService = (resource: WebService): YAMLMap => {
       buildCommand: config.buildCommand,
       startCommand: config.startCommand,
       preDeployCommand: config.preDeployCommand,
-      envVars: config.env === undefined ? undefined : envVars(config.env),
+      envVars: envVars(config.env, config.envGroups),
       autoDeployTrigger: config.autoDeployTrigger,
     },
     config.extraFields,
@@ -84,7 +84,7 @@ const staticSiteService = (resource: StaticSite): YAMLMap => {
       staticPublishPath: config.staticPublishPath,
       headers: config.headers === undefined ? undefined : headers(config.headers),
       routes: config.routes === undefined ? undefined : routes(config.routes),
-      envVars: config.env === undefined ? undefined : envVars(config.env),
+      envVars: envVars(config.env, config.envGroups),
       rootDir: config.rootDir,
       repo: config.repo,
       branch: config.branch,
@@ -103,6 +103,7 @@ const serviceNode = (resource: BlueprintResource): YAMLMap | undefined => {
     case 'staticSite':
       return staticSiteService(resource);
     case 'postgres':
+    case 'envGroup':
       return undefined;
   }
 };
