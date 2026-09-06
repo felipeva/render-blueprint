@@ -46,3 +46,10 @@ and `noUncheckedIndexedAccess` established:
 - Factories stay total; parsing happens at validation, so construction never fails.
 - The interface remains the readable contract in declarations; the schema is the executable one.
 - Adding a config field means editing both the interface and the schema; the guard enforces it.
+- Parse functions take the config's static type, not `unknown`, because anti-slop forbids
+  `unknown` parameters. The runtime parse is the guarantee regardless of the static type. The
+  one place untyped data enters, the CLI's dynamic import of the user's blueprint, annotates the
+  loaded value under a `SAFETY:` comment and relies on `validate` to parse every config.
+- The health check path rule is carried by `z.templateLiteral`, which infers the same type as
+  the interface. A refinement would infer `string` and break the identity guard, so refinements
+  are reserved for value rules the type system cannot express.
