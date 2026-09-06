@@ -153,6 +153,39 @@ describe('parseWebConfig', () => {
     ).toEqual([]);
   });
 
+  it('reports a disk mounted on a path Render reserves', () => {
+    expect(
+      raisedIssues({ runtime: 'node', disk: { name: 'uploads', mountPath: '/etc/secrets' } }),
+    ).toEqual([{ validationCode: 'MountPathDisallowed', path: ['disk', 'mountPath'] }]);
+  });
+
+  it('reports a disk mounted on the repository root, the first path spec §4.4 names', () => {
+    expect(raisedIssues({ runtime: 'node', disk: { name: 'uploads', mountPath: '/' } })).toEqual([
+      { validationCode: 'MountPathDisallowed', path: ['disk', 'mountPath'] },
+    ]);
+  });
+
+  it('accepts a directory under a reserved path, which spec §4.4 allows', () => {
+    expect(
+      issueCodes({
+        runtime: 'node',
+        disk: { name: 'uploads', mountPath: '/opt/render/project/src/uploads' },
+      }),
+    ).toEqual([]);
+  });
+
+  it('accepts a mount path no reserved path spells exactly', () => {
+    expect(
+      issueCodes({ runtime: 'node', disk: { name: 'uploads', mountPath: '/var/data' } }),
+    ).toEqual([]);
+  });
+
+  it('accepts a relative mount path, because spec §4.4 bounds the paths and not their form', () => {
+    expect(issueCodes({ runtime: 'node', disk: { name: 'uploads', mountPath: 'data' } })).toEqual(
+      [],
+    );
+  });
+
   it('reports a disk beside autoscaling on the scaling field', () => {
     expect(raisedIssues({ runtime: 'node', disk: DISK, scaling: SCALING })).toEqual([
       { validationCode: 'DiskPreventsScaling', path: ['scaling'] },

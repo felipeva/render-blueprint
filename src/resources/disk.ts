@@ -16,13 +16,37 @@ export interface Disk {
 // Emission order follows the schema's disk property order.
 export const DISK_FIELDS = ['name', 'mountPath', 'sizeGB'] as const;
 
+// spec §4.4: the nine paths Render refuses to mount a disk on. The list is of exact paths, so a
+// directory under one of them is allowed and nothing here reads a prefix.
+const DISALLOWED_MOUNT_PATHS: ReadonlySet<string> = new Set([
+  '/',
+  '/opt',
+  '/opt/render',
+  '/opt/render/project',
+  '/opt/render/project/src',
+  '/home',
+  '/home/render',
+  '/etc',
+  '/etc/secrets',
+]);
+
 const diskObject = z
   .strictObject({
     name: z.string(),
     mountPath: z.string(),
     sizeGB: boundedInteger({ subject: 'A disk size in GB', min: 1 }).exactOptional(),
   })
-  .readonly();
+  .readonly()
+  .superRefine((value, ctx) => {
+    if (DISALLOWED_MOUNT_PATHS.has(value.mountPath)) {
+      raise(
+        ctx,
+        'MountPathDisallowed',
+        `Render reserves "${value.mountPath}" and mounts no disk there; a directory under it is allowed.`,
+        ['mountPath'],
+      );
+    }
+  });
 
 type DiskSchemaMatchesInterface = Expect<Equal<z.infer<typeof diskObject>, Disk>>;
 

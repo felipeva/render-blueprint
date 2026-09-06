@@ -986,6 +986,26 @@ describe('validate', () => {
     expect(result.error.issues[0].at).toEqual({ resource: 'auth', field: 'scaling' });
   });
 
+  it('reports a disk on a path Render reserves under its own code', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', {
+            runtime: 'node',
+            buildCommand: 'pnpm build',
+            startCommand: 'pnpm start',
+            disk: { name: 'uploads', mountPath: '/etc' },
+          }),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['MountPathDisallowed']);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'disk.mountPath' });
+  });
+
   it('reports a scaling target above 90 as out of range', () => {
     const result = validate(
       blueprint({

@@ -17,6 +17,7 @@ export const VALIDATION_CODES = [
   'ScalingRangeInverted',
   'ScalingTargetMissing',
   'DiskPreventsScaling',
+  'MountPathDisallowed',
 ] as const;
 
 export type ValidationCode = (typeof VALIDATION_CODES)[number];
