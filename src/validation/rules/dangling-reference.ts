@@ -30,7 +30,7 @@ export const danglingReference = (parsed: ParsedConfigs): readonly ValidationIss
     const env = resourceEnv(resource);
     if (env === undefined) continue;
 
-    for (const entry of resolveEnv(env)) {
+    for (const entry of resolveEnv(env, undefined)) {
       if (entry.form !== 'fromDatabase' || targets.has(entry.reference.name)) continue;
 
       issues.push({

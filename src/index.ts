@@ -15,8 +15,21 @@ export type { NativeRuntime } from './enums/runtime.js';
 export type { DatabaseReferenceValue } from './references/reference-value.js';
 export type { PostgresReference } from './references/postgres-reference.js';
 
-export type { EnvironmentMap, EnvValue } from './env/env-value.js';
+export type {
+  EnvGroupEnvironment,
+  EnvGroupValue,
+  EnvironmentMap,
+  EnvValue,
+} from './env/env-value.js';
+export { generated } from './env/generated.js';
+export type { GeneratedValue } from './env/generated.js';
+export { literal } from './env/literal.js';
+export type { LiteralOptions, LiteralValue } from './env/literal.js';
+export { secret } from './env/secret.js';
+export type { SecretValue } from './env/secret.js';
 
+export { envGroup } from './resources/env-group.js';
+export type { EnvGroupConfig, EnvironmentGroup } from './resources/env-group.js';
 export { staticSite } from './resources/static-site.js';
 export type { Header, Route, StaticSite, StaticSiteConfig } from './resources/static-site.js';
 export { web } from './resources/web.js';

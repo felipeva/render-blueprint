@@ -14,6 +14,7 @@ import { danglingReference } from './rules/dangling-reference.js';
 import { deprecatedField } from './rules/deprecated-field.js';
 import { duplicateEnvKey } from './rules/duplicate-env-key.js';
 import { duplicateResourceName } from './rules/duplicate-resource-name.js';
+import { envKeyCollision } from './rules/env-key-collision.js';
 import { extraFieldConflict } from './rules/extra-field-conflict.js';
 import { missingBuildCommand } from './rules/missing-build-command.js';
 import { missingStartCommand } from './rules/missing-start-command.js';
@@ -21,6 +22,7 @@ import { missingStaticPublishPath } from './rules/missing-static-publish-path.js
 import { resourceInMultipleLocations } from './rules/resource-in-multiple-locations.js';
 import { rootDeprecatedField } from './rules/root-deprecated-field.js';
 import { rootExtraFieldConflict } from './rules/root-extra-field-conflict.js';
+import { secretSkipsPreviews } from './rules/secret-skips-previews.js';
 
 export interface ValidatedBlueprint {
   readonly previews: RootPreviews | undefined;
@@ -37,7 +39,12 @@ const PLACEMENT_RULES = [resourceInMultipleLocations] as const;
 
 const NAME_RULES = [duplicateResourceName] as const;
 
-const CONFIG_RULES = [duplicateEnvKey, extraFieldConflict, deprecatedField] as const;
+const CONFIG_RULES = [
+  duplicateEnvKey,
+  envKeyCollision,
+  extraFieldConflict,
+  deprecatedField,
+] as const;
 
 const WARNING_RULES = [missingBuildCommand, missingStartCommand, missingStaticPublishPath] as const;
 
@@ -67,6 +74,7 @@ export const validate = (value: Blueprint): ResultType<ValidatedBlueprint, Bluep
         warnings: [
           ...WARNING_RULES.flatMap((rule) => rule(parsed.accepted)),
           ...branchDisablesPreviews(value.previews, parsed.accepted),
+          ...secretSkipsPreviews(value.previews, parsed.accepted),
         ],
       })
     : Result.err(new BlueprintInvalid({ issues: [first, ...rest] }));

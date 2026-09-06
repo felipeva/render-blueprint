@@ -3,6 +3,11 @@ import * as z from 'zod';
 import type { EnvironmentMap } from '../env/env-value.js';
 import type { Equal, Expect } from '../equal.js';
 import {
+  ENVIRONMENT_GROUP_FIELDS,
+  parseEnvGroupConfig,
+  type EnvironmentGroup,
+} from './env-group.js';
+import {
   parsePostgresConfig,
   POSTGRES_DATABASE_FIELDS,
   type PostgresDatabase,
@@ -10,9 +15,9 @@ import {
 import { parseStaticSiteConfig, STATIC_SITE_FIELDS, type StaticSite } from './static-site.js';
 import { parseWebConfig, WEB_SERVICE_FIELDS, type WebService } from './web.js';
 
-export type BlueprintResource = WebService | StaticSite | PostgresDatabase;
+export type BlueprintResource = WebService | StaticSite | PostgresDatabase | EnvironmentGroup;
 
-export const RESOURCE_KINDS = ['web', 'staticSite', 'postgres'] as const;
+export const RESOURCE_KINDS = ['web', 'staticSite', 'postgres', 'envGroup'] as const;
 
 type ResourceKind = (typeof RESOURCE_KINDS)[number];
 
@@ -28,6 +33,8 @@ export const modeledFields = (resource: BlueprintResource): readonly string[] =>
       return STATIC_SITE_FIELDS;
     case 'postgres':
       return POSTGRES_DATABASE_FIELDS;
+    case 'envGroup':
+      return ENVIRONMENT_GROUP_FIELDS;
   }
 };
 
@@ -39,6 +46,23 @@ export const resourceEnv = (resource: BlueprintResource): EnvironmentMap | undef
     case 'staticSite':
       return resource.config.env;
     case 'postgres':
+      return undefined;
+    case 'envGroup':
+      return resource.config.env;
+  }
+};
+
+// spec §6.1: only a service imports a group, and a group never imports another one.
+export const resourceEnvGroups = (
+  resource: BlueprintResource,
+): readonly EnvironmentGroup[] | undefined => {
+  switch (resource.kind) {
+    case 'web':
+      return resource.config.envGroups;
+    case 'staticSite':
+      return resource.config.envGroups;
+    case 'postgres':
+    case 'envGroup':
       return undefined;
   }
 };
@@ -75,6 +99,10 @@ export const resourceConfigIssues = (resource: BlueprintResource): readonly z.co
     }
     case 'postgres': {
       const result = parsePostgresConfig(resource.config);
+      return result.success ? [] : result.error.issues;
+    }
+    case 'envGroup': {
+      const result = parseEnvGroupConfig(resource.config);
       return result.success ? [] : result.error.issues;
     }
   }

@@ -1,7 +1,7 @@
 import type { JsonValue } from '../json.js';
 import type { BlueprintResource } from '../resources/resource.js';
 
-export const DEPRECATION_SCOPES = ['root', 'service', 'datastore'] as const;
+export const DEPRECATION_SCOPES = ['root', 'service', 'datastore', 'envGroup'] as const;
 
 export type DeprecationScope = (typeof DEPRECATION_SCOPES)[number];
 
@@ -42,5 +42,7 @@ export const deprecationScope = (kind: BlueprintResource['kind']): DeprecationSc
       return 'service';
     case 'postgres':
       return 'datastore';
+    case 'envGroup':
+      return 'envGroup';
   }
 };

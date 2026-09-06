@@ -6,7 +6,8 @@ interface BuiltFromSource {
   readonly buildCommand: string | undefined;
 }
 
-// spec §9: a database is not built from source, so no build command applies to one.
+// spec §9: a database is not built from source, and neither is a group, so no build command
+// applies to either.
 const builtFromSource = (resource: BlueprintResource): BuiltFromSource | undefined => {
   switch (resource.kind) {
     case 'web':
@@ -14,6 +15,7 @@ const builtFromSource = (resource: BlueprintResource): BuiltFromSource | undefin
     case 'staticSite':
       return { runtime: 'static', buildCommand: resource.config.buildCommand };
     case 'postgres':
+    case 'envGroup':
       return undefined;
   }
 };
