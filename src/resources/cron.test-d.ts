@@ -35,8 +35,11 @@ describe('cron', () => {
   });
 
   it('rejects a plan the cron table does not carry', () => {
-    // @ts-expect-error spec §8.1: the cronPlan enum has no `free` and no 12c tier.
+    // @ts-expect-error spec §8.1: the cronPlan enum has no `free`.
     cron('nightly', { runtime: 'node', schedule: '0 2 * * *', plan: 'free' });
+
+    // @ts-expect-error spec §8.1: the cron table tops out at 8c-64g, so no 12c tier is in it.
+    cron('nightly', { runtime: 'node', schedule: '0 2 * * *', plan: '12c-24g' });
   });
 
   it('rejects the address properties a cron job does not answer on', () => {
@@ -57,12 +60,12 @@ describe('cron', () => {
     ).toEqualTypeOf<CronJob>();
   });
 
-  it('rejects a repository beside a prebuilt image', () => {
+  it('rejects a root directory beside a prebuilt image', () => {
     cron('nightly', {
       runtime: 'image',
       schedule: '0 2 * * *',
       image: { url: 'docker.io/acme/report:1.0.0' },
-      // @ts-expect-error spec §4.3: image and repo are the two alternative sources.
+      // @ts-expect-error spec §4.3: a prebuilt image names no repository to take a directory in.
       rootDir: './report',
     });
   });
@@ -74,6 +77,15 @@ describe('cron self-reference', () => {
       runtime: 'node',
       schedule: '0 2 * * *',
       env: (self) => ({ SELF_NAME: self.renderVar('RENDER_SERVICE_NAME') }),
+    });
+  });
+
+  it('rejects an address property on the self handle', () => {
+    cron('nightly', {
+      runtime: 'node',
+      schedule: '0 2 * * *',
+      // @ts-expect-error spec §6.2: a cron job answers on no address, so `self.host` is not a member.
+      env: (self) => ({ SELF_HOST: self.host }),
     });
   });
 });

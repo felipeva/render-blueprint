@@ -50,11 +50,11 @@ describe('privateService', () => {
     ).toEqualTypeOf<PrivateService>();
   });
 
-  it('rejects a repository beside a prebuilt image', () => {
+  it('rejects a branch beside a prebuilt image', () => {
     privateService('auth', {
       runtime: 'image',
       image: { url: 'docker.io/acme/auth:1.4.2' },
-      // @ts-expect-error spec §4.3: image and repo are the two alternative sources.
+      // @ts-expect-error spec §4.3: a prebuilt image pins its version in the url, not on a branch.
       branch: 'main',
     });
   });
