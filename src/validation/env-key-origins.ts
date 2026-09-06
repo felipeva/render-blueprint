@@ -12,15 +12,17 @@ export interface ResourceEnvKeyOrigins {
   readonly origins: readonly EnvKeyOrigin[];
 }
 
-export const describeGroups = (names: readonly string[]): string => {
+// One quoted list, one conjunction, wherever a message names several things the author wrote.
+export const describeNames = (names: readonly string[]): string => {
   const quoted = names.map((name) => `"${name}"`);
   const last = quoted.at(-1) ?? '';
   const rest = quoted.slice(0, -1);
 
-  return `${names.length === 1 ? 'group' : 'groups'} ${
-    rest.length === 0 ? last : `${rest.join(', ')} and ${last}`
-  }`;
+  return rest.length === 0 ? last : `${rest.join(', ')} and ${last}`;
 };
+
+export const describeGroups = (names: readonly string[]): string =>
+  `${names.length === 1 ? 'group' : 'groups'} ${describeNames(names)}`;
 
 const listedGroups = (
   resources: readonly BlueprintResource[],

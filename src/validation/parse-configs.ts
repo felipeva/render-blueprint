@@ -1,8 +1,10 @@
 import type * as z from 'zod';
 
+import type { AppliedDefault } from '../resources/defaults-provenance.js';
 import {
   parseResourceName,
   resourceConfigIssues,
+  resourceDefaults,
   resourceEntryIssues,
   resourceEnvIsCallback,
   resourceEnvIssues,
@@ -91,6 +93,17 @@ export const translate = (
   ];
 };
 
+// A defaults scope never validates: the merged config is what the schema parses, so a bad default
+// lands on every resource that took it. The resource is the author's coordinate, and the message
+// says the value to change is the scope's.
+const fromScope = (issue: ValidationIssue, applied: readonly AppliedDefault[]): ValidationIssue =>
+  applied.some((entry) => entry.field === issue.at.field)
+    ? {
+        ...issue,
+        message: `${issue.message} "${issue.at.resource}" takes "${issue.at.field}" from a defaults scope, so the value to change is the scope's.`,
+      }
+    : issue;
+
 export const parseConfigs = (resources: readonly BlueprintResource[]): ParsedConfigs => {
   const issues: ValidationIssue[] = [];
   const named: BlueprintResource[] = [];
@@ -114,9 +127,12 @@ export const parseConfigs = (resources: readonly BlueprintResource[]): ParsedCon
       onConfig.length === 0 || !resourceEnvIsCallback(resource) ? resourceEnvIssues(resource) : [];
 
     const runtime = sourceRuntime(resource);
+    const applied = resourceDefaults(resource)?.applied ?? [];
 
     for (const issue of onName) issues.push(...translate(name, ['name'], issue));
-    for (const issue of onConfig) issues.push(...translate(name, [], issue, runtime));
+    for (const issue of onConfig) {
+      issues.push(...translate(name, [], issue, runtime).map((entry) => fromScope(entry, applied)));
+    }
     for (const issue of onEnv) issues.push(...translate(name, ['env'], issue));
 
     if (onName.length === 0) named.push(resource);

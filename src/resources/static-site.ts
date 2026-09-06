@@ -11,6 +11,7 @@ import {
   type OpaqueServiceReference,
 } from '../references/opaque-service-reference.js';
 import type { BuildFilter } from './build-filter.js';
+import type { DefaultsProvenance } from './defaults-provenance.js';
 import type { EnvironmentGroup } from './env-group.js';
 import { optionalCommonServiceFields } from './service-fields.js';
 
@@ -54,6 +55,7 @@ export interface StaticSite extends OpaqueServiceReference {
   readonly kind: 'staticSite';
   readonly name: string;
   readonly config: StaticSiteConfig;
+  readonly defaults?: DefaultsProvenance;
 }
 
 // Emission order follows the schema's staticService property order.

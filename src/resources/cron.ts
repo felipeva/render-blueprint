@@ -11,6 +11,7 @@ import {
   type OpaqueServiceReference,
 } from '../references/opaque-service-reference.js';
 import type { BuildFilter } from './build-filter.js';
+import type { DefaultsProvenance } from './defaults-provenance.js';
 import type { EnvironmentGroup } from './env-group.js';
 import { optionalSourcedServiceFields } from './service-fields.js';
 import {
@@ -52,6 +53,7 @@ export interface CronJob extends OpaqueServiceReference {
   readonly kind: 'cron';
   readonly name: string;
   readonly config: CronConfig;
+  readonly defaults?: DefaultsProvenance;
 }
 
 // Emission order follows the schema's cronService property order.

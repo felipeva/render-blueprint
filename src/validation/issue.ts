@@ -31,6 +31,7 @@ export const WARNING_CODES = [
   'UnknownServiceEnvVarKey',
   'WebOnlyField',
   'InstancesIgnoredByScaling',
+  'UnusedDefault',
 ] as const;
 
 export type WarningCode = (typeof WARNING_CODES)[number];
