@@ -15,6 +15,31 @@ describe('external', () => {
     blueprint({ resources: [external.postgres('legacy-db')] });
   });
 
+  it('rejects an external web service in the resource list', () => {
+    // @ts-expect-error an external handle carries no kind, so it is no BlueprintResource.
+    blueprint({ resources: [external.web('site')] });
+  });
+
+  it('rejects an external worker in the resource list', () => {
+    // @ts-expect-error an external handle carries no kind, so it is no BlueprintResource.
+    blueprint({ resources: [external.worker('jobs')] });
+  });
+
+  it('rejects an external cron job in the resource list', () => {
+    // @ts-expect-error an external handle carries no kind, so it is no BlueprintResource.
+    blueprint({ resources: [external.cron('nightly')] });
+  });
+
+  it('rejects an external static site in the resource list', () => {
+    // @ts-expect-error an external handle carries no kind, so it is no BlueprintResource.
+    blueprint({ resources: [external.staticSite('docs')] });
+  });
+
+  it('rejects an external Key Value instance in the resource list', () => {
+    // @ts-expect-error an external handle carries no kind, so it is no BlueprintResource.
+    blueprint({ resources: [external.keyValue('shared-cache')] });
+  });
+
   it('rejects the host property on a worker handle', () => {
     // @ts-expect-error spec §6.2: host belongs to web and private services alone.
     web('api', { runtime: 'node', env: { JOBS_HOST: external.worker('jobs').host } });
