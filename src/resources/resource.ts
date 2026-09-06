@@ -1,12 +1,18 @@
 import * as z from 'zod';
 
+import type { EnvironmentMap } from '../env/env-value.js';
 import type { Equal, Expect } from '../equal.js';
+import {
+  parsePostgresConfig,
+  POSTGRES_DATABASE_FIELDS,
+  type PostgresDatabase,
+} from './postgres.js';
 import { parseStaticSiteConfig, STATIC_SITE_FIELDS, type StaticSite } from './static-site.js';
 import { parseWebConfig, WEB_SERVICE_FIELDS, type WebService } from './web.js';
 
-export type BlueprintResource = WebService | StaticSite;
+export type BlueprintResource = WebService | StaticSite | PostgresDatabase;
 
-export const RESOURCE_KINDS = ['web', 'staticSite'] as const;
+export const RESOURCE_KINDS = ['web', 'staticSite', 'postgres'] as const;
 
 type ResourceKind = (typeof RESOURCE_KINDS)[number];
 
@@ -20,6 +26,20 @@ export const modeledFields = (resource: BlueprintResource): readonly string[] =>
       return WEB_SERVICE_FIELDS;
     case 'staticSite':
       return STATIC_SITE_FIELDS;
+    case 'postgres':
+      return POSTGRES_DATABASE_FIELDS;
+  }
+};
+
+// spec §9: a database carries no envVars, so it is the one kind with no environment map.
+export const resourceEnv = (resource: BlueprintResource): EnvironmentMap | undefined => {
+  switch (resource.kind) {
+    case 'web':
+      return resource.config.env;
+    case 'staticSite':
+      return resource.config.env;
+    case 'postgres':
+      return undefined;
   }
 };
 
@@ -51,6 +71,10 @@ export const resourceConfigIssues = (resource: BlueprintResource): readonly z.co
     }
     case 'staticSite': {
       const result = parseStaticSiteConfig(resource.config);
+      return result.success ? [] : result.error.issues;
+    }
+    case 'postgres': {
+      const result = parsePostgresConfig(resource.config);
       return result.success ? [] : result.error.issues;
     }
   }

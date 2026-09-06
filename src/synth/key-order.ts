@@ -13,3 +13,7 @@ export const ENVIRONMENT_PERMISSIONS_KEY_ORDER = ['protection'] as const;
 export const UNGROUPED_KEY_ORDER = ['services'] as const;
 
 export const ENV_VAR_KEY_ORDER = ['key', 'value'] as const;
+
+export const ENV_VAR_FROM_DATABASE_KEY_ORDER = ['key', 'fromDatabase'] as const;
+
+export const FROM_DATABASE_KEY_ORDER = ['name', 'property'] as const;

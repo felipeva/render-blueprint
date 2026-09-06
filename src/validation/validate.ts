@@ -10,6 +10,7 @@ import type { ValidationWarning } from './issue.js';
 import { parseConfigs } from './parse-configs.js';
 import { parsePlacement } from './parse-placement.js';
 import { branchDisablesPreviews } from './rules/branch-disables-previews.js';
+import { danglingReference } from './rules/dangling-reference.js';
 import { deprecatedField } from './rules/deprecated-field.js';
 import { duplicateEnvKey } from './rules/duplicate-env-key.js';
 import { duplicateResourceName } from './rules/duplicate-resource-name.js';
@@ -36,7 +37,12 @@ const PLACEMENT_RULES = [resourceInMultipleLocations] as const;
 
 const NAME_RULES = [duplicateResourceName] as const;
 
-const CONFIG_RULES = [duplicateEnvKey, extraFieldConflict, deprecatedField] as const;
+const CONFIG_RULES = [
+  duplicateEnvKey,
+  extraFieldConflict,
+  deprecatedField,
+  danglingReference,
+] as const;
 
 const WARNING_RULES = [missingBuildCommand, missingStartCommand, missingStaticPublishPath] as const;
 

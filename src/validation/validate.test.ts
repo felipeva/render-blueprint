@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 
 import { blueprint } from '../blueprint/blueprint.js';
 import type { JsonObject } from '../json.js';
+import { postgres, type PostgresConfig } from '../resources/postgres.js';
+import { readReplica } from '../resources/read-replica.js';
 import type { BlueprintResource } from '../resources/resource.js';
 import { staticSite, type StaticSiteConfig } from '../resources/static-site.js';
 import { web, type WebConfig } from '../resources/web.js';
@@ -14,6 +16,7 @@ import { validate } from './validate.js';
 // deliberately stronger than the value — the gap ADR-0003 gives the schemas to close.
 const unchecked: (json: string) => WebConfig = JSON.parse;
 const uncheckedStatic: (json: string) => StaticSiteConfig = JSON.parse;
+const uncheckedDatabase: (json: string) => PostgresConfig = JSON.parse;
 const uncheckedName: (json: string) => string = JSON.parse;
 const uncheckedResource: (json: string) => BlueprintResource = JSON.parse;
 
@@ -395,5 +398,96 @@ describe('validate', () => {
 
   it('accepts a blueprint with no resources', () => {
     expect(Result.isOk(validate(blueprint({})))).toBe(true);
+  });
+
+  it('reports a field the library does not model on a database', () => {
+    const result = validate(
+      blueprint({
+        resources: [postgres('elephant', uncheckedDatabase('{"connectionPool":"none"}'))],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'elephant', field: 'connectionPool' });
+  });
+
+  it('reports high availability below PostgreSQL 13 under its own code', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          postgres('elephant', {
+            postgresMajorVersion: '12',
+            highAvailability: { enabled: true },
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['HighAvailabilityUnsupported']);
+    expect(result.error.issues[0].at).toEqual({
+      resource: 'elephant',
+      field: 'highAvailability',
+    });
+  });
+
+  it('reports a sixth read replica under its own code', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          postgres('elephant', {
+            readReplicas: ['a', 'b', 'c', 'd', 'e', 'f'].map(readReplica),
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['TooManyReadReplicas']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'elephant', field: 'readReplicas' });
+  });
+
+  it('reports a reference to a database the blueprint does not list', () => {
+    const elephant = postgres('elephant');
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', { runtime: 'node', env: { DATABASE_URL: elephant.connectionString } }),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['DanglingReference']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'env.DATABASE_URL' });
+  });
+
+  it('accepts a web service wired to a database the blueprint lists', () => {
+    const elephant = postgres('elephant', { readReplicas: [readReplica('elephant-replica')] });
+    const replica = readReplica('elephant-replica');
+
+    expect(
+      Result.isOk(
+        validate(
+          blueprint({
+            resources: [
+              web('api', {
+                runtime: 'node',
+                env: {
+                  DATABASE_URL: elephant.connectionString,
+                  REPLICA_URL: replica.connectionString,
+                },
+              }),
+              elephant,
+            ],
+          }),
+        ),
+      ),
+    ).toBe(true);
   });
 });

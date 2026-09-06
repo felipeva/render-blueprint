@@ -96,19 +96,24 @@ const staticSiteService = (resource: StaticSite): YAMLMap => {
   );
 };
 
-const serviceNode = (resource: BlueprintResource): YAMLMap => {
+const serviceNode = (resource: BlueprintResource): YAMLMap | undefined => {
   switch (resource.kind) {
     case 'web':
       return webService(resource);
     case 'staticSite':
       return staticSiteService(resource);
+    case 'postgres':
+      return undefined;
   }
 };
 
 export const services = (resources: readonly BlueprintResource[]): YAMLSeq | undefined => {
-  if (resources.length === 0) return undefined;
-
   const node = new YAMLSeq();
-  for (const resource of resources) node.add(serviceNode(resource));
-  return node;
+
+  for (const resource of resources) {
+    const service = serviceNode(resource);
+    if (service !== undefined) node.add(service);
+  }
+
+  return node.items.length === 0 ? undefined : node;
 };
