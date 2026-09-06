@@ -19,7 +19,7 @@ Each app declares its own resources in its own file. The root file assembles the
 below are the scenario the test suite freezes at `test/fixtures/canonical/`.
 
 An app exports a function of its dependencies. Every handle it receives keeps its type across the
-file boundary, so `deps.db.connectionString` is a compile-checked reference, and `deps.cache.host`
+file boundary. `deps.db.connectionString` is a compile-checked reference, and `deps.cache.host`
 does not compile.
 
 ```ts
@@ -186,12 +186,14 @@ export default value;
 blueprint does not manage.
 
 Note: the root file imports the app file as `./apps/api/api-service.ts`, with the `.ts` extension.
-Node's type stripping resolves the file you name, and it does not rewrite `.js` to `.ts`.
+Node's type stripping resolves the file you name, and it does not rewrite `.js` to `.ts`. For
+`tsc` to accept that specifier, set `allowImportingTsExtensions` with `noEmit`, or set
+`rewriteRelativeImportExtensions`.
 
 ## Warnings
 
-`render-blueprint synth` reports every issue and every warning at once. A warning does not stop
-the run.
+`render-blueprint synth` reports every issue at once, and every warning at once. A warning does
+not stop the run.
 
 ```console
 $ render-blueprint synth
