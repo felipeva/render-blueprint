@@ -53,3 +53,13 @@ and `noUncheckedIndexedAccess` established:
 - The health check path rule is carried by `z.templateLiteral`, which infers the same type as
   the interface. A refinement would infer `string` and break the identity guard, so refinements
   are reserved for value rules the type system cannot express.
+- Issue reporting is tiered, not flat. Schema issues come first. Rules that read only names run
+  over every resource whose name parsed; rules that read configs run only over resources whose
+  name and config both parsed, because a rule reading an unparsed config can throw. A resource
+  with a schema issue therefore has its config-rule issues deferred until the schema issue is
+  fixed. "Every issue at once" holds within each tier.
+- A refinement carries its own `ValidationCode` through a `validationCode` param on the custom
+  issue, read by the issue translation; the shared helper is the only sanctioned way to raise
+  one.
+- Accepted limitation: a config object with a throwing getter throws inside Zod and reaches the
+  CLI's single `Panic` boundary. Nothing short of copying every input can prevent it.

@@ -103,7 +103,7 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `main` is
 - One package. The CLI is a `bin` entry in it, never a second package.
 - `src/index.ts` is the only public entry and holds re-exports only. Add an export there rather
   than importing across a boundary that does not exist.
-- Imports flow strictly upward: `json`/`enums` → `references` → `env` → `resources` →
+- Imports flow strictly upward: `json`/`enums`/`equal` → `references` → `env` → `resources` →
   `defaults`/`blueprint` → `validation` → `synth` → `fs` → `drift` → `index.ts` → `cli`. No cycles,
   no lateral imports. Nothing imports `src/cli/`; `src/cli/` imports `src/index.ts` and nothing
   else in `src/`. `src/synth/` is the only module that imports `yaml`; `src/fs/` the only one that
@@ -130,6 +130,12 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `main` is
   a schema be reachable from an exported declaration's type, or `isolatedDeclarations` fails.
   `validate` parses configs with the schemas; value rules are refinements; cross-resource rules
   stay rule functions. No schema and no Zod type crosses the public entry. See ADR-0003.
+- Schemas use `z.strictObject`, and every kind has one `UnknownField` runtime test, because the
+  identity guard cannot see strictness: `z.object` infers the same type and silently drops the
+  unknown-field check. Never use `.default()`, `.transform()`, or `z.coerce` in a config schema;
+  the parsed value is discarded and the author's value is emitted verbatim.
+- A refinement raises its issue through the shared helper with a `validationCode` param, so it
+  maps to its own `ValidationCode`; a refinement without one lands as `InvalidConfig`.
 - Capture exit codes, never summaries. The `tsc` wrapper in this environment printed "No errors
   found" on a run whose raw log held a TS6059 error. Judge a gate by `$?` and the tool's own output.
 - Declare a tagged error in the file that produces it, never in a shared errors directory:
