@@ -10,6 +10,7 @@ import {
   opaqueServiceReference,
   type OpaqueServiceReference,
 } from '../references/opaque-service-reference.js';
+import type { BuildFilter } from './build-filter.js';
 import type { EnvironmentGroup } from './env-group.js';
 import { optionalSourcedServiceFields } from './service-fields.js';
 import {
@@ -24,7 +25,8 @@ import {
 const SCHEDULE_ERROR =
   'A cron job runs on a schedule, so `schedule` holds the cron expression Render runs it by.';
 
-// spec §4.8: a cron job has no disk, no scaling, no domains and no previews of its own.
+// spec §4.8: a cron job has no disk, no scaling, no domains and no previews of its own; the build
+// filter is the one field of this slice its schema branch carries.
 interface CronFields {
   readonly schedule: string;
   readonly region?: Region;
@@ -32,6 +34,7 @@ interface CronFields {
   readonly startCommand?: string;
   readonly preDeployCommand?: string;
   readonly autoDeployTrigger?: AutoDeployTrigger;
+  readonly buildFilter?: BuildFilter;
   readonly env?: ServiceEnvironment<OpaqueServiceReference>;
   readonly envGroups?: readonly EnvironmentGroup[];
   readonly extraFields?: JsonObject;
@@ -68,6 +71,7 @@ export const CRON_JOB_FIELDS = [
   'branch',
   'image',
   'envVars',
+  'buildFilter',
   'rootDir',
   'autoDeployTrigger',
   'preDeployCommand',

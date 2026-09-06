@@ -18,6 +18,13 @@ export interface HighAvailability {
   readonly enabled: boolean;
 }
 
+// spec §11: a database has no previews object of its own on Render; design B §2.6 keeps the field
+// uniform across the kinds and renames the two keys on the way out.
+export interface PostgresPreviews {
+  readonly plan?: PostgresPlan;
+  readonly diskSizeGB?: DiskSizeGB;
+}
+
 export interface PostgresConfig {
   readonly region?: Region;
   readonly plan?: PostgresPlan;
@@ -25,6 +32,7 @@ export interface PostgresConfig {
   readonly user?: string;
   readonly postgresMajorVersion?: PostgresMajorVersion;
   readonly diskSizeGB?: DiskSizeGB;
+  readonly previews?: PostgresPreviews;
   readonly highAvailability?: HighAvailability;
   readonly ipAllowList?: IpAllowList;
   readonly readReplicas?: readonly ReadReplica[];
@@ -48,6 +56,8 @@ export const POSTGRES_DATABASE_FIELDS = [
   'region',
   'plan',
   'diskSizeGB',
+  'previewPlan',
+  'previewDiskSizeGB',
   'postgresMajorVersion',
   'highAvailability',
   'ipAllowList',
@@ -68,6 +78,13 @@ const postgresConfigSchema = z
     user: z.string().exactOptional(),
     postgresMajorVersion: postgresMajorVersionSchema.exactOptional(),
     diskSizeGB: diskSizeGBSchema.exactOptional(),
+    previews: z
+      .strictObject({
+        plan: postgresPlanSchema.exactOptional(),
+        diskSizeGB: diskSizeGBSchema.exactOptional(),
+      })
+      .readonly()
+      .exactOptional(),
     highAvailability: z.strictObject({ enabled: z.boolean() }).readonly().exactOptional(),
     ipAllowList: z
       .array(

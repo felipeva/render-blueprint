@@ -63,6 +63,7 @@ describe('parsePostgresConfig', () => {
         user: 'elephant_user',
         postgresMajorVersion: '17',
         diskSizeGB: 35,
+        previews: { plan: 'basic-1gb', diskSizeGB: 5 },
         highAvailability: { enabled: true },
         ipAllowList: [{ source: '203.0.113.4/30', description: 'office' }],
         readReplicas: [readReplica('elephant-replica')],
@@ -77,6 +78,16 @@ describe('parsePostgresConfig', () => {
 
   it('rejects a disk size that is neither 1 nor a multiple of 5', () => {
     expect(issueCodes(unchecked('{"diskSizeGB":33}'))).toEqual(['invalid_value']);
+  });
+
+  it('rejects a preview disk size that is neither 1 nor a multiple of 5', () => {
+    expect(issueCodes(unchecked('{"previews":{"diskSizeGB":33}}'))).toEqual(['invalid_value']);
+  });
+
+  it('rejects a field the library does not model inside previews', () => {
+    expect(issueCodes(unchecked('{"previews":{"generation":"automatic"}}'))).toEqual([
+      'unrecognized_keys',
+    ]);
   });
 
   it('reports high availability below PostgreSQL 13 on the highAvailability field', () => {

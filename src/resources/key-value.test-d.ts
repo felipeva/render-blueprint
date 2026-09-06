@@ -82,3 +82,16 @@ describe('blueprint', () => {
     blueprint({ resources: [keyValue('cache', { ipAllowList: [] })] });
   });
 });
+
+describe('keyValue previews', () => {
+  it('takes a preview plan', () => {
+    expectTypeOf(
+      keyValue('cache', { ipAllowList: [], previews: { plan: 'starter' } }),
+    ).toEqualTypeOf<KeyValueStore>();
+  });
+
+  it('rejects a preview disk size, which only a database overrides', () => {
+    // @ts-expect-error spec §5: a Key Value instance overrides its plan alone in previews.
+    keyValue('cache', { ipAllowList: [], previews: { diskSizeGB: 5 } });
+  });
+});

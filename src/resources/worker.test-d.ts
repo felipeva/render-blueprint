@@ -131,3 +131,28 @@ describe('WORKER_CONFIG_SCHEMA_MATCHES_INTERFACE', () => {
     expectTypeOf(WORKER_CONFIG_SCHEMA_MATCHES_INTERFACE).toEqualTypeOf<true>();
   });
 });
+
+describe('worker disks, scaling and previews', () => {
+  it('takes a disk, autoscaling, a build filter and previews', () => {
+    expectTypeOf(
+      worker('jobs', {
+        runtime: 'node',
+        disk: { name: 'spool', mountPath: '/var/spool' },
+        scaling: { minInstances: 1, maxInstances: 4, targetMemoryPercent: 80 },
+        buildFilter: { paths: ['apps/jobs/**'] },
+        previews: { generation: 'manual', plan: 'starter', instances: 1 },
+        maxShutdownDelaySeconds: 30,
+      }),
+    ).toEqualTypeOf<Worker>();
+  });
+
+  it('rejects the free plan on a preview instance, which a worker is not offered', () => {
+    // @ts-expect-error spec §8.1: a worker runs on the paid server plans.
+    worker('jobs', { runtime: 'node', previews: { plan: 'free' } });
+  });
+
+  it('rejects custom domains, which the prose gives to web services', () => {
+    // @ts-expect-error spec §16 F: domains sits on the shared branch and the prose restricts it.
+    worker('jobs', { runtime: 'node', domains: ['jobs.acme.dev'] });
+  });
+});

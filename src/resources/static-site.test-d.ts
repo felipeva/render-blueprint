@@ -75,3 +75,24 @@ describe('STATIC_SITE_CONFIG_SCHEMA_MATCHES_INTERFACE', () => {
     expectTypeOf(STATIC_SITE_CONFIG_SCHEMA_MATCHES_INTERFACE).toEqualTypeOf<true>();
   });
 });
+
+describe('staticSite previews and build filter', () => {
+  it('takes previews with a generation and a build filter', () => {
+    expectTypeOf(
+      staticSite('marketing', {
+        previews: { generation: 'automatic' },
+        buildFilter: { ignoredPaths: ['docs/**'] },
+      }),
+    ).toEqualTypeOf<StaticSite>();
+  });
+
+  it('rejects a preview plan, because a static site runs on no plan', () => {
+    // @ts-expect-error spec §4.6: staticServicePreviews carries generation alone.
+    staticSite('marketing', { previews: { plan: 'starter' } });
+  });
+
+  it('rejects a disk', () => {
+    // @ts-expect-error spec §4.8: a static site has no disk.
+    staticSite('marketing', { disk: { name: 'uploads', mountPath: '/var/data' } });
+  });
+});

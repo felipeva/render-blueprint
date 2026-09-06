@@ -10,8 +10,12 @@ import {
   httpServiceReference,
   type HttpServiceReference,
 } from '../references/http-service-reference.js';
+import type { BuildFilter } from './build-filter.js';
+import { raiseDiskPreventsScaling, type Disk } from './disk.js';
 import type { EnvironmentGroup } from './env-group.js';
-import { optionalSourcedServiceFields } from './service-fields.js';
+import { servicePreviewsSchema, type ServicePreviews } from './previews.js';
+import type { Scaling } from './scaling.js';
+import { optionalServerServiceFields, optionalSourcedServiceFields } from './service-fields.js';
 import {
   dockerSourceFields,
   imageSourceFields,
@@ -26,9 +30,15 @@ import {
 interface PrivateServiceFields {
   readonly region?: Region;
   readonly plan?: PaidServerPlan;
+  readonly instances?: number;
+  readonly scaling?: Scaling;
   readonly startCommand?: string;
   readonly preDeployCommand?: string;
   readonly autoDeployTrigger?: AutoDeployTrigger;
+  readonly disk?: Disk;
+  readonly buildFilter?: BuildFilter;
+  readonly previews?: ServicePreviews<PaidServerPlan>;
+  readonly maxShutdownDelaySeconds?: number;
   readonly env?: ServiceEnvironment<HttpServiceReference>;
   readonly envGroups?: readonly EnvironmentGroup[];
   readonly extraFields?: JsonObject;
@@ -65,24 +75,34 @@ export const PRIVATE_SERVICE_FIELDS = [
   'dockerCommand',
   'dockerContext',
   'dockerfilePath',
+  'numInstances',
+  'scaling',
   'buildCommand',
   'startCommand',
   'preDeployCommand',
   'envVars',
   'autoDeployTrigger',
+  'disk',
+  'buildFilter',
+  'previews',
+  'maxShutdownDelaySeconds',
 ] as const;
 
 const privateServiceFields = {
   ...optionalSourcedServiceFields,
+  ...optionalServerServiceFields,
   plan: paidServerPlanSchema.exactOptional(),
+  previews: servicePreviewsSchema(paidServerPlanSchema).exactOptional(),
   env: serviceEnvironmentSchema<HttpServiceReference>().exactOptional(),
 };
 
-const privateServiceConfigSchema = z.discriminatedUnion('runtime', [
-  z.strictObject({ ...privateServiceFields, ...nativeSourceFields }).readonly(),
-  z.strictObject({ ...privateServiceFields, ...dockerSourceFields }).readonly(),
-  z.strictObject({ ...privateServiceFields, ...imageSourceFields }).readonly(),
-]);
+const privateServiceConfigSchema = z
+  .discriminatedUnion('runtime', [
+    z.strictObject({ ...privateServiceFields, ...nativeSourceFields }).readonly(),
+    z.strictObject({ ...privateServiceFields, ...dockerSourceFields }).readonly(),
+    z.strictObject({ ...privateServiceFields, ...imageSourceFields }).readonly(),
+  ])
+  .superRefine(raiseDiskPreventsScaling);
 
 type PrivateServiceConfigSchemaMatchesInterface = Expect<
   Equal<z.infer<typeof privateServiceConfigSchema>, PrivateServiceConfig>

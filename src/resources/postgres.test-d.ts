@@ -89,3 +89,16 @@ describe('blueprint', () => {
     blueprint({ resources: [readReplica('elephant-replica')] });
   });
 });
+
+describe('postgres previews', () => {
+  it('takes a preview plan and a preview disk size', () => {
+    expectTypeOf(
+      postgres('elephant', { previews: { plan: 'basic-1gb', diskSizeGB: 5 } }),
+    ).toEqualTypeOf<PostgresDatabase>();
+  });
+
+  it('rejects a preview disk size that is neither 1 nor a multiple of 5', () => {
+    // @ts-expect-error spec §9: a database disk size is 1 GB or a multiple of 5 GB.
+    postgres('elephant', { previews: { diskSizeGB: 7 } });
+  });
+});

@@ -95,3 +95,52 @@ describe('CRON_CONFIG_SCHEMA_MATCHES_INTERFACE', () => {
     expectTypeOf(CRON_CONFIG_SCHEMA_MATCHES_INTERFACE).toEqualTypeOf<true>();
   });
 });
+
+describe('cron disks, scaling and previews', () => {
+  it('takes a build filter, the one field of this set its branch carries', () => {
+    expectTypeOf(
+      cron('nightly', {
+        runtime: 'node',
+        schedule: '0 2 * * *',
+        buildFilter: { paths: ['apps/report/**'] },
+      }),
+    ).toEqualTypeOf<CronJob>();
+  });
+
+  it('rejects a disk', () => {
+    cron('nightly', {
+      runtime: 'node',
+      schedule: '0 2 * * *',
+      // @ts-expect-error spec §4.4: cronService carries no disk.
+      disk: { name: 'spool', mountPath: '/var/spool' },
+    });
+  });
+
+  it('rejects a fixed instance count', () => {
+    // @ts-expect-error spec §4.8: numInstances sits on the serverService branch alone.
+    cron('nightly', { runtime: 'node', schedule: '0 2 * * *', instances: 2 });
+  });
+
+  it('rejects autoscaling', () => {
+    cron('nightly', {
+      runtime: 'node',
+      schedule: '0 2 * * *',
+      // @ts-expect-error spec §4.5: scaling sits on the serverService branch alone.
+      scaling: { minInstances: 1, maxInstances: 3, targetCPUPercent: 70 },
+    });
+  });
+
+  it('rejects previews of its own', () => {
+    cron('nightly', {
+      runtime: 'node',
+      schedule: '0 2 * * *',
+      // @ts-expect-error spec §4.6: cronService carries no previews object.
+      previews: { generation: 'automatic' },
+    });
+  });
+
+  it('rejects a shutdown delay', () => {
+    // @ts-expect-error spec §4.8: maxShutdownDelaySeconds sits on the serverService branch alone.
+    cron('nightly', { runtime: 'node', schedule: '0 2 * * *', maxShutdownDelaySeconds: 30 });
+  });
+});

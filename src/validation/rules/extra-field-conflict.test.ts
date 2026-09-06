@@ -41,7 +41,7 @@ describe('extraFieldConflict', () => {
   it('reports nothing for a key the library does not model', () => {
     expect(
       extraFieldConflict([
-        web('api', { runtime: 'node', extraFields: { maxShutdownDelaySeconds: 60 } }),
+        web('api', { runtime: 'node', extraFields: { initialDeployHook: './seed.sh' } }),
       ]),
     ).toEqual([]);
   });

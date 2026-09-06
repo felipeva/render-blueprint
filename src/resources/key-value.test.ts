@@ -44,9 +44,10 @@ describe('parseKeyValueConfig', () => {
         ipAllowList: [{ source: '203.0.113.4/30', description: 'office' }, { source: '0.0.0.0/0' }],
         region: 'frankfurt',
         plan: 'starter',
+        previews: { plan: 'starter' },
         maxmemoryPolicy: 'volatile-ttl',
         persistenceMode: 'snapshot',
-        extraFields: { previewPlan: 'starter' },
+        extraFields: { connectionString: 'redis://cache:6379' },
       }),
     ).toEqual([]);
   });
@@ -61,6 +62,12 @@ describe('parseKeyValueConfig', () => {
 
   it('rejects a field the library does not model', () => {
     expect(issueCodes(unchecked('{"ipAllowList":[],"previewPlan":"starter"}'))).toEqual([
+      'unrecognized_keys',
+    ]);
+  });
+
+  it('rejects a field the library does not model inside previews', () => {
+    expect(issueCodes(unchecked('{"ipAllowList":[],"previews":{"diskSizeGB":5}}'))).toEqual([
       'unrecognized_keys',
     ]);
   });

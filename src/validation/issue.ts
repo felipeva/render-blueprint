@@ -3,6 +3,7 @@ export const VALIDATION_CODES = [
   'UnknownField',
   'ConflictingSource',
   'RootDirNotRelative',
+  'OutOfRange',
   'CyclicExtraFields',
   'DuplicateResourceName',
   'DuplicateEnvKey',
@@ -13,6 +14,9 @@ export const VALIDATION_CODES = [
   'DanglingReference',
   'HighAvailabilityUnsupported',
   'TooManyReadReplicas',
+  'ScalingRangeInverted',
+  'ScalingTargetMissing',
+  'DiskPreventsScaling',
 ] as const;
 
 export type ValidationCode = (typeof VALIDATION_CODES)[number];
@@ -25,6 +29,7 @@ export const WARNING_CODES = [
   'SecretSkipsPreviews',
   'UnknownServiceEnvVarKey',
   'WebOnlyField',
+  'InstancesIgnoredByScaling',
 ] as const;
 
 export type WarningCode = (typeof WARNING_CODES)[number];

@@ -12,10 +12,17 @@ import { jsonObjectSchema, type JsonObject } from '../json.js';
 import { keyValueReference, type KeyValueReference } from '../references/key-value-reference.js';
 import type { IpAllowList } from './ip-allow-list.js';
 
+// spec §5 and §11: a Key Value instance has no previews object on Render, and previewPlan is the
+// current form there rather than a retired one; design B §2.6 renames the field on the way out.
+export interface KeyValuePreviews {
+  readonly plan?: KeyValuePlan;
+}
+
 export interface KeyValueConfig {
   readonly ipAllowList: IpAllowList;
   readonly region?: Region;
   readonly plan?: KeyValuePlan;
+  readonly previews?: KeyValuePreviews;
   readonly maxmemoryPolicy?: MaxmemoryPolicy;
   readonly persistenceMode?: KeyValuePersistenceMode;
   readonly extraFields?: JsonObject;
@@ -34,6 +41,7 @@ export const KEY_VALUE_STORE_FIELDS = [
   'region',
   'ipAllowList',
   'plan',
+  'previewPlan',
   'maxmemoryPolicy',
   'persistenceMode',
 ] as const;
@@ -48,6 +56,10 @@ const keyValueConfigSchema = z
       .readonly(),
     region: regionSchema.exactOptional(),
     plan: keyValuePlanSchema.exactOptional(),
+    previews: z
+      .strictObject({ plan: keyValuePlanSchema.exactOptional() })
+      .readonly()
+      .exactOptional(),
     maxmemoryPolicy: maxmemoryPolicySchema.exactOptional(),
     persistenceMode: keyValuePersistenceModeSchema.exactOptional(),
     extraFields: jsonObjectSchema.exactOptional(),

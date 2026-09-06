@@ -74,3 +74,28 @@ describe('PRIVATE_SERVICE_CONFIG_SCHEMA_MATCHES_INTERFACE', () => {
     expectTypeOf(PRIVATE_SERVICE_CONFIG_SCHEMA_MATCHES_INTERFACE).toEqualTypeOf<true>();
   });
 });
+
+describe('privateService disks, scaling and previews', () => {
+  it('takes a disk, a fixed instance count, a build filter and previews', () => {
+    expectTypeOf(
+      privateService('auth', {
+        runtime: 'node',
+        instances: 1,
+        disk: { name: 'keys', mountPath: '/var/keys', sizeGB: 5 },
+        buildFilter: { ignoredPaths: ['docs/**'] },
+        previews: { generation: 'automatic', plan: 'starter' },
+        maxShutdownDelaySeconds: 45,
+      }),
+    ).toEqualTypeOf<PrivateService>();
+  });
+
+  it('rejects the free plan on a preview instance, which a private service is not offered', () => {
+    // @ts-expect-error spec §8.1: a private service runs on the paid server plans.
+    privateService('auth', { runtime: 'node', previews: { plan: 'free' } });
+  });
+
+  it('rejects custom domains, which the prose gives to web services', () => {
+    // @ts-expect-error spec §16 F: domains sits on the shared branch and the prose restricts it.
+    privateService('auth', { runtime: 'node', domains: ['auth.acme.dev'] });
+  });
+});
