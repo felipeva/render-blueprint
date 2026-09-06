@@ -17,10 +17,10 @@ export const CLI_NAME = 'render-blueprint';
 export const CLI_DESCRIPTION = `Typed factories that describe Render resources and synthesize render.yaml.
 
 Exit codes:
-  0  the file was written, or the committed file is clean
-  1  the blueprint is invalid, a file could not be found, loaded, read or written, the command
-     line was wrong, or --strict turned a warning into a failure
-  2  the committed file has drifted from the blueprint`;
+  0  synth wrote the file, or check found the committed file clean.
+  1  The blueprint is invalid, a file operation failed, the command line was wrong, or
+     --strict turned a warning into a failure.
+  2  The committed file drifted from the blueprint.`;
 
 const options = {
   file: string('file').desc(
