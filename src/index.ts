@@ -7,7 +7,7 @@ export type { EnvironmentProtection } from './enums/environment-protection.js';
 export type { KeyValuePersistenceMode } from './enums/key-value-persistence-mode.js';
 export type { MaxmemoryPolicy } from './enums/maxmemory-policy.js';
 export type { NetworkIsolation } from './enums/network-isolation.js';
-export type { KeyValuePlan, PostgresPlan, ServerPlan } from './enums/plan.js';
+export type { CronPlan, KeyValuePlan, PostgresPlan, ServerPlan, WorkerPlan } from './enums/plan.js';
 export type { PostgresMajorVersion } from './enums/postgres-major-version.js';
 export type { PreviewGeneration } from './enums/preview-generation.js';
 export type { ReferenceableServiceType } from './enums/referenceable-service-type.js';
@@ -15,7 +15,7 @@ export type { RenderProvidedKey } from './enums/render-provided-key.js';
 export type { Region } from './enums/region.js';
 export type { RouteType } from './enums/route-type.js';
 export type { ServiceProperty } from './enums/service-property.js';
-export type { NativeRuntime } from './enums/runtime.js';
+export type { NativeRuntime, ServiceRuntime } from './enums/runtime.js';
 
 export { external } from './references/external.js';
 export type { ExternalReferences } from './references/external.js';
@@ -23,6 +23,7 @@ export type { HttpServiceReference } from './references/http-service-reference.j
 export type { KeyValueReference } from './references/key-value-reference.js';
 export type { OpaqueServiceReference } from './references/opaque-service-reference.js';
 export type { PostgresReference } from './references/postgres-reference.js';
+export type { RegistryCredentialReference } from './references/registry-credential-reference.js';
 export type { ReferenceOrigin } from './references/reference-origin.js';
 export type {
   DatabaseReferenceValue,
@@ -52,7 +53,46 @@ export type { Header, Route, StaticSite, StaticSiteConfig } from './resources/st
 export { keyValue } from './resources/key-value.js';
 export type { KeyValueConfig, KeyValueStore } from './resources/key-value.js';
 export { web } from './resources/web.js';
-export type { HealthCheckPath, WebConfig, WebService } from './resources/web.js';
+export type {
+  DockerWebConfig,
+  HealthCheckPath,
+  ImageWebConfig,
+  NativeWebConfig,
+  WebConfig,
+  WebService,
+} from './resources/web.js';
+export { privateService } from './resources/private-service.js';
+export type {
+  DockerPrivateServiceConfig,
+  ImagePrivateServiceConfig,
+  NativePrivateServiceConfig,
+  PrivateService,
+  PrivateServiceConfig,
+} from './resources/private-service.js';
+export { worker } from './resources/worker.js';
+export type {
+  DockerWorkerConfig,
+  ImageWorkerConfig,
+  NativeWorkerConfig,
+  Worker,
+  WorkerConfig,
+} from './resources/worker.js';
+export { cron } from './resources/cron.js';
+export type {
+  CronConfig,
+  CronJob,
+  DockerCronConfig,
+  ImageCronConfig,
+  NativeCronConfig,
+} from './resources/cron.js';
+export type {
+  DockerSource,
+  ImageSource,
+  NativeSource,
+  RepoSource,
+  ServiceImage,
+  ServiceSource,
+} from './resources/service-source.js';
 export { postgres } from './resources/postgres.js';
 export type { HighAvailability, PostgresConfig, PostgresDatabase } from './resources/postgres.js';
 export { readReplica } from './resources/read-replica.js';
