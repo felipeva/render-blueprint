@@ -14,6 +14,7 @@ import {
   PROJECT_KEY_ORDER,
   UNGROUPED_KEY_ORDER,
 } from './key-order.js';
+import { databases } from './databases.js';
 import { mapping } from './mapping.js';
 import { services } from './services.js';
 
@@ -33,6 +34,7 @@ const environmentNode = (value: Environment): YAMLMap =>
     {
       name: value.name,
       services: services(value.resources),
+      databases: databases(value.resources),
       networking: networking(value.networking),
       permissions: permissions(value.permissions),
     },
@@ -65,4 +67,8 @@ export const projects = (values: readonly Project[]): YAMLSeq | undefined => {
 export const ungrouped = (resources: readonly BlueprintResource[]): YAMLMap | undefined =>
   resources.length === 0
     ? undefined
-    : mapping(UNGROUPED_KEY_ORDER, { services: services(resources) }, undefined);
+    : mapping(
+        UNGROUPED_KEY_ORDER,
+        { services: services(resources), databases: databases(resources) },
+        undefined,
+      );

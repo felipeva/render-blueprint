@@ -1,6 +1,6 @@
 import * as z from 'zod';
 
-import { DATABASE_PROPERTIES, type DatabaseProperty } from '../enums/database-property.js';
+import { databasePropertySchema, type DatabaseProperty } from '../enums/database-property.js';
 import type { Equal, Expect } from '../equal.js';
 
 export interface DatabaseReferenceValue {
@@ -14,7 +14,7 @@ const referenceValueSchema = z
     {
       reference: z.literal('fromDatabase'),
       name: z.string(),
-      property: z.enum(DATABASE_PROPERTIES),
+      property: databasePropertySchema,
     },
     {
       error: 'A database reference is the value a database handle produced; this value is not one.',

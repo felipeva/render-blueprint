@@ -82,3 +82,5 @@ export const POSTGRES_PLANS = [
 ] as const;
 
 export type PostgresPlan = (typeof POSTGRES_PLANS)[number];
+
+export const postgresPlanSchema: z.ZodType<PostgresPlan> = z.enum(POSTGRES_PLANS);

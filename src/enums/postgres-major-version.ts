@@ -1,3 +1,5 @@
+import * as z from 'zod';
+
 // spec §8.2: Render takes the major version as a string, never a number.
 export const POSTGRES_MAJOR_VERSIONS = [
   '10',
@@ -12,3 +14,6 @@ export const POSTGRES_MAJOR_VERSIONS = [
 ] as const;
 
 export type PostgresMajorVersion = (typeof POSTGRES_MAJOR_VERSIONS)[number];
+
+export const postgresMajorVersionSchema: z.ZodType<PostgresMajorVersion> =
+  z.enum(POSTGRES_MAJOR_VERSIONS);

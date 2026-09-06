@@ -1,3 +1,5 @@
+import * as z from 'zod';
+
 // spec §9: a database disk size is 1 GB or a multiple of 5 GB. INFERRED: Render documents no
 // ceiling, so the union stops at 4000 GB, well above every published plan tier's default.
 export const DISK_SIZES_GB = [
@@ -52,3 +54,7 @@ export const DISK_SIZES_GB = [
 ] as const;
 
 export type DiskSizeGB = (typeof DISK_SIZES_GB)[number];
+
+export const diskSizeGBSchema: z.ZodType<DiskSizeGB> = z.literal(DISK_SIZES_GB, {
+  error: 'A database disk size is 1 GB or a multiple of 5 GB, and Render never shrinks one.',
+});

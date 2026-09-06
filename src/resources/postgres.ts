@@ -1,9 +1,9 @@
 import * as z from 'zod';
 
-import { DISK_SIZES_GB, type DiskSizeGB } from '../enums/disk-size.js';
-import { POSTGRES_PLANS, type PostgresPlan } from '../enums/plan.js';
+import { diskSizeGBSchema, type DiskSizeGB } from '../enums/disk-size.js';
+import { postgresPlanSchema, type PostgresPlan } from '../enums/plan.js';
 import {
-  POSTGRES_MAJOR_VERSIONS,
+  postgresMajorVersionSchema,
   type PostgresMajorVersion,
 } from '../enums/postgres-major-version.js';
 import { REGIONS, type Region } from '../enums/region.js';
@@ -37,6 +37,9 @@ export interface PostgresDatabase extends PostgresReference {
   readonly config: PostgresConfig;
 }
 
+// Emission order follows the schema's highAvailability property order.
+export const HIGH_AVAILABILITY_FIELDS = ['enabled'] as const;
+
 // Emission order follows the schema's database property order.
 export const POSTGRES_DATABASE_FIELDS = [
   'name',
@@ -60,15 +63,11 @@ const MAX_READ_REPLICAS = 5;
 const postgresConfigSchema = z
   .strictObject({
     region: z.enum(REGIONS).exactOptional(),
-    plan: z.enum(POSTGRES_PLANS).exactOptional(),
+    plan: postgresPlanSchema.exactOptional(),
     databaseName: z.string().exactOptional(),
     user: z.string().exactOptional(),
-    postgresMajorVersion: z.enum(POSTGRES_MAJOR_VERSIONS).exactOptional(),
-    diskSizeGB: z
-      .literal(DISK_SIZES_GB, {
-        error: 'A database disk size is 1 GB or a multiple of 5 GB, and Render never shrinks one.',
-      })
-      .exactOptional(),
+    postgresMajorVersion: postgresMajorVersionSchema.exactOptional(),
+    diskSizeGB: diskSizeGBSchema.exactOptional(),
     highAvailability: z.strictObject({ enabled: z.boolean() }).readonly().exactOptional(),
     ipAllowList: z
       .array(
