@@ -133,15 +133,25 @@ describe('WORKER_CONFIG_SCHEMA_MATCHES_INTERFACE', () => {
 });
 
 describe('worker disks, scaling and previews', () => {
-  it('takes a disk, autoscaling, a build filter and previews', () => {
+  it('takes a disk, a build filter and previews', () => {
     expectTypeOf(
       worker('jobs', {
         runtime: 'node',
         disk: { name: 'spool', mountPath: '/var/spool' },
-        scaling: { minInstances: 1, maxInstances: 4, targetMemoryPercent: 80 },
         buildFilter: { paths: ['apps/jobs/**'] },
         previews: { generation: 'manual', plan: 'starter', instances: 1 },
         maxShutdownDelaySeconds: 30,
+      }),
+    ).toEqualTypeOf<Worker>();
+  });
+
+  // spec §4.4: a disk and autoscaling are a pair DiskPreventsScaling rejects, so the two cases
+  // stay apart rather than reading as one config the library endorses.
+  it('takes autoscaling with a target metric', () => {
+    expectTypeOf(
+      worker('jobs', {
+        runtime: 'node',
+        scaling: { minInstances: 1, maxInstances: 4, targetMemoryPercent: 80 },
       }),
     ).toEqualTypeOf<Worker>();
   });

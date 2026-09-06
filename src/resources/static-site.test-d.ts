@@ -91,6 +91,11 @@ describe('staticSite previews and build filter', () => {
     staticSite('marketing', { previews: { plan: 'starter' } });
   });
 
+  it('rejects a preview instance count, because a static site runs on no instances', () => {
+    // @ts-expect-error spec §4.6: staticServicePreviews carries generation alone.
+    staticSite('marketing', { previews: { instances: 2 } });
+  });
+
   it('rejects a disk', () => {
     // @ts-expect-error spec §4.8: a static site has no disk.
     staticSite('marketing', { disk: { name: 'uploads', mountPath: '/var/data' } });
