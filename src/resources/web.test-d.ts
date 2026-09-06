@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from 'vitest';
 
-import { web, type WebService } from './web.js';
+import { web, WEB_CONFIG_SCHEMA_MATCHES_INTERFACE, type WebService } from './web.js';
 
 describe('web', () => {
   it('returns a WebService', () => {
@@ -25,5 +25,16 @@ describe('web', () => {
   it('rejects a runtime outside the native set', () => {
     // @ts-expect-error `docker` is not a native runtime.
     web('api', { runtime: 'docker' });
+  });
+
+  it('rejects an explicit undefined on an optional field', () => {
+    // @ts-expect-error `exactOptionalPropertyTypes` separates omitted from undefined.
+    web('api', { runtime: 'node', plan: undefined });
+  });
+});
+
+describe('WEB_CONFIG_SCHEMA_MATCHES_INTERFACE', () => {
+  it('is the literal true the guard produces', () => {
+    expectTypeOf(WEB_CONFIG_SCHEMA_MATCHES_INTERFACE).toEqualTypeOf<true>();
   });
 });

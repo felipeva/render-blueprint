@@ -28,13 +28,14 @@
     "test": "vitest run",
     "test:types": "vitest run --typecheck.only",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:types",
-    "build": "tsdown",
+    "build": "tsdown && node scripts/check-declarations.mjs",
     "schema:refresh": "node scripts/refresh-render-schema.mjs",
     "fixtures:update": "UPDATE_FIXTURES=1 vitest run test/fixtures.test.ts"
   },
   "dependencies": {
     "better-result": "3.0.1",
-    "yaml": "2.9.0"
+    "yaml": "2.9.0",
+    "zod": "4.5.4"
   },
   "devDependencies": {
     "@oxlint/plugins": "1.81.0",

@@ -5,5 +5,6 @@ export default defineConfig({
   format: 'esm',
   fixedExtension: false,
   dts: true,
-  deps: { neverBundle: ['yaml', 'better-result'] },
+  treeshake: { moduleSideEffects: false },
+  deps: { neverBundle: ['yaml', 'better-result', 'zod'] },
 });
