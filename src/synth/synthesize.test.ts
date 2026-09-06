@@ -195,6 +195,18 @@ services:
     );
   });
 
+  it('writes no envVars key for a service that imports an empty list of groups', () => {
+    const yaml = emit(blueprint({ resources: [web('api', { runtime: 'node', envGroups: [] })] }));
+
+    expect(yaml).not.toContain('envVars');
+  });
+
+  it('writes an empty envVars list for a service whose env map is empty', () => {
+    const yaml = emit(blueprint({ resources: [web('api', { runtime: 'node', env: {} })] }));
+
+    expect(yaml).toContain('envVars: []');
+  });
+
   it('emits an environment group under envVarGroups, after the databases', () => {
     const settings = envGroup('shared-settings', { env: { LOG_LEVEL: literal('info') } });
     const elephant = postgres('elephant', { plan: 'basic-256mb' });
