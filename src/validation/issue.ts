@@ -1,6 +1,7 @@
 export const VALIDATION_CODES = [
   'InvalidConfig',
   'UnknownField',
+  'ConflictingSource',
   'RootDirNotRelative',
   'CyclicExtraFields',
   'DuplicateResourceName',
@@ -23,6 +24,7 @@ export const WARNING_CODES = [
   'BranchDisablesPreviews',
   'SecretSkipsPreviews',
   'UnknownServiceEnvVarKey',
+  'WebOnlyField',
 ] as const;
 
 export type WarningCode = (typeof WARNING_CODES)[number];

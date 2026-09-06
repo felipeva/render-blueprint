@@ -2,8 +2,7 @@ import * as z from 'zod';
 
 import type { AutoDeployTrigger } from '../enums/auto-deploy-trigger.js';
 import { serverPlanSchema, type ServerPlan } from '../enums/plan.js';
-import { regionSchema, type Region } from '../enums/region.js';
-import { nativeRuntimeSchema, type NativeRuntime } from '../enums/runtime.js';
+import type { Region } from '../enums/region.js';
 import { serviceEnvironmentSchema, type ServiceEnvironment } from '../env/self-environment.js';
 import type { Equal, Expect } from '../equal.js';
 import type { JsonObject } from '../json.js';
@@ -12,19 +11,22 @@ import {
   type HttpServiceReference,
 } from '../references/http-service-reference.js';
 import type { EnvironmentGroup } from './env-group.js';
-import { optionalCommonServiceFields } from './service-fields.js';
+import { optionalSourcedServiceFields } from './service-fields.js';
+import {
+  dockerSourceFields,
+  imageSourceFields,
+  nativeSourceFields,
+  type DockerSource,
+  type ImageSource,
+  type NativeSource,
+} from './service-source.js';
 
 export type HealthCheckPath = `/${string}`;
 
-export interface WebConfig {
-  readonly runtime: NativeRuntime;
+interface WebFields {
   readonly region?: Region;
   readonly plan?: ServerPlan;
-  readonly repo?: string;
-  readonly branch?: string;
-  readonly rootDir?: string;
   readonly healthCheckPath?: HealthCheckPath;
-  readonly buildCommand?: string;
   readonly startCommand?: string;
   readonly preDeployCommand?: string;
   readonly autoDeployTrigger?: AutoDeployTrigger;
@@ -32,6 +34,14 @@ export interface WebConfig {
   readonly envGroups?: readonly EnvironmentGroup[];
   readonly extraFields?: JsonObject;
 }
+
+export interface NativeWebConfig extends WebFields, NativeSource {}
+
+export interface DockerWebConfig extends WebFields, DockerSource {}
+
+export interface ImageWebConfig extends WebFields, ImageSource {}
+
+export type WebConfig = NativeWebConfig | DockerWebConfig | ImageWebConfig;
 
 export interface WebService extends HttpServiceReference {
   readonly kind: 'web';
@@ -48,7 +58,11 @@ export const WEB_SERVICE_FIELDS = [
   'runtime',
   'repo',
   'branch',
+  'image',
   'rootDir',
+  'dockerCommand',
+  'dockerContext',
+  'dockerfilePath',
   'healthCheckPath',
   'buildCommand',
   'startCommand',
@@ -57,21 +71,22 @@ export const WEB_SERVICE_FIELDS = [
   'autoDeployTrigger',
 ] as const;
 
-const webConfigSchema = z
-  .strictObject({
-    ...optionalCommonServiceFields,
-    runtime: nativeRuntimeSchema,
-    region: regionSchema.exactOptional(),
-    plan: serverPlanSchema.exactOptional(),
-    healthCheckPath: z
-      .templateLiteral(['/', z.string()], {
-        error: 'A healthCheckPath is a string starting with "/"; Render requests it from the root.',
-      })
-      .exactOptional(),
-    startCommand: z.string().exactOptional(),
-    env: serviceEnvironmentSchema<HttpServiceReference>().exactOptional(),
-  })
-  .readonly();
+const webFields = {
+  ...optionalSourcedServiceFields,
+  plan: serverPlanSchema.exactOptional(),
+  healthCheckPath: z
+    .templateLiteral(['/', z.string()], {
+      error: 'A healthCheckPath is a string starting with "/"; Render requests it from the root.',
+    })
+    .exactOptional(),
+  env: serviceEnvironmentSchema<HttpServiceReference>().exactOptional(),
+};
+
+const webConfigSchema = z.discriminatedUnion('runtime', [
+  z.strictObject({ ...webFields, ...nativeSourceFields }).readonly(),
+  z.strictObject({ ...webFields, ...dockerSourceFields }).readonly(),
+  z.strictObject({ ...webFields, ...imageSourceFields }).readonly(),
+]);
 
 type WebConfigSchemaMatchesInterface = Expect<Equal<z.infer<typeof webConfigSchema>, WebConfig>>;
 

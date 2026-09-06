@@ -34,6 +34,14 @@ describe('external', () => {
     ]).toEqual(['web', 'pserv', 'worker', 'cron', 'static', 'keyvalue']);
   });
 
+  // spec §4.2: a registry credential is never declared in a blueprint, so the external handle is
+  // the only form there is.
+  it('names a registry credential the workspace holds', () => {
+    expect(external.registryCredential('acme-dockerhub')).toEqual({
+      fromRegistryCreds: { name: 'acme-dockerhub' },
+    });
+  });
+
   it('reads a database property through the fromDatabase form', () => {
     expect(external.postgres('legacy-db').connectionString).toEqual({
       reference: 'fromDatabase',

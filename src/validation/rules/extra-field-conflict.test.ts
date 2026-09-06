@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
+import { privateService } from '../../resources/private-service.js';
+import { staticSite } from '../../resources/static-site.js';
 import { web } from '../../resources/web.js';
+import { worker } from '../../resources/worker.js';
 import { extraFieldConflict } from './extra-field-conflict.js';
 
 describe('extraFieldConflict', () => {
@@ -41,5 +44,61 @@ describe('extraFieldConflict', () => {
         web('api', { runtime: 'node', extraFields: { maxShutdownDelaySeconds: 60 } }),
       ]),
     ).toEqual([]);
+  });
+
+  // A sourced kind's emission tuple lists all eight source keys, because one branch or another
+  // emits each. Telling the author to set a key through a config that has no such field would be
+  // advice they cannot take, so the key names the wrong source instead.
+  it('reports a build command beside a Dockerfile as the wrong source', () => {
+    const issues = extraFieldConflict([
+      worker('jobs', { runtime: 'docker', extraFields: { buildCommand: 'pnpm build' } }),
+    ]);
+
+    expect(issues.map((issue) => issue.code)).toEqual(['ConflictingSource']);
+    expect(issues[0]?.at).toEqual({ resource: 'jobs', field: 'extraFields.buildCommand' });
+    expect(issues[0]?.message).toContain('"docker"');
+    expect(issues[0]?.message).not.toContain('extraFields');
+  });
+
+  it('reports a Dockerfile path beside a native runtime as the wrong source', () => {
+    const issues = extraFieldConflict([
+      worker('jobs', { runtime: 'node', extraFields: { dockerfilePath: './Dockerfile' } }),
+    ]);
+
+    expect(issues.map((issue) => issue.code)).toEqual(['ConflictingSource']);
+    expect(issues[0]?.message).toContain('"node"');
+  });
+
+  it('reports a repository beside a prebuilt image as the wrong source', () => {
+    const issues = extraFieldConflict([
+      privateService('auth', {
+        runtime: 'image',
+        image: { url: 'docker.io/acme/auth:1' },
+        extraFields: { repo: 'https://github.com/acme/auth', branch: 'main', rootDir: 'services' },
+      }),
+    ]);
+
+    expect(issues.map((issue) => issue.code)).toEqual([
+      'ConflictingSource',
+      'ConflictingSource',
+      'ConflictingSource',
+    ]);
+  });
+
+  it('reports a source key the branch does emit as the conflict it is', () => {
+    const issues = extraFieldConflict([
+      worker('jobs', { runtime: 'docker', extraFields: { dockerfilePath: './Dockerfile' } }),
+    ]);
+
+    expect(issues.map((issue) => issue.code)).toEqual(['ExtraFieldConflict']);
+    expect(issues[0]?.message).toContain('already emits');
+  });
+
+  it('reports a source key on a kind that picks no source as the conflict it is', () => {
+    const issues = extraFieldConflict([
+      staticSite('marketing', { extraFields: { buildCommand: 'pnpm build' } }),
+    ]);
+
+    expect(issues.map((issue) => issue.code)).toEqual(['ExtraFieldConflict']);
   });
 });

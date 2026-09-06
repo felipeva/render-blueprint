@@ -63,6 +63,8 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   │                            ServiceReferenceValue from it
 │   │   ├── postgres-reference.ts  key-value-reference.ts  http-service-reference.ts   the four
 │   │   ├── opaque-service-reference.ts   handles: host/port/hostport vs envVar/renderVar only
+│   │   ├── registry-credential-reference.ts   RegistryCredentialReference — the fromRegistryCreds
+│   │   │                            form a private image's creds take; external-only (spec §4.2)
 │   │   └── external.ts              the `external` object — handles with no `kind`, so unlistable
 │   ├── env/                         env values and the map→list problem
 │   │   ├── env-value.ts             EnvValue, EnvGroupValue, EnvironmentMap, EnvGroupEnvironment
@@ -77,8 +79,9 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   ├── service-fields.ts        the shared maps of common repo-sourced service fields, required and
 │   │   │                            exact-optional forms; factories spread them (ADR-0003, issue #20)
 
-│   │   ├── resource.ts  source.ts   the BlueprintResource union and `kind` discriminator; the
-│   │   │                            repo+branch | dockerfilePath | image source union
+│   │   ├── resource.ts  service-source.ts   the BlueprintResource union and `kind` discriminator;
+│   │   │                            the repo+branch | dockerfilePath | image source union the four
+│   │   │                            sourced kinds share, and the tuple of keys its branches own
 │   │   ├── disk.ts  scaling.ts  build-filter.ts  ip-allow-list.ts  previews.ts
 │   │   │                            the sub-configs shared across service kinds. Route and Header
 │   │   │                            are not shared — only a static site takes them (spec §4.8), so
@@ -100,12 +103,15 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │                                     dangling-reference, multiple-locations, env-collision, scaling,
 │                                     service-env-var-key, numeric-range, high-availability,
 │                                     extra-field-conflict, warnings, env-key-collision,
-│                                     unknown-service-env-var-key, secret-skips-previews
+│                                     unknown-service-env-var-key, secret-skips-previews,
+│                                     web-only-field
 │   ├── synth/                       the ONLY module that knows YAML exists
 │   │   ├── synthesize.ts  document.ts   validate → document → emit; ValidatedBlueprint → a Document
 │   │   ├── mapping.ts  key-order.ts   the ordered builder that never writes an undefined value (§5),
 │   │   │                            and the root and env-entry key orders; each resource's field order is the tuple beside its factory
 │   │   ├── services.ts              the four disjoint service branches + (type, runtime) discrimination
+│   │   ├── service-source.ts        one source union → the source keys a mapping emits, plus the
+│   │   │                            image and registry-credential nodes
 │   │   ├── databases.ts             postgres → `databases:`, read-replica registration
 │   │   ├── env-vars.ts              map → `envVars:` list, `fromGroup` entries, the five value forms
 │   │   ├── env-var-groups.ts        envVarGroups() — envGroup resources → an `envVarGroups:` list (root, environment, ungrouped)
@@ -248,8 +254,11 @@ better-result's own `TemplateNotFound` / `RenderTemplateFailed`: `BlueprintInval
 literals use the same convention one level down — `DanglingReference`, `DuplicateResourceName`,
 `ResourceInMultipleLocations`, `ScalingRangeInverted`, `HighAvailabilityUnsupported`,
 `ExtraFieldConflict`, `EnvKeyCollision` — one literal per rule, named after the rule file that
-produces it. `WarningCode` follows the same convention one tier down, for a rule that never blocks
-synthesis — `SecretSkipsPreviews` and `UnknownServiceEnvVarKey` among them.
+produces it. The config tier mints the few no rule file produces, from the issues a schema raises:
+`UnknownField`, `InvalidConfig`, `RootDirNotRelative`, and `ConflictingSource` for a key one source
+branch owns on a config whose runtime picked another (issue #10). `WarningCode` follows the same
+convention one tier down, for a rule that never blocks synthesis — `SecretSkipsPreviews`,
+`UnknownServiceEnvVarKey` and `WebOnlyField` among them.
 
 **Enums.** `erasableSyntaxOnly` bans `enum`. Every closed set is a SCREAMING_SNAKE `as const`
 tuple plus its derived union, in one file; the tuple is exported because validation and tests

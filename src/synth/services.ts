@@ -1,6 +1,8 @@
 import { YAMLMap, YAMLSeq } from 'yaml';
 
+import { CRON_JOB_FIELDS, type CronJob } from '../resources/cron.js';
 import { KEY_VALUE_STORE_FIELDS, type KeyValueStore } from '../resources/key-value.js';
+import { PRIVATE_SERVICE_FIELDS, type PrivateService } from '../resources/private-service.js';
 import { resourceEnv, type BlueprintResource } from '../resources/resource.js';
 import {
   HEADER_FIELDS,
@@ -11,12 +13,15 @@ import {
   type StaticSite,
 } from '../resources/static-site.js';
 import { WEB_SERVICE_FIELDS, type WebService } from '../resources/web.js';
+import { WORKER_FIELDS, type Worker } from '../resources/worker.js';
 import { envVars } from './env-vars.js';
 import { ipAllowList } from './ip-allow-list.js';
 import { mapping } from './mapping.js';
+import { sourceValues } from './service-source.js';
 
 const webService = (resource: WebService): YAMLMap => {
   const config = resource.config;
+  const source = sourceValues(config);
 
   return mapping(
     WEB_SERVICE_FIELDS,
@@ -25,16 +30,110 @@ const webService = (resource: WebService): YAMLMap => {
       name: resource.name,
       region: config.region,
       plan: config.plan,
-      runtime: config.runtime,
-      repo: config.repo,
-      branch: config.branch,
-      rootDir: config.rootDir,
+      runtime: source.runtime,
+      repo: source.repo,
+      branch: source.branch,
+      image: source.image,
+      rootDir: source.rootDir,
+      dockerCommand: source.dockerCommand,
+      dockerContext: source.dockerContext,
+      dockerfilePath: source.dockerfilePath,
       healthCheckPath: config.healthCheckPath,
-      buildCommand: config.buildCommand,
+      buildCommand: source.buildCommand,
       startCommand: config.startCommand,
       preDeployCommand: config.preDeployCommand,
       envVars: envVars(resourceEnv(resource), config.envGroups),
       autoDeployTrigger: config.autoDeployTrigger,
+    },
+    config.extraFields,
+  );
+};
+
+// spec §3.1: `pserv` is the type Render spells a private service with.
+const privateServiceService = (resource: PrivateService): YAMLMap => {
+  const config = resource.config;
+  const source = sourceValues(config);
+
+  return mapping(
+    PRIVATE_SERVICE_FIELDS,
+    {
+      type: 'pserv',
+      name: resource.name,
+      region: config.region,
+      plan: config.plan,
+      runtime: source.runtime,
+      repo: source.repo,
+      branch: source.branch,
+      image: source.image,
+      rootDir: source.rootDir,
+      dockerCommand: source.dockerCommand,
+      dockerContext: source.dockerContext,
+      dockerfilePath: source.dockerfilePath,
+      buildCommand: source.buildCommand,
+      startCommand: config.startCommand,
+      preDeployCommand: config.preDeployCommand,
+      envVars: envVars(resourceEnv(resource), config.envGroups),
+      autoDeployTrigger: config.autoDeployTrigger,
+    },
+    config.extraFields,
+  );
+};
+
+const workerService = (resource: Worker): YAMLMap => {
+  const config = resource.config;
+  const source = sourceValues(config);
+
+  return mapping(
+    WORKER_FIELDS,
+    {
+      type: 'worker',
+      name: resource.name,
+      region: config.region,
+      plan: config.plan,
+      runtime: source.runtime,
+      repo: source.repo,
+      branch: source.branch,
+      image: source.image,
+      rootDir: source.rootDir,
+      dockerCommand: source.dockerCommand,
+      dockerContext: source.dockerContext,
+      dockerfilePath: source.dockerfilePath,
+      buildCommand: source.buildCommand,
+      startCommand: config.startCommand,
+      preDeployCommand: config.preDeployCommand,
+      envVars: envVars(resourceEnv(resource), config.envGroups),
+      autoDeployTrigger: config.autoDeployTrigger,
+    },
+    config.extraFields,
+  );
+};
+
+// spec §4.8: the cron branch orders its keys its own way, and carries the schedule no other does.
+const cronService = (resource: CronJob): YAMLMap => {
+  const config = resource.config;
+  const source = sourceValues(config);
+
+  return mapping(
+    CRON_JOB_FIELDS,
+    {
+      type: 'cron',
+      name: resource.name,
+      region: config.region,
+      plan: config.plan,
+      runtime: source.runtime,
+      schedule: config.schedule,
+      buildCommand: source.buildCommand,
+      startCommand: config.startCommand,
+      dockerCommand: source.dockerCommand,
+      dockerfilePath: source.dockerfilePath,
+      dockerContext: source.dockerContext,
+      repo: source.repo,
+      branch: source.branch,
+      image: source.image,
+      envVars: envVars(resourceEnv(resource), config.envGroups),
+      rootDir: source.rootDir,
+      autoDeployTrigger: config.autoDeployTrigger,
+      preDeployCommand: config.preDeployCommand,
     },
     config.extraFields,
   );
@@ -121,6 +220,12 @@ const serviceNode = (resource: BlueprintResource): YAMLMap | undefined => {
   switch (resource.kind) {
     case 'web':
       return webService(resource);
+    case 'privateService':
+      return privateServiceService(resource);
+    case 'worker':
+      return workerService(resource);
+    case 'cron':
+      return cronService(resource);
     case 'staticSite':
       return staticSiteService(resource);
     case 'keyValue':

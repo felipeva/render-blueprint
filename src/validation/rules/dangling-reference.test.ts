@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
 import { external } from '../../references/external.js';
+import { cron } from '../../resources/cron.js';
 import { keyValue } from '../../resources/key-value.js';
 import { postgres } from '../../resources/postgres.js';
+import { privateService } from '../../resources/private-service.js';
 import { readReplica } from '../../resources/read-replica.js';
 import type { BlueprintResource } from '../../resources/resource.js';
 import { staticSite } from '../../resources/static-site.js';
 import { web } from '../../resources/web.js';
+import { worker } from '../../resources/worker.js';
 import type { ParsedConfigs } from '../parse-configs.js';
 import { danglingReference } from './dangling-reference.js';
 
@@ -153,6 +156,54 @@ describe('danglingReference', () => {
     expect(
       danglingReference(parsed([billing, postgres('api')])).map((issue) => issue.at.field),
     ).toEqual(['env.API_HOST']);
+  });
+
+  it('resolves a reference to each service kind by the type Render publishes for it', () => {
+    const auth = privateService('auth', { runtime: 'node' });
+    const jobs = worker('jobs', { runtime: 'node' });
+    const nightly = cron('nightly', { runtime: 'node', schedule: '0 2 * * *' });
+    const api = web('api', {
+      runtime: 'node',
+      env: {
+        AUTH_HOSTPORT: auth.hostport,
+        JOBS_TOKEN: jobs.envVar('TOKEN'),
+        NIGHTLY_TOKEN: nightly.envVar('TOKEN'),
+      },
+    });
+
+    expect(danglingReference(parsed([api, auth, jobs, nightly]))).toEqual([]);
+  });
+
+  it('reports a reference to a worker no blueprint lists', () => {
+    const api = web('api', {
+      runtime: 'node',
+      env: { JOBS_TOKEN: worker('jobs', { runtime: 'node' }).envVar('TOKEN') },
+    });
+
+    expect(danglingReference(parsed([api])).map((issue) => issue.at.field)).toEqual([
+      'env.JOBS_TOKEN',
+    ]);
+  });
+
+  it('reaches the environment map of a worker, a private service and a cron job', () => {
+    const elephant = postgres('elephant');
+    const jobs = worker('jobs', {
+      runtime: 'node',
+      env: { DATABASE_URL: elephant.connectionString },
+    });
+    const auth = privateService('auth', {
+      runtime: 'node',
+      env: { DATABASE_URL: elephant.connectionString },
+    });
+    const nightly = cron('nightly', {
+      runtime: 'node',
+      schedule: '0 2 * * *',
+      env: { DATABASE_URL: elephant.connectionString },
+    });
+
+    expect(
+      danglingReference(parsed([jobs, auth, nightly])).map((issue) => issue.at.resource),
+    ).toEqual(['jobs', 'auth', 'nightly']);
   });
 
   it('reaches the environment map of every kind that carries one, a static site included', () => {

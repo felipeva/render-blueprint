@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
+import { cron } from '../resources/cron.js';
 import { envGroup } from '../resources/env-group.js';
+import { privateService } from '../resources/private-service.js';
 import { web } from '../resources/web.js';
+import { worker } from '../resources/worker.js';
 import { describeGroups, envKeyOrigins } from './env-key-origins.js';
 
 const settings = envGroup('shared-settings', { env: { LOG_LEVEL: 'info', REGION_NAME: 'oregon' } });
@@ -89,6 +92,46 @@ describe('envKeyOrigins', () => {
 
   it('returns no origins for a resource that declares neither a map nor a group', () => {
     expect(originsOf([web('api', { runtime: 'node' })], 'api')).toEqual([]);
+  });
+
+  it('walks a worker, so both key rules cover one', () => {
+    const jobs = worker('jobs', {
+      runtime: 'node',
+      env: { LOG_LEVEL: 'debug' },
+      envGroups: [regional],
+    });
+
+    expect(originsOf([jobs, regional], 'jobs')).toEqual([
+      { key: 'LOG_LEVEL', direct: true, groups: [] },
+      { key: 'REGION_NAME', direct: false, groups: ['regional'] },
+    ]);
+  });
+
+  it('walks a private service, so both key rules cover one', () => {
+    const auth = privateService('auth', {
+      runtime: 'node',
+      env: { LOG_LEVEL: 'debug' },
+      envGroups: [regional],
+    });
+
+    expect(originsOf([auth, regional], 'auth')).toEqual([
+      { key: 'LOG_LEVEL', direct: true, groups: [] },
+      { key: 'REGION_NAME', direct: false, groups: ['regional'] },
+    ]);
+  });
+
+  it('walks a cron job, so both key rules cover one', () => {
+    const nightly = cron('nightly', {
+      runtime: 'node',
+      schedule: '0 2 * * *',
+      env: { LOG_LEVEL: 'debug' },
+      envGroups: [regional],
+    });
+
+    expect(originsOf([nightly, regional], 'nightly')).toEqual([
+      { key: 'LOG_LEVEL', direct: true, groups: [] },
+      { key: 'REGION_NAME', direct: false, groups: ['regional'] },
+    ]);
   });
 });
 

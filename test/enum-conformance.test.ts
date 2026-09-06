@@ -11,13 +11,19 @@ import { ENVIRONMENT_PROTECTIONS } from '../src/enums/environment-protection.js'
 import { KEY_VALUE_PERSISTENCE_MODES } from '../src/enums/key-value-persistence-mode.js';
 import { MAXMEMORY_POLICIES } from '../src/enums/maxmemory-policy.js';
 import { NETWORK_ISOLATIONS } from '../src/enums/network-isolation.js';
-import { KEY_VALUE_PLANS, POSTGRES_PLANS, SERVER_PLANS } from '../src/enums/plan.js';
+import {
+  CRON_PLANS,
+  KEY_VALUE_PLANS,
+  PAID_SERVER_PLANS,
+  POSTGRES_PLANS,
+  SERVER_PLANS,
+} from '../src/enums/plan.js';
 import { POSTGRES_MAJOR_VERSIONS } from '../src/enums/postgres-major-version.js';
 import { PREVIEW_GENERATIONS } from '../src/enums/preview-generation.js';
 import { REFERENCEABLE_SERVICE_TYPES } from '../src/enums/referenceable-service-type.js';
 import { REGIONS } from '../src/enums/region.js';
 import { ROUTE_TYPES } from '../src/enums/route-type.js';
-import { NATIVE_RUNTIMES } from '../src/enums/runtime.js';
+import { NATIVE_RUNTIMES, SERVICE_RUNTIMES } from '../src/enums/runtime.js';
 import { SERVICE_PROPERTIES } from '../src/enums/service-property.js';
 
 type JsonSchemaEnum = readonly (string | number | boolean | null)[] | undefined;
@@ -74,6 +80,23 @@ describe('SERVER_PLANS', () => {
   });
 });
 
+describe('PAID_SERVER_PLANS', () => {
+  it('holds the serverPlan enum Render publishes without the free tier', () => {
+    // spec §8.1: the [SPEC] tables for private services and background workers omit `free`; the
+    // schema does not distinguish, so the published enum is the only oracle for the rest.
+    expect(converted(PAID_SERVER_PLANS)).toEqual(
+      (published('serverPlan') ?? []).filter((plan) => plan !== 'free'),
+    );
+    expect(PAID_SERVER_PLANS).toEqual(SERVER_PLANS.filter((plan) => plan !== 'free'));
+  });
+});
+
+describe('CRON_PLANS', () => {
+  it('holds the cronPlan enum Render publishes', () => {
+    expect(converted(CRON_PLANS)).toEqual(published('cronPlan'));
+  });
+});
+
 describe('AUTO_DEPLOY_TRIGGERS', () => {
   it('holds the autoDeployTrigger enum Render publishes', () => {
     expect(converted(AUTO_DEPLOY_TRIGGERS)).toEqual(published('autoDeployTrigger'));
@@ -88,6 +111,21 @@ describe('NATIVE_RUNTIMES', () => {
     expect(converted(NATIVE_RUNTIMES)).toEqual(
       NATIVE_RUNTIMES.filter((runtime) => (runtimes ?? []).includes(runtime)),
     );
+  });
+});
+
+describe('SERVICE_RUNTIMES', () => {
+  it('holds the runtime enum Render publishes without the static site runtime', () => {
+    const runtimes = published('runtime');
+
+    expect(runtimes).toBeDefined();
+    expect([...SERVICE_RUNTIMES].sort()).toEqual(
+      (runtimes ?? []).filter((runtime) => runtime !== 'static').sort(),
+    );
+  });
+
+  it('starts with every native runtime', () => {
+    expect(SERVICE_RUNTIMES.slice(0, NATIVE_RUNTIMES.length)).toEqual([...NATIVE_RUNTIMES]);
   });
 });
 

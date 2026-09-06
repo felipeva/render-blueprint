@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { deprecation, deprecationScope } from './deprecation.js';
+import { deprecation, deprecationAdvice, deprecationScope } from './deprecation.js';
 
 describe('deprecation', () => {
   it('retires previewPlan on a service, where previews.plan replaced it', () => {
@@ -55,5 +55,42 @@ describe('deprecationScope', () => {
 
   it('leaves previewPlan alone on a Key Value instance, where it is the current form', () => {
     expect(deprecation('previewPlan', 'starter', deprecationScope('keyValue'))).toBeUndefined();
+  });
+
+  // spec §4.8: cronService carries no previews object and no previewPlan, so pointing the author
+  // at previews.plan would name a field a cron job does not have either.
+  it('reads a cron job as its own scope', () => {
+    expect(deprecationScope('cron')).toBe('cron');
+  });
+
+  it('names no replacement for a retired preview field on a cron job', () => {
+    expect(deprecation('previewPlan', 'starter', 'cron')).toEqual({
+      key: 'previewPlan',
+      replacement: undefined,
+    });
+    expect(deprecation('pullRequestPreviewsEnabled', true, 'cron')).toEqual({
+      key: 'pullRequestPreviewsEnabled',
+      replacement: undefined,
+    });
+  });
+
+  it('keeps the advice a cron job can take for every other retired field', () => {
+    expect(deprecation('env', 'node', 'cron')).toEqual({ key: 'env', replacement: 'runtime' });
+    expect(deprecation('autoDeploy', true, 'cron')).toEqual({
+      key: 'autoDeploy',
+      replacement: 'autoDeployTrigger',
+    });
+  });
+});
+
+describe('deprecationAdvice', () => {
+  it('names the replacement a retired field has', () => {
+    expect(deprecationAdvice({ key: 'env', replacement: 'runtime' })).toContain('use "runtime"');
+  });
+
+  it('says a cron job has no previews when nothing replaces the field', () => {
+    expect(deprecationAdvice({ key: 'previewPlan', replacement: undefined })).toContain(
+      'no previews of its own',
+    );
   });
 });

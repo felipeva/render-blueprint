@@ -8,12 +8,15 @@ import { generated } from '../env/generated.js';
 import { literal } from '../env/literal.js';
 import { secret } from '../env/secret.js';
 import { external } from '../references/external.js';
+import { cron } from '../resources/cron.js';
 import { envGroup } from '../resources/env-group.js';
 import { keyValue } from '../resources/key-value.js';
 import { postgres } from '../resources/postgres.js';
+import { privateService } from '../resources/private-service.js';
 import { readReplica } from '../resources/read-replica.js';
 import { staticSite } from '../resources/static-site.js';
 import { web } from '../resources/web.js';
+import { worker } from '../resources/worker.js';
 import { BlueprintInvalid } from '../validation/blueprint-invalid.js';
 import { synthesize } from './synthesize.js';
 
@@ -77,6 +80,213 @@ services:
     startCommand: pnpm start
     preDeployCommand: pnpm migrate
     autoDeployTrigger: commit
+`,
+    );
+  });
+
+  it('emits the keys of a private service in one fixed order, under the pserv type', () => {
+    const auth = privateService('auth', {
+      autoDeployTrigger: 'off',
+      startCommand: './auth',
+      runtime: 'go',
+      region: 'oregon',
+      buildCommand: 'go build',
+      branch: 'main',
+      repo: 'https://github.com/acme/auth',
+      rootDir: 'services/auth',
+      preDeployCommand: './migrate',
+      plan: '1c-2g',
+    });
+
+    expect(emit(blueprint({ resources: [auth] }))).toContain(
+      `services:
+  - type: pserv
+    name: auth
+    region: oregon
+    plan: 1c-2g
+    runtime: go
+    repo: https://github.com/acme/auth
+    branch: main
+    rootDir: services/auth
+    buildCommand: go build
+    startCommand: ./auth
+    preDeployCommand: ./migrate
+    autoDeployTrigger: off
+`,
+    );
+  });
+
+  it('emits the keys of a worker in one fixed order', () => {
+    const jobs = worker('jobs', {
+      runtime: 'node',
+      region: 'oregon',
+      plan: 'starter',
+      repo: 'https://github.com/acme/jobs',
+      buildCommand: 'pnpm build',
+      startCommand: 'pnpm jobs',
+    });
+
+    expect(emit(blueprint({ resources: [jobs] }))).toContain(
+      `services:
+  - type: worker
+    name: jobs
+    region: oregon
+    plan: starter
+    runtime: node
+    repo: https://github.com/acme/jobs
+    buildCommand: pnpm build
+    startCommand: pnpm jobs
+`,
+    );
+  });
+
+  it('emits the keys of a cron job in one fixed order, the schedule after the runtime', () => {
+    const nightly = cron('nightly-report', {
+      autoDeployTrigger: 'commit',
+      preDeployCommand: 'pnpm migrate',
+      rootDir: 'apps/report',
+      startCommand: 'pnpm report',
+      buildCommand: 'pnpm build',
+      schedule: '0 2 * * *',
+      runtime: 'node',
+      region: 'oregon',
+      plan: '1c-2g',
+      repo: 'https://github.com/acme/report',
+      branch: 'main',
+    });
+
+    expect(emit(blueprint({ resources: [nightly] }))).toContain(
+      `services:
+  - type: cron
+    name: nightly-report
+    region: oregon
+    plan: 1c-2g
+    runtime: node
+    schedule: 0 2 * * *
+    buildCommand: pnpm build
+    startCommand: pnpm report
+    repo: https://github.com/acme/report
+    branch: main
+    rootDir: apps/report
+    autoDeployTrigger: commit
+    preDeployCommand: pnpm migrate
+`,
+    );
+  });
+
+  it('emits the Dockerfile fields of a Docker source and no build command', () => {
+    const jobs = worker('jobs', {
+      runtime: 'docker',
+      repo: 'https://github.com/acme/jobs',
+      dockerfilePath: './Dockerfile.jobs',
+      dockerContext: './',
+      dockerCommand: 'node jobs.js',
+    });
+
+    expect(emit(blueprint({ resources: [jobs] }))).toContain(
+      `services:
+  - type: worker
+    name: jobs
+    runtime: docker
+    repo: https://github.com/acme/jobs
+    dockerCommand: node jobs.js
+    dockerContext: ./
+    dockerfilePath: ./Dockerfile.jobs
+`,
+    );
+  });
+
+  it('emits a prebuilt image and the workspace credential that pulls it', () => {
+    const auth = privateService('auth', {
+      runtime: 'image',
+      image: {
+        url: 'docker.io/acme/auth:1.4.2',
+        creds: external.registryCredential('acme-dockerhub'),
+      },
+    });
+
+    expect(emit(blueprint({ resources: [auth] }))).toContain(
+      `services:
+  - type: pserv
+    name: auth
+    runtime: image
+    image:
+      url: docker.io/acme/auth:1.4.2
+      creds:
+        fromRegistryCreds:
+          name: acme-dockerhub
+`,
+    );
+  });
+
+  it('emits the command that overrides the CMD a prebuilt image carries', () => {
+    const jobs = worker('jobs', {
+      runtime: 'image',
+      image: { url: 'docker.io/acme/jobs:1.4.2' },
+      dockerCommand: 'node jobs.js',
+    });
+
+    expect(emit(blueprint({ resources: [jobs] }))).toContain(
+      `services:
+  - type: worker
+    name: jobs
+    runtime: image
+    image:
+      url: docker.io/acme/jobs:1.4.2
+    dockerCommand: node jobs.js
+`,
+    );
+  });
+
+  it('writes no creds key for a public prebuilt image', () => {
+    const jobs = worker('jobs', { runtime: 'image', image: { url: 'docker.io/acme/jobs:1.4.2' } });
+
+    expect(emit(blueprint({ resources: [jobs] }))).toContain(
+      `services:
+  - type: worker
+    name: jobs
+    runtime: image
+    image:
+      url: docker.io/acme/jobs:1.4.2
+`,
+    );
+  });
+
+  it('emits a reference to a worker and to a cron job with the types Render publishes', () => {
+    const jobs = worker('jobs', { runtime: 'node' });
+    const nightly = cron('nightly', { runtime: 'node', schedule: '0 2 * * *' });
+    const api = web('api', {
+      runtime: 'node',
+      env: { JOBS_TOKEN: jobs.envVar('TOKEN'), NIGHTLY_TOKEN: nightly.envVar('TOKEN') },
+    });
+
+    const emitted = emit(blueprint({ resources: [api, jobs, nightly] }));
+
+    expect(emitted).toContain(
+      `      - key: JOBS_TOKEN
+        fromService:
+          type: worker
+          name: jobs
+          envVarKey: TOKEN
+      - key: NIGHTLY_TOKEN
+        fromService:
+          type: cron
+          name: nightly
+          envVarKey: TOKEN
+`,
+    );
+  });
+
+  it('emits a private service reference with the pserv type', () => {
+    const auth = privateService('auth', { runtime: 'node' });
+    const api = web('api', { runtime: 'node', env: { AUTH_HOSTPORT: auth.hostport } });
+
+    expect(emit(blueprint({ resources: [api, auth] }))).toContain(
+      `      - key: AUTH_HOSTPORT
+        fromService:
+          type: pserv
+          name: auth
+          property: hostport
 `,
     );
   });

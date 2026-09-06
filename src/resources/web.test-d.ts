@@ -24,9 +24,29 @@ describe('web', () => {
     web('api', { runtime: 'node', healthCheckPath: 'healthz' });
   });
 
-  it('rejects a runtime outside the native set', () => {
-    // @ts-expect-error `docker` is not a native runtime.
-    web('api', { runtime: 'docker' });
+  it('rejects the static runtime, which belongs to a static site', () => {
+    // @ts-expect-error spec §0.2: `runtime: static` narrows type web to a static site instead.
+    web('api', { runtime: 'static' });
+  });
+
+  it('takes a Dockerfile source', () => {
+    expectTypeOf(
+      web('api', { runtime: 'docker', dockerfilePath: './Dockerfile', dockerCommand: 'node .' }),
+    ).toEqualTypeOf<WebService>();
+  });
+
+  it('rejects a build command beside a Dockerfile, which is the build', () => {
+    // @ts-expect-error spec §4.2: a Docker source builds the Dockerfile, not a buildCommand.
+    web('api', { runtime: 'docker', buildCommand: 'pnpm build' });
+  });
+
+  it('rejects a repository beside a prebuilt image', () => {
+    web('api', {
+      runtime: 'image',
+      image: { url: 'docker.io/acme/api:1.4.2' },
+      // @ts-expect-error spec §4.3: image and repo are the two alternative sources.
+      repo: 'https://github.com/acme/api',
+    });
   });
 
   it('takes the environment groups it imports', () => {

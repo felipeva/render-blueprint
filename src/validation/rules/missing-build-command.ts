@@ -1,4 +1,5 @@
 import type { BlueprintResource } from '../../resources/resource.js';
+import { nativeSource } from '../../resources/service-source.js';
 import type { ValidationWarning } from '../issue.js';
 
 interface BuiltFromSource {
@@ -7,11 +8,19 @@ interface BuiltFromSource {
 }
 
 // spec §9 and §5: a database is not built from source, a Key Value instance is not, and neither is
-// a group, so no build command applies to any of them.
+// a group, so no build command applies to any of them. A Docker source builds the Dockerfile and a
+// prebuilt image builds nothing, so only a native runtime has a build command to miss.
 const builtFromSource = (resource: BlueprintResource): BuiltFromSource | undefined => {
   switch (resource.kind) {
     case 'web':
-      return { runtime: resource.config.runtime, buildCommand: resource.config.buildCommand };
+    case 'privateService':
+    case 'worker':
+    case 'cron': {
+      const native = nativeSource(resource.config);
+      return native === undefined
+        ? undefined
+        : { runtime: native.runtime, buildCommand: native.buildCommand };
+    }
     case 'staticSite':
       return { runtime: 'static', buildCommand: resource.config.buildCommand };
     case 'keyValue':

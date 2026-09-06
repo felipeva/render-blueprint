@@ -28,6 +28,59 @@ export type ServerPlan = (typeof SERVER_PLANS)[number];
 
 export const serverPlanSchema: z.ZodEnum<z.core.util.ToEnum<ServerPlan>> = z.enum(SERVER_PLANS);
 
+// spec §8.1: the free instance type is offered to web services and static sites; the [SPEC] tables
+// for private services and background workers are the serverPlan list without it, and both kinds
+// take the same set, so it is named for what it holds rather than for one of the two.
+export const PAID_SERVER_PLANS = [
+  'starter',
+  'standard',
+  'pro',
+  'pro plus',
+  'pro max',
+  'pro ultra',
+  '0.5c-512mb',
+  '1c-2g',
+  '2c-4g',
+  '2c-8g',
+  '2c-16g',
+  '4c-8g',
+  '4c-16g',
+  '4c-32g',
+  '8c-16g',
+  '8c-32g',
+  '8c-64g',
+  '12c-24g',
+  '12c-48g',
+  '12c-96g',
+] as const;
+
+export type PaidServerPlan = (typeof PAID_SERVER_PLANS)[number];
+
+export const paidServerPlanSchema: z.ZodEnum<z.core.util.ToEnum<PaidServerPlan>> =
+  z.enum(PAID_SERVER_PLANS);
+
+export const CRON_PLANS = [
+  'starter',
+  'standard',
+  'pro',
+  'pro plus',
+  '0.5c-512mb',
+  '1c-2g',
+  '2c-4g',
+  '2c-8g',
+  '2c-16g',
+  '4c-8g',
+  '4c-16g',
+  '4c-32g',
+  '8c-16g',
+  '8c-32g',
+  '8c-64g',
+] as const;
+
+export type CronPlan = (typeof CRON_PLANS)[number];
+
+export const cronPlanSchema: z.ZodEnum<z.core.util.ToEnum<CronPlan>> = z.enum(CRON_PLANS);
+
 export const POSTGRES_PLANS = [
   'free',
   'starter',
