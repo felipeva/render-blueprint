@@ -2,6 +2,8 @@ import { Result } from 'better-result';
 import { describe, expect, it } from 'vitest';
 
 import { blueprint } from '../blueprint/blueprint.js';
+import type { JsonObject } from '../json.js';
+import type { BlueprintResource } from '../resources/resource.js';
 import { web, type WebConfig } from '../resources/web.js';
 import { BlueprintInvalid } from './blueprint-invalid.js';
 import { validate } from './validate.js';
@@ -11,6 +13,7 @@ import { validate } from './validate.js';
 // deliberately stronger than the value — the gap ADR-0003 gives the schemas to close.
 const unchecked: (json: string) => WebConfig = JSON.parse;
 const uncheckedName: (json: string) => string = JSON.parse;
+const uncheckedResource: (json: string) => BlueprintResource = JSON.parse;
 
 describe('validate', () => {
   it('accepts a blueprint that trips no rule', () => {
@@ -247,13 +250,13 @@ describe('validate', () => {
 
   it('reports a resource name that is not a string', () => {
     const result = validate(
-      blueprint({ resources: [web(uncheckedName('42'), { runtime: 'node' })] }),
+      blueprint({ resources: [web(uncheckedName('{"from":"env"}'), { runtime: 'node' })] }),
     );
 
     expect(Result.isError(result)).toBe(true);
     if (!Result.isError(result)) return;
     expect(result.error.issues.map((issue) => issue.code)).toEqual(['InvalidConfig']);
-    expect(result.error.issues[0].at.field).toBe('name');
+    expect(result.error.issues[0].at).toEqual({ resource: '[object Object]', field: 'name' });
   });
 
   it('reports an empty resource name', () => {
@@ -261,8 +264,54 @@ describe('validate', () => {
 
     expect(Result.isError(result)).toBe(true);
     if (!Result.isError(result)) return;
-    expect(result.error.issues[0].at.field).toBe('name');
+    expect(result.error.issues[0].at).toEqual({ resource: '', field: 'name' });
     expect(result.error.issues[0].message).toContain('non-empty');
+  });
+
+  it('reports a rootDir that is not relative to the repository root', () => {
+    const result = validate(
+      blueprint({ resources: [web('api', { runtime: 'node', rootDir: '/apps/api' })] }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['RootDirNotRelative']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'rootDir' });
+    expect(result.error.issues[0].message).toContain('relative to the repository root');
+  });
+
+  it('reports extraFields holding a reference back to itself', () => {
+    const extraFields: JsonObject = {};
+    Object.assign(extraFields, { self: extraFields });
+
+    const result = validate(
+      blueprint({ resources: [web('api', { runtime: 'node', extraFields })] }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['CyclicExtraFields']);
+    expect(result.error.issues[0].at.field).toContain('extraFields');
+  });
+
+  it('reports an entry in resources that no factory returned', () => {
+    const result = validate(blueprint({ resources: [uncheckedResource('null')] }));
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['InvalidConfig']);
+    expect(result.error.issues[0].message).toContain('a factory returned');
+  });
+
+  it('reports an entry in resources carrying no modelled kind', () => {
+    const result = validate(
+      blueprint({ resources: [uncheckedResource('{"name":"api","config":{"runtime":"node"}}')] }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['InvalidConfig']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'kind' });
   });
 
   it('reports a duplicate name shared by a valid and a schema-invalid resource', () => {

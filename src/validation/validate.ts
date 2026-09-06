@@ -17,8 +17,6 @@ export interface ValidatedBlueprint {
   readonly warnings: readonly ValidationWarning[];
 }
 
-// Name rules read a resource's name; config rules read its config. Each list is fed only the
-// resources whose half of the parse succeeded, so no rule reads a value its schema rejected.
 const NAME_RULES = [duplicateResourceName] as const;
 
 const CONFIG_RULES = [duplicateEnvKey, extraFieldConflict, deprecatedField] as const;
@@ -36,7 +34,7 @@ export const validate = (value: Blueprint): ResultType<ValidatedBlueprint, Bluep
   return first === undefined
     ? Result.ok({
         resources: value.resources,
-        warnings: WARNING_RULES.flatMap((rule) => rule(value.resources)),
+        warnings: WARNING_RULES.flatMap((rule) => rule(parsed.accepted)),
       })
     : Result.err(new BlueprintInvalid({ issues: [first, ...rest] }));
 };

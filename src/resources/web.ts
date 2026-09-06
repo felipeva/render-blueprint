@@ -7,6 +7,7 @@ import { NATIVE_RUNTIMES, type NativeRuntime } from '../enums/runtime.js';
 import type { EnvironmentMap } from '../env/env-value.js';
 import type { Equal, Expect } from '../equal.js';
 import { jsonObjectSchema, type JsonObject } from '../json.js';
+import { raise } from '../raise.js';
 
 export type HealthCheckPath = `/${string}`;
 
@@ -61,7 +62,20 @@ const webConfigSchema = z
     plan: z.enum(SERVER_PLANS).exactOptional(),
     repo: z.string().exactOptional(),
     branch: z.string().exactOptional(),
-    rootDir: z.string().exactOptional(),
+    rootDir: z
+      .string()
+      .superRefine((value, ctx) => {
+        // spec §4.1 makes rootDir relative to the repository root. INFERRED: the schema does not.
+        if (value.startsWith('/')) {
+          raise(
+            ctx,
+            'RootDirNotRelative',
+            'A rootDir is relative to the repository root, so it does not start with "/".',
+            [],
+          );
+        }
+      })
+      .exactOptional(),
     healthCheckPath: z
       .templateLiteral(['/', z.string()], {
         error: 'A healthCheckPath is a string starting with "/"; Render requests it from the root.',
