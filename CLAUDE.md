@@ -2,8 +2,9 @@
 
 `render-blueprint` is a TypeScript library of factories that describe Render.com resources and
 synthesize them to `render.yaml`. Generator only: it never calls the Render API. The npm package
-and the CLI binary are both named `render-blueprint`. Phases 1 to 3 are done: the spec is issue #1 and the tickets are #2 to #14 plus #17, #20, and #22, with
-native blocked-by edges. Phase 4 is running: Herdr agents land tickets as PRs against `main`.
+and the CLI binary are both named `render-blueprint`. Phases 1 to 4 are done: the spec is issue #1; the tickets #2 to #14 plus #17, #20, #22, and the
+bug #31 all landed as squash-merged PRs on `main` (last: #35 on 2026-09-06). New work starts with
+`/to-spec` for a feature or a plain `ready-for-agent` issue for a bug, then a Herdr dispatch.
 
 - `CONTEXT.md` — the glossary. Read it before exploring.
 - `docs/design/requirements.md` — what the library must do.
@@ -108,6 +109,9 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `main` is
 - Clean up with `cleanup.sh <repo> --match <substr>`; always pass `--match`; it matches the worktree
   directory (`feat-5-env-sentinels-groups`), not the agent name; read the `verdict=` line.
 - `status.sh <repo>` answers "where is everything" at any point.
+- After a merge that changed the lockfile, run `pnpm install --frozen-lockfile` in the main checkout
+  before trusting `pnpm check` there: a stale `node_modules` fails typecheck with TS2307 on a
+  dependency a worker added, while every PR was green on CI's fresh install.
 
 ## Codebase conventions
 
