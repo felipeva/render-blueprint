@@ -22,22 +22,33 @@ export type DriftReport =
       readonly status: 'drift';
       readonly diff: string;
       readonly immutableFieldChanges: readonly ImmutableFieldChange[];
+      readonly parseErrors: readonly string[];
       readonly warnings: readonly ValidationWarning[];
     };
+
+const drifted = (
+  committed: NormalizedFile,
+  generated: NormalizedFile,
+  warnings: readonly ValidationWarning[],
+): DriftReport => ({
+  status: 'drift',
+  diff: diff(committed.lines, generated.lines),
+  immutableFieldChanges:
+    committed.status === 'parsed' && generated.status === 'parsed'
+      ? immutableFieldChanges(committed.value, generated.value)
+      : [],
+  parseErrors: committed.status === 'malformed' ? committed.errors : [],
+  warnings,
+});
 
 const compare = (
   committed: NormalizedFile,
   generated: NormalizedFile,
   warnings: readonly ValidationWarning[],
 ): DriftReport =>
-  committed.lines.join('\n') === generated.lines.join('\n')
+  committed.status === 'parsed' && committed.lines.join('\n') === generated.lines.join('\n')
     ? { status: 'clean', warnings }
-    : {
-        status: 'drift',
-        diff: diff(committed.lines, generated.lines),
-        immutableFieldChanges: immutableFieldChanges(committed.value, generated.value),
-        warnings,
-      };
+    : drifted(committed, generated, warnings);
 
 export const checkBlueprint = (
   value: Blueprint,

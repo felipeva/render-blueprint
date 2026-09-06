@@ -33,13 +33,35 @@ describe('normalize', () => {
   });
 
   it('carries the parsed document so the drift report can classify it', () => {
-    expect(normalize('services:\n  - name: api\n').value).toEqual({ services: [{ name: 'api' }] });
+    const parsed = normalize('services:\n  - name: api\n');
+
+    expect(parsed.status).toBe('parsed');
+    if (parsed.status !== 'parsed') return;
+    expect(parsed.value).toEqual({ services: [{ name: 'api' }] });
   });
 
-  it('falls back to the raw lines when the text is not YAML', () => {
-    const broken = normalize('services: [\n  - : :\n');
+  it('reports a duplicated key as malformed rather than parsing it', () => {
+    const malformed = normalize('services:\n  - name: api\n    name: web\n');
 
-    expect(broken.value).toBeUndefined();
-    expect(broken.lines).toEqual(['services: [', '  - : :']);
+    expect(malformed.status).toBe('malformed');
+    if (malformed.status !== 'malformed') return;
+    expect(malformed.errors).toEqual(['Map keys must be unique at line 3, column 5:']);
+  });
+
+  it('keeps the raw lines of a document it could not parse', () => {
+    const malformed = normalize('services: [\n  - : :\n');
+
+    expect(malformed.status).toBe('malformed');
+    if (malformed.status !== 'malformed') return;
+    expect(malformed.lines).toEqual(['services: [', '  - : :']);
+    expect(malformed.errors.length).toBeGreaterThan(0);
+  });
+
+  it('refuses a document that declares a YAML version it does not read', () => {
+    const malformed = normalize('%YAML 1.1\n---\nname: api\n');
+
+    expect(malformed.status).toBe('malformed');
+    if (malformed.status !== 'malformed') return;
+    expect(malformed.errors).toEqual(['The document declares %YAML 1.1; only 1.2 is read.']);
   });
 });

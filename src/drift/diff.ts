@@ -1,16 +1,56 @@
 const CONTEXT_LINES = 3;
 
+// An LCS table is quadratic; above this many cells a whole-file replace is the honest answer.
+const MAX_TABLE_CELLS = 4_000_000;
+
 interface DiffOp {
   readonly mark: '-' | '+' | ' ';
   readonly text: string;
+}
+
+interface PositionedOp extends DiffOp {
   readonly committedAt: number;
   readonly generatedAt: number;
 }
 
-const operations = (
+const marked = (mark: DiffOp['mark'], lines: readonly string[]): readonly DiffOp[] =>
+  lines.map((text) => ({ mark, text }));
+
+const commonPrefix = (committed: readonly string[], generated: readonly string[]): number => {
+  const limit = Math.min(committed.length, generated.length);
+  let count = 0;
+
+  while (count < limit && committed[count] === generated[count]) count += 1;
+
+  return count;
+};
+
+const commonSuffix = (
+  committed: readonly string[],
+  generated: readonly string[],
+  prefix: number,
+): number => {
+  const limit = Math.min(committed.length, generated.length) - prefix;
+  let count = 0;
+
+  while (
+    count < limit &&
+    committed[committed.length - 1 - count] === generated[generated.length - 1 - count]
+  ) {
+    count += 1;
+  }
+
+  return count;
+};
+
+const middleOps = (
   committed: readonly string[],
   generated: readonly string[],
 ): readonly DiffOp[] => {
+  if ((committed.length + 1) * (generated.length + 1) > MAX_TABLE_CELLS) {
+    return [...marked('-', committed), ...marked('+', generated)];
+  }
+
   const width = generated.length + 1;
   const common = Array.from<number>({ length: (committed.length + 1) * width }).fill(0);
   const commonAt = (row: number, column: number): number => common[row * width + column] ?? 0;
@@ -33,17 +73,17 @@ const operations = (
     const right = generated[column];
 
     if (left !== undefined && right !== undefined && left === right) {
-      ops.push({ mark: ' ', text: left, committedAt: row + 1, generatedAt: column + 1 });
+      ops.push({ mark: ' ', text: left });
       row += 1;
       column += 1;
     } else if (
       left !== undefined &&
       (right === undefined || commonAt(row + 1, column) >= commonAt(row, column + 1))
     ) {
-      ops.push({ mark: '-', text: left, committedAt: row + 1, generatedAt: column + 1 });
+      ops.push({ mark: '-', text: left });
       row += 1;
     } else if (right !== undefined) {
-      ops.push({ mark: '+', text: right, committedAt: row + 1, generatedAt: column + 1 });
+      ops.push({ mark: '+', text: right });
       column += 1;
     }
   }
@@ -51,7 +91,21 @@ const operations = (
   return ops;
 };
 
-const hunkRanges = (ops: readonly DiffOp[]): readonly (readonly [number, number])[] => {
+const positioned = (ops: readonly DiffOp[]): readonly PositionedOp[] => {
+  const placed: PositionedOp[] = [];
+  let committedAt = 1;
+  let generatedAt = 1;
+
+  for (const op of ops) {
+    placed.push({ ...op, committedAt, generatedAt });
+    if (op.mark !== '+') committedAt += 1;
+    if (op.mark !== '-') generatedAt += 1;
+  }
+
+  return placed;
+};
+
+const hunkRanges = (ops: readonly PositionedOp[]): readonly (readonly [number, number])[] => {
   const kept = Array.from<boolean>({ length: ops.length }).fill(false);
 
   ops.forEach((op, index) => {
@@ -80,23 +134,36 @@ const hunkRanges = (ops: readonly DiffOp[]): readonly (readonly [number, number]
   return ranges;
 };
 
-const hunk = (ops: readonly DiffOp[]): readonly string[] => {
+// Unified diff numbers an empty side from the line it follows, so a count of zero backs up one.
+const startOf = (position: number, count: number): number =>
+  count === 0 ? position - 1 : position;
+
+const hunk = (ops: readonly PositionedOp[]): readonly string[] => {
   const first = ops[0];
 
   if (first === undefined) return [];
 
   const removed = ops.filter((op) => op.mark !== '+').length;
   const added = ops.filter((op) => op.mark !== '-').length;
+  const from = `-${String(startOf(first.committedAt, removed))},${String(removed)}`;
+  const to = `+${String(startOf(first.generatedAt, added))},${String(added)}`;
 
-  return [
-    `@@ -${String(first.committedAt)},${String(removed)} +${String(first.generatedAt)},${String(added)} @@`,
-    ...ops.map((op) => `${op.mark}${op.text}`),
-  ];
+  return [`@@ ${from} ${to} @@`, ...ops.map((op) => `${op.mark}${op.text}`)];
 };
 
 // The committed file is the baseline, so a removed line is what is on disk today.
 export const diff = (committed: readonly string[], generated: readonly string[]): string => {
-  const ops = operations(committed, generated);
+  const prefix = commonPrefix(committed, generated);
+  const suffix = commonSuffix(committed, generated, prefix);
+
+  const ops = positioned([
+    ...marked(' ', committed.slice(0, prefix)),
+    ...middleOps(
+      committed.slice(prefix, committed.length - suffix),
+      generated.slice(prefix, generated.length - suffix),
+    ),
+    ...marked(' ', committed.slice(committed.length - suffix)),
+  ]);
 
   return hunkRanges(ops)
     .flatMap(([start, end]) => hunk(ops.slice(start, end)))

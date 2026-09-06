@@ -4,7 +4,6 @@ import { describe, expectTypeOf, it } from 'vitest';
 import {
   blueprint,
   checkBlueprint,
-  memoryFilePort,
   synthesize,
   writeBlueprint,
   type BlueprintFileUnreadable,
@@ -14,6 +13,7 @@ import {
   type SynthesisReport,
   type WriteReport,
 } from './index.js';
+import { memoryFilePort } from './testing.js';
 
 describe('synthesize', () => {
   it('names exactly BlueprintInvalid in its error lane at the public entry', () => {

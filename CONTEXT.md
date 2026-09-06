@@ -47,8 +47,8 @@ Use these words. Definitions come from `docs/design/structure.md`,
 
 ## Drift
 
-- **Drift** — a difference between the committed `render.yaml` and what `synthesize` produces now. Drift is an outcome, not an error.
-- **Drift report** — what `checkBlueprint` returns: `{ status: "clean" }` or `{ status: "drift", diff, immutableFieldChanges }`. `src/drift/`.
+- **Drift** — a difference between the committed `render.yaml` and what `synthesize` produces now. Drift is an outcome, not an error. It is judged after normalization, so it is semantic equivalence and not byte equality: a clean check does not mean `writeBlueprint` would leave the file untouched, because a reordered or reflowed file says the same thing and still compares clean.
+- **Drift report** — what `checkBlueprint` returns: `{ status: "clean", warnings }` or `{ status: "drift", diff, immutableFieldChanges, parseErrors, warnings }`. `warnings` are the synthesis warnings, carried on both variants so a strict CI run fails on them without synthesizing twice. `parseErrors` says why the committed file could not be read as YAML, and is empty when it parsed. `src/drift/`.
 - **Immutable field** — a field Render cannot change in place (`type`, `runtime`, `region`, a database's `name`/`user`/`databaseName`/`postgresMajorVersion`). Changes to one are classified separately in the drift report. `src/drift/immutable-field.ts`.
 
 ## Escape hatches

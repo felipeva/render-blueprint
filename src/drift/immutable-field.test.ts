@@ -13,8 +13,8 @@ describe('immutableFieldChanges', () => {
         section: 'services',
         resource: 'api',
         field: 'runtime',
-        committed: 'python',
-        generated: 'node',
+        committed: '"python"',
+        generated: '"node"',
       },
     ]);
   });
@@ -26,7 +26,7 @@ describe('immutableFieldChanges', () => {
     expect(immutableFieldChanges(committed, generated)).toEqual([]);
   });
 
-  it('reports a field that appears or disappears as a change against (absent)', () => {
+  it('reports a field the blueprint newly declares as a change from (absent)', () => {
     const committed: JsonValue = { services: [{ name: 'api' }] };
     const generated: JsonValue = { services: [{ name: 'api', region: 'oregon' }] };
 
@@ -36,7 +36,29 @@ describe('immutableFieldChanges', () => {
         resource: 'api',
         field: 'region',
         committed: '(absent)',
-        generated: 'oregon',
+        generated: '"oregon"',
+      },
+    ]);
+  });
+
+  it('reports nothing when the blueprint stopped declaring a field', () => {
+    const committed: JsonValue = { services: [{ name: 'api', region: 'oregon' }] };
+    const generated: JsonValue = { services: [{ name: 'api' }] };
+
+    expect(immutableFieldChanges(committed, generated)).toEqual([]);
+  });
+
+  it('quotes a string value so it cannot be read as the number beside it', () => {
+    const committed: JsonValue = { databases: [{ name: 'store', postgresMajorVersion: '16' }] };
+    const generated: JsonValue = { databases: [{ name: 'store', postgresMajorVersion: 16 }] };
+
+    expect(immutableFieldChanges(committed, generated)).toEqual([
+      {
+        section: 'databases',
+        resource: 'store',
+        field: 'postgresMajorVersion',
+        committed: '"16"',
+        generated: '16',
       },
     ]);
   });
@@ -49,13 +71,25 @@ describe('immutableFieldChanges', () => {
       databases: [{ name: 'store', user: 'owner', postgresMajorVersion: 17 }],
     };
 
-    expect(immutableFieldChanges(committed, generated).map((change) => change.field)).toEqual([
-      'user',
-      'postgresMajorVersion',
+    expect(immutableFieldChanges(committed, generated)).toEqual([
+      {
+        section: 'databases',
+        resource: 'store',
+        field: 'user',
+        committed: '"app"',
+        generated: '"owner"',
+      },
+      {
+        section: 'databases',
+        resource: 'store',
+        field: 'postgresMajorVersion',
+        committed: '16',
+        generated: '17',
+      },
     ]);
   });
 
-  it('reports a renamed database as a change to its name', () => {
+  it('reports one dropped and one added database that otherwise agree as a rename', () => {
     const committed: JsonValue = { databases: [{ name: 'store', databaseName: 'app' }] };
     const generated: JsonValue = { databases: [{ name: 'catalog', databaseName: 'app' }] };
 
@@ -64,10 +98,34 @@ describe('immutableFieldChanges', () => {
         section: 'databases',
         resource: 'catalog',
         field: 'name',
-        committed: 'store',
-        generated: 'catalog',
+        committed: '"store"',
+        generated: '"catalog"',
       },
     ]);
+  });
+
+  it('reads a delete plus an add as neither a rename nor a field change', () => {
+    const committed: JsonValue = { databases: [{ name: 'store', databaseName: 'app' }] };
+    const generated: JsonValue = { databases: [{ name: 'catalog', databaseName: 'catalog' }] };
+
+    expect(immutableFieldChanges(committed, generated)).toEqual([]);
+  });
+
+  it('refuses to guess a rename when more than one database was dropped or added', () => {
+    const committed: JsonValue = {
+      databases: [
+        { name: 'store', user: 'app' },
+        { name: 'ledger', user: 'app' },
+      ],
+    };
+    const generated: JsonValue = {
+      databases: [
+        { name: 'catalog', user: 'app' },
+        { name: 'journal', user: 'app' },
+      ],
+    };
+
+    expect(immutableFieldChanges(committed, generated)).toEqual([]);
   });
 
   it('reports nothing for a service that exists on one side only', () => {

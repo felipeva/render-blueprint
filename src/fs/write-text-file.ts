@@ -1,4 +1,5 @@
-import { writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname } from 'node:path';
 
 import {
   Result,
@@ -28,6 +29,9 @@ export const writeTextFile = (
   text: string,
 ): Promise<ResultType<void, BlueprintWriteFailed>> =>
   Result.tryPromise({
-    try: () => writeFile(path, text, 'utf8'),
+    try: async () => {
+      await mkdir(dirname(path), { recursive: true });
+      await writeFile(path, text, 'utf8');
+    },
     catch: (cause) => new BlueprintWriteFailed({ path, cause }),
   });

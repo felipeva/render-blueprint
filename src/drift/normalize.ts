@@ -2,10 +2,13 @@ import type { JsonValue } from '../json.js';
 import { canonicalText } from '../synth/canonical-text.js';
 import { parseText } from '../synth/parse-text.js';
 
-export interface NormalizedFile {
-  readonly lines: readonly string[];
-  readonly value: JsonValue | undefined;
-}
+export type NormalizedFile =
+  | { readonly status: 'parsed'; readonly lines: readonly string[]; readonly value: JsonValue }
+  | {
+      readonly status: 'malformed';
+      readonly lines: readonly string[];
+      readonly errors: readonly string[];
+    };
 
 const textLines = (text: string): readonly string[] => {
   const lines = text.split('\n').map((line) => line.trimEnd());
@@ -14,10 +17,9 @@ const textLines = (text: string): readonly string[] => {
 };
 
 export const normalize = (text: string): NormalizedFile => {
-  const value = parseText(text);
+  const parsed = parseText(text);
 
-  return {
-    lines: textLines(value === undefined ? text : canonicalText(value)),
-    value,
-  };
+  return parsed.status === 'parsed'
+    ? { status: 'parsed', lines: textLines(canonicalText(parsed.value)), value: parsed.value }
+    : { status: 'malformed', lines: textLines(text), errors: parsed.errors };
 };
