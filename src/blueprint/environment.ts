@@ -1,21 +1,52 @@
 import * as z from 'zod';
 
+import {
+  environmentProtectionSchema,
+  type EnvironmentProtection,
+} from '../enums/environment-protection.js';
+import { networkIsolationSchema, type NetworkIsolation } from '../enums/network-isolation.js';
 import type { Equal, Expect } from '../equal.js';
 import type { BlueprintResource } from '../resources/resource.js';
 
+export interface EnvironmentNetworking {
+  readonly isolation?: NetworkIsolation;
+}
+
+export interface EnvironmentPermissions {
+  readonly protection?: EnvironmentProtection;
+}
+
 export interface EnvironmentConfig {
   readonly resources?: readonly BlueprintResource[];
+  readonly networking?: EnvironmentNetworking;
+  readonly permissions?: EnvironmentPermissions;
 }
 
 export interface Environment {
   readonly name: string;
   readonly resources: readonly BlueprintResource[];
+  readonly networking?: EnvironmentNetworking | undefined;
+  readonly permissions?: EnvironmentPermissions | undefined;
 }
 
 const ENVIRONMENT_NAME_ERROR =
   'An environment name is a non-empty string; Render identifies an environment by its name.';
 
 const resourceValueSchema = z.custom<BlueprintResource>();
+
+const environmentNetworkingSchema = z
+  .strictObject(
+    { isolation: networkIsolationSchema.exactOptional() },
+    { error: 'An environment takes its networking as an object with an isolation.' },
+  )
+  .readonly();
+
+const environmentPermissionsSchema = z
+  .strictObject(
+    { protection: environmentProtectionSchema.exactOptional() },
+    { error: 'An environment takes its permissions as an object with a protection.' },
+  )
+  .readonly();
 
 const environmentSchema = z
   .strictObject(
@@ -26,6 +57,8 @@ const environmentSchema = z
           error: 'An environment holds a list of the resources that belong to it.',
         })
         .readonly(),
+      networking: environmentNetworkingSchema.optional(),
+      permissions: environmentPermissionsSchema.optional(),
     },
     {
       error:

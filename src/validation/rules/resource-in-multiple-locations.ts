@@ -19,7 +19,10 @@ export const resourceInMultipleLocations = (
     issues.push({
       code: 'ResourceInMultipleLocations',
       at: { resource: entry.resource.name, field: 'placement' },
-      message: `"${entry.resource.name}" is placed in ${earlier} and again in ${entry.location}. Render requires every resource to be defined in exactly one location.`,
+      message:
+        earlier === entry.location
+          ? `"${entry.resource.name}" is placed twice in ${earlier}. Render requires every resource to be defined in exactly one location.`
+          : `"${entry.resource.name}" is placed in ${earlier} and again in ${entry.location}. Render requires every resource to be defined in exactly one location.`,
     });
   }
 

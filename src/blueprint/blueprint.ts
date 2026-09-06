@@ -1,6 +1,6 @@
 import * as z from 'zod';
 
-import { PREVIEW_GENERATIONS, type PreviewGeneration } from '../enums/preview-generation.js';
+import { previewGenerationSchema, type PreviewGeneration } from '../enums/preview-generation.js';
 import type { Equal, Expect } from '../equal.js';
 import { jsonObjectSchema, type JsonObject } from '../json.js';
 import type { BlueprintResource } from '../resources/resource.js';
@@ -42,7 +42,7 @@ const projectValueSchema = z.custom<Project>();
 const rootPreviewsSchema = z
   .strictObject(
     {
-      generation: z.enum(PREVIEW_GENERATIONS).exactOptional(),
+      generation: previewGenerationSchema.exactOptional(),
       expireAfterDays: z
         .int({ error: EXPIRE_AFTER_DAYS_ERROR })
         .min(1, { error: EXPIRE_AFTER_DAYS_ERROR })

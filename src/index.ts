@@ -1,7 +1,10 @@
 export type { JsonObject, JsonValue } from './json.js';
 
 export type { AutoDeployTrigger } from './enums/auto-deploy-trigger.js';
+export type { EnvironmentProtection } from './enums/environment-protection.js';
+export type { NetworkIsolation } from './enums/network-isolation.js';
 export type { ServerPlan } from './enums/plan.js';
+export type { PreviewGeneration } from './enums/preview-generation.js';
 export type { Region } from './enums/region.js';
 export type { RouteType } from './enums/route-type.js';
 export type { NativeRuntime } from './enums/runtime.js';
@@ -15,7 +18,16 @@ export type { HealthCheckPath, WebConfig, WebService } from './resources/web.js'
 export type { BlueprintResource } from './resources/resource.js';
 
 export { blueprint } from './blueprint/blueprint.js';
-export type { Blueprint, BlueprintConfig } from './blueprint/blueprint.js';
+export type { Blueprint, BlueprintConfig, RootPreviews } from './blueprint/blueprint.js';
+export { environment } from './blueprint/environment.js';
+export type {
+  Environment,
+  EnvironmentConfig,
+  EnvironmentNetworking,
+  EnvironmentPermissions,
+} from './blueprint/environment.js';
+export { project } from './blueprint/project.js';
+export type { Project, ProjectConfig } from './blueprint/project.js';
 
 export { BlueprintInvalid } from './validation/blueprint-invalid.js';
 export type { ValidationIssues } from './validation/blueprint-invalid.js';

@@ -2,6 +2,8 @@ import { Result } from 'better-result';
 import { describe, expect, it } from 'vitest';
 
 import { blueprint, type Blueprint } from '../blueprint/blueprint.js';
+import { environment } from '../blueprint/environment.js';
+import { project } from '../blueprint/project.js';
 import { staticSite } from '../resources/static-site.js';
 import { web } from '../resources/web.js';
 import { BlueprintInvalid } from '../validation/blueprint-invalid.js';
@@ -181,5 +183,165 @@ services:
     if (!Result.isError(result)) return;
     expect(BlueprintInvalid.is(result.error)).toBe(true);
     expect(result.error.issues.map((issue) => issue.code)).toEqual(['DuplicateResourceName']);
+  });
+  it('emits the root previews ahead of the resources', () => {
+    expect(
+      emit(
+        blueprint({
+          previews: { generation: 'automatic', expireAfterDays: 7 },
+          resources: [web('api', { runtime: 'node' })],
+        }),
+      ),
+    ).toContain(
+      `previews:
+  generation: automatic
+  expireAfterDays: 7
+services:
+  - type: web
+    name: api
+    runtime: node
+`,
+    );
+  });
+
+  it('omits the root previews the author did not write', () => {
+    expect(emit(blueprint({ resources: [web('api', { runtime: 'node' })] }))).not.toContain(
+      'previews:',
+    );
+  });
+
+  it('emits a project as its environments and their resources', () => {
+    const api = web('api', { runtime: 'node' });
+    const staging = web('api-staging', { runtime: 'node' });
+
+    expect(
+      emit(
+        blueprint({
+          projects: [
+            project('acme', {
+              environments: [
+                environment('production', { resources: [api] }),
+                environment('staging', { resources: [staging] }),
+              ],
+            }),
+          ],
+        }),
+      ),
+    ).toContain(
+      `projects:
+  - name: acme
+    environments:
+      - name: production
+        services:
+          - type: web
+            name: api
+            runtime: node
+      - name: staging
+        services:
+          - type: web
+            name: api-staging
+            runtime: node
+`,
+    );
+  });
+
+  it("emits an environment's networking and permissions after its resources", () => {
+    expect(
+      emit(
+        blueprint({
+          projects: [
+            project('acme', {
+              environments: [
+                environment('production', {
+                  resources: [web('api', { runtime: 'node' })],
+                  networking: { isolation: 'enabled' },
+                  permissions: { protection: 'disabled' },
+                }),
+              ],
+            }),
+          ],
+        }),
+      ),
+    ).toContain(
+      `        networking:
+          isolation: enabled
+        permissions:
+          protection: disabled
+`,
+    );
+  });
+
+  it('emits the ungrouped resources under their own key', () => {
+    expect(emit(blueprint({ ungrouped: [web('docs', { runtime: 'node' })] }))).toContain(
+      `ungrouped:
+  services:
+    - type: web
+      name: docs
+      runtime: node
+`,
+    );
+  });
+
+  it('omits an empty project list and an empty ungrouped list', () => {
+    const emitted = emit(blueprint({ resources: [web('api', { runtime: 'node' })] }));
+
+    expect(emitted).not.toContain('projects:');
+    expect(emitted).not.toContain('ungrouped:');
+  });
+
+  it('merges the root extraFields after the modeled root keys', () => {
+    expect(
+      emit(
+        blueprint({
+          resources: [web('api', { runtime: 'node' })],
+          extraFields: { version: '1' },
+        }),
+      ),
+    ).toContain(
+      `services:
+  - type: web
+    name: api
+    runtime: node
+version: "1"
+`,
+    );
+  });
+
+  it('reports a resource value placed in two locations rather than emitting it twice', () => {
+    const api = web('api', { runtime: 'node' });
+    const result = synthesize(
+      blueprint({
+        resources: [api],
+        projects: [
+          project('acme', { environments: [environment('production', { resources: [api] })] }),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['ResourceInMultipleLocations']);
+  });
+
+  it('warns about a pinned branch while root previews are on', () => {
+    const result = synthesize(
+      blueprint({
+        previews: { generation: 'automatic' },
+        resources: [
+          web('api', {
+            runtime: 'node',
+            branch: 'main',
+            buildCommand: 'pnpm build',
+            startCommand: 'pnpm start',
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isOk(result)).toBe(true);
+    if (!Result.isOk(result)) return;
+    expect(result.value.warnings.map((warning) => warning.code)).toEqual([
+      'BranchDisablesPreviews',
+    ]);
   });
 });

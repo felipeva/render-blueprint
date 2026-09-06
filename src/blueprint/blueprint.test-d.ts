@@ -59,4 +59,19 @@ describe('environment', () => {
     // @ts-expect-error a project is not a resource an environment can hold.
     environment('production', { resources: [project('acme', { environments: [] })] });
   });
+
+  it('rejects a network isolation Render does not publish', () => {
+    // @ts-expect-error "on" is not a member of NetworkIsolation.
+    environment('production', { networking: { isolation: 'on' } });
+  });
+
+  it('rejects an environment protection Render does not publish', () => {
+    // @ts-expect-error "on" is not a member of EnvironmentProtection.
+    environment('production', { permissions: { protection: 'on' } });
+  });
+
+  it('rejects an environment field the library does not model', () => {
+    // @ts-expect-error isolation belongs under networking, not on the environment itself.
+    environment('production', { isolation: 'enabled' });
+  });
 });

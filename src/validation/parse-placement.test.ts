@@ -75,7 +75,9 @@ describe('parsePlacement', () => {
       blueprint({
         projects: [
           project('acme', {
-            environments: [environment('production', uncheckedEnvironment('{"networking":{}}'))],
+            environments: [
+              environment('production', uncheckedEnvironment('{"isolation":"enabled"}')),
+            ],
           }),
         ],
       }),
@@ -84,9 +86,66 @@ describe('parsePlacement', () => {
     expect(issues).toEqual([
       {
         code: 'UnknownField',
-        at: { resource: 'production', field: 'networking' },
-        message: expect.stringContaining('networking'),
+        at: { resource: 'production', field: 'isolation' },
+        message: expect.stringContaining('isolation'),
       },
+    ]);
+  });
+
+  it('reports a networking field the library does not model', () => {
+    const issues = parsePlacement(
+      blueprint({
+        projects: [
+          project('acme', {
+            environments: [
+              environment('production', uncheckedEnvironment('{"networking":{"isolated":true}}')),
+            ],
+          }),
+        ],
+      }),
+    );
+
+    expect(issues.map((issue) => [issue.code, issue.at.field])).toEqual([
+      ['UnknownField', 'networking.isolated'],
+    ]);
+  });
+
+  it('reports a network isolation Render does not publish', () => {
+    const issues = parsePlacement(
+      blueprint({
+        projects: [
+          project('acme', {
+            environments: [
+              environment('production', uncheckedEnvironment('{"networking":{"isolation":"on"}}')),
+            ],
+          }),
+        ],
+      }),
+    );
+
+    expect(issues.map((issue) => [issue.code, issue.at.field])).toEqual([
+      ['InvalidConfig', 'networking.isolation'],
+    ]);
+  });
+
+  it('reports an environment protection Render does not publish', () => {
+    const issues = parsePlacement(
+      blueprint({
+        projects: [
+          project('acme', {
+            environments: [
+              environment(
+                'production',
+                uncheckedEnvironment('{"permissions":{"protection":"on"}}'),
+              ),
+            ],
+          }),
+        ],
+      }),
+    );
+
+    expect(issues.map((issue) => [issue.code, issue.at.field])).toEqual([
+      ['InvalidConfig', 'permissions.protection'],
     ]);
   });
 
@@ -112,7 +171,11 @@ describe('parsePlacement', () => {
         projects: [
           project('acme', {
             environments: [
-              environment('production', { resources: [web('api', { runtime: 'node' })] }),
+              environment('production', {
+                resources: [web('api', { runtime: 'node' })],
+                networking: { isolation: 'enabled' },
+                permissions: { protection: 'enabled' },
+              }),
             ],
           }),
         ],

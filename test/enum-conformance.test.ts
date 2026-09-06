@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest';
 import * as z from 'zod';
 
 import { AUTO_DEPLOY_TRIGGERS } from '../src/enums/auto-deploy-trigger.js';
+import { ENVIRONMENT_PROTECTIONS } from '../src/enums/environment-protection.js';
+import { NETWORK_ISOLATIONS } from '../src/enums/network-isolation.js';
 import { SERVER_PLANS } from '../src/enums/plan.js';
 import { PREVIEW_GENERATIONS } from '../src/enums/preview-generation.js';
 import { REGIONS } from '../src/enums/region.js';
@@ -13,9 +15,15 @@ import { NATIVE_RUNTIMES } from '../src/enums/runtime.js';
 
 type JsonSchemaEnum = readonly (string | number | boolean | null)[] | undefined;
 
+interface RenderSchemaProperty {
+  readonly enum?: readonly string[];
+  readonly properties?: { readonly [name: string]: RenderSchemaProperty };
+}
+
 interface RenderSchemaDefinition {
   readonly enum?: readonly string[];
-  readonly properties?: { readonly [name: string]: { readonly enum?: readonly string[] } };
+  readonly properties?: { readonly [name: string]: RenderSchemaProperty };
+  readonly allOf?: readonly RenderSchemaProperty[];
 }
 
 interface RenderSchema {
@@ -38,6 +46,12 @@ const publishedField = (name: string, field: string): readonly string[] | undefi
 
 const converted = (values: readonly string[]): JsonSchemaEnum =>
   z.toJSONSchema(z.enum(values)).enum;
+
+// The environment's own fields sit in an allOf branch, so they carry no named definition.
+const publishedInEnvironment = (group: string, field: string): readonly string[] | undefined =>
+  (renderSchema.definitions['environment']?.allOf ?? [])
+    .map((branch) => branch.properties?.[group]?.properties?.[field]?.enum)
+    .find((values) => values !== undefined);
 
 describe('REGIONS', () => {
   it('holds the region enum Render publishes', () => {
@@ -77,5 +91,21 @@ describe('ROUTE_TYPES', () => {
 describe('PREVIEW_GENERATIONS', () => {
   it('holds the previewsGeneration enum Render publishes', () => {
     expect(converted(PREVIEW_GENERATIONS)).toEqual(published('previewsGeneration'));
+  });
+});
+
+describe('NETWORK_ISOLATIONS', () => {
+  it("holds the isolation enum Render publishes on an environment's networking", () => {
+    expect(converted(NETWORK_ISOLATIONS)).toEqual(
+      publishedInEnvironment('networking', 'isolation'),
+    );
+  });
+});
+
+describe('ENVIRONMENT_PROTECTIONS', () => {
+  it("holds the protection enum Render publishes on an environment's permissions", () => {
+    expect(converted(ENVIRONMENT_PROTECTIONS)).toEqual(
+      publishedInEnvironment('permissions', 'protection'),
+    );
   });
 });
