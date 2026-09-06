@@ -185,8 +185,9 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `main` is
   `<type>(<optional scope>)!: <description>`; types `build` `chore` `ci` `docs` `feat` `fix`
   `perf` `refactor` `revert` `style` `test`; description lowercase imperative, no trailing
   period; subject at most 72 characters, blank line before the body; the body explains why,
-  not what. Every commit ends with the trailer
-  `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`.
+  not what. Every commit ends with a `Co-Authored-By` trailer naming the model that authored it
+  (`Claude Fable 5.1` for the coordinator, `Claude Opus 5` for a dispatched worker), as each
+  session's own attribution instruction states.
 - Few comments. Only `SAFETY:` justifications and one-line spec citations (`// spec §16 B`). Never
   narrate what the code does — the types and the names carry that.
 
