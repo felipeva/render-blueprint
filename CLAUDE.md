@@ -160,6 +160,10 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `main` is
   oracle; refresh it with `pnpm schema:refresh`, never by hand, and never read
   `docs/research/raw/` from code.
 - Run `pnpm check` before claiming done: format, lint, typecheck, tests, type tests.
+- Run `pnpm format` before committing. The `pre-commit` hook in `.githooks/` formats the staged
+  files with oxfmt, re-stages them, and runs oxlint on the staged source; a lint finding aborts
+  the commit. Stage whole files, because the hook formats and re-stages whole files. Both hooks
+  activate with `git config core.hooksPath .githooks`, which needs `pnpm install` first.
 - `tools/oxlint/anti-slop/` is vendored output. Never edit it, never lint it, never weaken a rule
   to make lint pass — fix the code. Re-vendor with the `install-anti-slop` skill.
 - Commits follow Conventional Commits, enforced by `.githooks/commit-msg`. Install it once per
