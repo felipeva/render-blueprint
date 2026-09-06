@@ -29,6 +29,12 @@ describe("extraFieldConflict", () => {
     ]);
   });
 
+  it("reports nothing for a modeled key that deprecatedField already claims", () => {
+    expect(
+      extraFieldConflict([web("api", { runtime: "node", extraFields: { type: "redis" } })]),
+    ).toEqual([]);
+  });
+
   it("reports nothing for a key the library does not model", () => {
     expect(
       extraFieldConflict([

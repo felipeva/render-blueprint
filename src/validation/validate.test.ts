@@ -9,7 +9,11 @@ import { validate } from "./validate.js";
 describe("validate", () => {
   it("accepts a blueprint that trips no rule", () => {
     const result = validate(
-      blueprint({ resources: [web("api", { runtime: "node", buildCommand: "pnpm build" })] }),
+      blueprint({
+        resources: [
+          web("api", { runtime: "node", buildCommand: "pnpm build", startCommand: "pnpm start" }),
+        ],
+      }),
     );
 
     expect(Result.isOk(result)).toBe(true);
@@ -23,7 +27,10 @@ describe("validate", () => {
 
     expect(Result.isOk(result)).toBe(true);
     if (!Result.isOk(result)) return;
-    expect(result.value.warnings.map((warning) => warning.code)).toEqual(["MissingBuildCommand"]);
+    expect(result.value.warnings.map((warning) => warning.code)).toEqual([
+      "MissingBuildCommand",
+      "MissingStartCommand",
+    ]);
   });
 
   it("fails with BlueprintInvalid when a rule reports an issue", () => {
@@ -90,6 +97,26 @@ describe("validate", () => {
     expect(Result.isError(result)).toBe(true);
     if (!Result.isError(result)) return;
     expect(result.error.message).toContain("api.extraFields.autoDeploy");
+  });
+
+  it("reports one issue for one mistake when a key is both modeled and deprecated", () => {
+    const result = validate(
+      blueprint({ resources: [web("api", { runtime: "node", extraFields: { type: "redis" } })] }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(["DeprecatedField"]);
+  });
+
+  it("still reports a conflict on a modeled key Render has not retired", () => {
+    const result = validate(
+      blueprint({ resources: [web("api", { runtime: "node", extraFields: { type: "worker" } })] }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(["ExtraFieldConflict"]);
   });
 
   it("accepts a blueprint with no resources", () => {

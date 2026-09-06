@@ -17,7 +17,7 @@
     }
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -p tsconfig.check.json",
     "lint": "oxlint",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
@@ -34,6 +34,7 @@
   "devDependencies": {
     "@oxlint/plugins": "1.81.0",
     "@types/node": "26.4.1",
+    "ajv": "8.20.0",
     "oxfmt": "0.66.0",
     "oxlint": "1.81.0",
     "tsdown": "0.23.0",

@@ -9,6 +9,7 @@ import { duplicateEnvKey } from "./rules/duplicate-env-key.js";
 import { duplicateResourceName } from "./rules/duplicate-resource-name.js";
 import { extraFieldConflict } from "./rules/extra-field-conflict.js";
 import { missingBuildCommand } from "./rules/missing-build-command.js";
+import { missingStartCommand } from "./rules/missing-start-command.js";
 
 export interface ValidatedBlueprint {
   readonly resources: readonly BlueprintResource[];
@@ -22,7 +23,7 @@ const ISSUE_RULES = [
   deprecatedField,
 ] as const;
 
-const WARNING_RULES = [missingBuildCommand] as const;
+const WARNING_RULES = [missingBuildCommand, missingStartCommand] as const;
 
 export const validate = (value: Blueprint): ResultType<ValidatedBlueprint, BlueprintInvalid> => {
   const [first, ...rest] = ISSUE_RULES.flatMap((rule) => rule(value.resources));
