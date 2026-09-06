@@ -1,4 +1,4 @@
-import { type Result as ResultType } from "better-result";
+import type { Result as ResultType } from "better-result";
 import type { ToStringOptions } from "yaml";
 
 import type { Blueprint } from "../blueprint/blueprint.js";

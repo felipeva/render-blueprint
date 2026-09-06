@@ -17,7 +17,6 @@ type SchemaValidator = (value: JsonValue) => readonly SchemaViolation[];
 const schemaPath = fileURLToPath(new URL("schema/render.yaml.schema.json", import.meta.url));
 const fixturesPath = fileURLToPath(new URL("fixtures/", import.meta.url));
 
-/** Wraps ajv's untyped result into SchemaViolation so no unknown reaches an assertion. */
 const compileRenderSchema = (): SchemaValidator => {
   const schema: JsonObject = JSON.parse(readFileSync(schemaPath, "utf8"));
   const compiled = new Ajv2020({ strict: false, allErrors: true }).compile(schema);

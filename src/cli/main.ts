@@ -1,4 +1,2 @@
 #!/usr/bin/env node
-import { packageName } from "../index.js";
-
-process.stdout.write(`${packageName}: nothing to do yet\n`);
+process.stdout.write("render-blueprint: nothing to do yet\n");

@@ -15,7 +15,6 @@ export const extraFieldConflict = (
     if (extraFields === undefined) continue;
 
     for (const [key, value] of Object.entries(extraFields)) {
-      // A retired form is one mistake with one issue; deprecatedField already reports it.
       if (!MODELED_FIELDS.has(key) || deprecation(key, value) !== undefined) continue;
 
       issues.push({

@@ -1,5 +1,3 @@
-export const packageName = "render-blueprint" as const;
-
 export type { JsonObject, JsonValue } from "./json.js";
 
 export type { AutoDeployTrigger } from "./enums/auto-deploy-trigger.js";

@@ -29,7 +29,7 @@ export interface WebService {
   readonly config: WebConfig;
 }
 
-/** The YAML keys a web service can emit, in emission order. Schema `serverService` property order. */
+// Emission order follows the schema's serverService property order.
 export const WEB_SERVICE_FIELDS = [
   "type",
   "name",
