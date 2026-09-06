@@ -23,6 +23,19 @@ describe('envKeyCollision', () => {
     ]);
   });
 
+  it('reads the listed group of an imported name, not the object the service holds', () => {
+    const stale = envGroup('shared-settings', { env: { OTHER: 'x' } });
+    const api = web('api', { runtime: 'node', env: { LOG_LEVEL: 'warn' }, envGroups: [stale] });
+
+    expect(envKeyCollision([api, settings])).toEqual([
+      {
+        code: 'EnvKeyCollision',
+        at: { resource: 'api', field: 'env.LOG_LEVEL' },
+        message: expect.stringContaining('shared-settings'),
+      },
+    ]);
+  });
+
   it('names every group carrying the key it reports', () => {
     const [issue] = envKeyCollision([
       web('api', { runtime: 'node', env: { LOG_LEVEL: 'warn' }, envGroups: [settings, regional] }),

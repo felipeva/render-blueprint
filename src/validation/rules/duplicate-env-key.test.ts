@@ -17,10 +17,19 @@ describe('duplicateEnvKey', () => {
     expect(issues).toEqual([
       {
         code: 'DuplicateEnvKey',
-        at: { resource: 'api', field: 'env.LOG_LEVEL' },
+        at: { resource: 'api', field: 'envGroups' },
         message: expect.stringContaining('groups "shared-settings" and "regional"'),
       },
     ]);
+  });
+
+  it('reports the key under envGroups, which is where the service declared the import', () => {
+    const [issue] = duplicateEnvKey([
+      web('api', { runtime: 'node', envGroups: [settings, regional] }),
+    ]);
+
+    expect(issue?.at.field).toBe('envGroups');
+    expect(issue?.message).toContain('"LOG_LEVEL"');
   });
 
   it('reports nothing for a key one imported group carries', () => {

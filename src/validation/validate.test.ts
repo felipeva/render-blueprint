@@ -682,7 +682,7 @@ describe('validate', () => {
     expect(Result.isError(result)).toBe(true);
     if (!Result.isError(result)) return;
     expect(result.error.issues.map((issue) => issue.code)).toEqual(['DuplicateEnvKey']);
-    expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'env.LOG_LEVEL' });
+    expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'envGroups' });
   });
 
   it('carries the secret preview warning on an accepted blueprint', () => {
