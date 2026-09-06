@@ -12,6 +12,10 @@ interface Ran {
   readonly stderr: string;
 }
 
+interface Manifest {
+  readonly version: string;
+}
+
 const root = fileURLToPath(new URL('..', import.meta.url));
 const binary = join(root, 'dist', 'cli.js');
 const seeds = fileURLToPath(new URL('fixtures/cli/', import.meta.url));
@@ -134,5 +138,69 @@ describe('render-blueprint', () => {
     const ran = await run(await seeded('clean'), ['check', '--file', 'absent.ts']);
 
     expect(ran.code).toBe(1);
+  });
+
+  it('exits 1 and reports the panic when a defect escapes a command handler', async () => {
+    const ran = await run(await seeded('defective'), ['check']);
+
+    expect(ran.code).not.toBe(0);
+    expect(ran.stderr).toContain('render-blueprint hit a defect and cannot continue.');
+    expect(ran.stderr).toContain('Panic');
+  });
+
+  it('exits 1 on a usage error and names the offender on stderr', async () => {
+    const cwd = await seeded('clean');
+
+    const unknownCommand = await run(cwd, ['plan']);
+
+    expect(unknownCommand.code).toBe(1);
+    expect(unknownCommand.stderr).toContain("Unknown command: 'plan'");
+
+    const unknownOption = await run(cwd, ['check', '--colour']);
+
+    expect(unknownOption.code).toBe(1);
+    expect(unknownOption.stderr).toContain('--colour');
+
+    const missingValue = await run(cwd, ['check', '--file']);
+
+    expect(missingValue.code).toBe(1);
+    expect(missingValue.stderr).toContain('--file');
+  });
+
+  it('exits 1 and asks for a command when the command line is bare', async () => {
+    const ran = await run(await seeded('clean'), []);
+
+    expect(ran.code).toBe(1);
+    expect(ran.stderr).toContain('No command given');
+  });
+
+  it('prints the generated help for the cli and for both commands', async () => {
+    const cwd = await seeded('clean');
+
+    const cli = await run(cwd, ['--help']);
+
+    expect(cli.code).toBe(0);
+    expect(cli.stdout).toContain('synth');
+    expect(cli.stdout).toContain('check');
+
+    for (const command of ['synth', 'check']) {
+      const help = await run(cwd, [command, '--help']);
+
+      expect(help.code).toBe(0);
+      expect(help.stdout).toContain(`render-blueprint ${command} [flags]`);
+      expect(help.stdout).toContain('--file string');
+      expect(help.stdout).toContain('--out string');
+      expect(help.stdout).toContain('--strict');
+    }
+  });
+
+  it('prints the version the package manifest names', async () => {
+    // SAFETY: JSON.parse answers any. This is the repository's own package.json, whose "version" npm
+    // writes and whose absence would fail the build long before this assertion runs.
+    const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')) as Manifest;
+    const ran = await run(await seeded('clean'), ['--version']);
+
+    expect(ran.code).toBe(0);
+    expect(ran.stdout.trim()).toBe(manifest.version);
   });
 });

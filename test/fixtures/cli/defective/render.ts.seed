@@ -1,0 +1,24 @@
+import { blueprint, web, type Blueprint } from '__RENDER_BLUEPRINT__';
+
+const api = web('api', {
+  runtime: 'node',
+  region: 'oregon',
+  plan: 'starter',
+  buildCommand: 'pnpm install --frozen-lockfile && pnpm build',
+  startCommand: 'pnpm start',
+});
+
+// A resource list that throws when it is read is a defect, not a validation failure: better-result
+// raises a Panic out of the Result.gen that walks it, so the CLI must report that panic and rethrow
+// it rather than let brocli's catch swallow it.
+const resources = new Proxy([api], {
+  get(target, key, receiver): unknown {
+    if (key === 'length') throw new Error('the blueprint is defective');
+
+    return Reflect.get(target, key, receiver);
+  },
+});
+
+const value: Blueprint = blueprint({ resources });
+
+export default value;

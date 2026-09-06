@@ -30,7 +30,10 @@ have; splitting forces `render-blueprint` plus `render-blueprint-cli` on everyon
 config, and the toolchain doc's `tsconfig.json` skeleton omits `composite`/`incremental` as
 "irrelevant for a single-package library" — staying single keeps it usable unmodified. The cost,
 the CLI shipping to library-only consumers, is `node:fs` + `node:path` + a dynamic `import()`.
-Revisit only if the CLI grows a real dependency. `render-blueprint` is the npm name, decided separately.
+Issue #22 was that revisit: the CLI now depends on `@drizzle-team/brocli` for its command
+declarations, so library-only consumers install it too. It is a zero-dependency package that
+`neverBundle` keeps out of the library entries, which is what kept the single package worth it.
+`render-blueprint` is the npm name, decided separately.
 
 ## 2. Folder tree
 
@@ -117,11 +120,19 @@ Revisit only if the CLI grows a real dependency. `render-blueprint` is the npm n
 │   │                                declares the error it produces — BlueprintWriteFailed and
 │   │                                BlueprintFileUnreadable (§5). There is no src/errors/.
 │   └── cli/                         nothing in src/ outside this directory may import it
-│       ├── main.ts                  the bin entry; the ONE isPanic boundary; exit codes 0/1/2
+│       ├── main.ts                  the bin entry; the ONE isPanic boundary; exit codes 0/1/2. It
+│       │                            calls brocli's run() with noExit, so the exit code stays here
+│       ├── commands.ts              synth and check as brocli command() declarations: --file, --out
+│       │                            and --strict as typed option builders, and the help text brocli
+│       │                            generates from them (issue #22 replaced parse-arguments.ts)
+│       ├── usage-theme.ts           the brocli event handler: records exit 1 for a usage failure and
+│       │                            leaves the message to brocli, and rethrows a defect, which is
+│       │                            what carries a Panic past brocli's catch to main.ts
+│       ├── run-config.ts            RunConfig extends BroCliConfig with noExit — brocli 0.12.1 reads
+│       │                            it at runtime but does not declare it
+│       ├── package-version.ts       reads the version out of the manifest beside the built binary,
+│       │                            through a FileReader, for brocli's --version
 │       ├── discover.ts  load.ts     walk up from cwd for render.ts (--file overrides), then import()
-│       ├── parse-arguments.ts       the hand-rolled command line: two commands, three flags, and
-│       │                            CommandLineInvalid. No dependency, because the library would
-│       │                            ship it to every consumer
 │       ├── node-floor.ts            refuses a Node older than the type-stripping floor with a
 │       │                            sentence, rather than letting the loader fail (§7 engines)
 │       └── format.ts                human rendering of issues, warnings, and the drift diff
@@ -375,7 +386,10 @@ accepts both, and no test may assert behaviour the library does not promise.
 **6.5 CLI smoke test.** `test/cli.test.ts` spawns the built binary in a temp directory seeded from
 `test/fixtures/cli/`, once per outcome: clean tree (exit 0), drifted `render.yaml` (exit 2),
 invalid blueprint (exit 1). It asserts exit codes and that stderr names the resource, nothing about
-formatting. ADR-0002 fixes the CLI's contract at exactly this. It builds the binary itself in
+formatting. Since issue #22 it also asserts what the command line itself owes the caller: a usage
+error exits 1 with the offender on stderr, `--help` names both commands and all three flags,
+`--version` prints what the manifest says, and the `defective` seed — a resource list that throws
+when it is read — proves a Panic escapes brocli's catch, is reported, and exits non-zero. ADR-0002 fixes the CLI's contract at exactly this. It builds the binary itself in
 `beforeAll`, so it can never pass against a stale `dist/` and `pnpm check` stays self-contained.
 
 **6.6 `pnpm check`** is the one command CI and agents run:

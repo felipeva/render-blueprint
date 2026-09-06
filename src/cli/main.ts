@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
+import { run } from '@drizzle-team/brocli';
 import { isPanic, Result, type Result as ResultType } from 'better-result';
 
 import {
@@ -13,6 +15,14 @@ import {
   type DriftReport,
   type ValidationWarning,
 } from '../index.js';
+import {
+  CLI_DESCRIPTION,
+  CLI_NAME,
+  commands,
+  type CommandName,
+  type CommandOptions,
+  type CommandRunner,
+} from './commands.js';
 import { discover, type BlueprintFileNotFound } from './discover.js';
 import { formatDrift, formatFailure, formatIssues, formatWarnings } from './format.js';
 import {
@@ -22,11 +32,18 @@ import {
   type BlueprintLoadFailed,
 } from './load.js';
 import { belowNodeFloor, NODE_FLOOR } from './node-floor.js';
-import { parseArguments, USAGE, type CommandLineInvalid } from './parse-arguments.js';
+import { packageVersion } from './package-version.js';
+import type { RunConfig } from './run-config.js';
+import { usageTheme } from './usage-theme.js';
 
 const EXIT_OK = 0;
 const EXIT_FAILED = 1;
 const EXIT_DRIFT = 2;
+
+// argSource is process.argv, whose first two entries are the executable and this script.
+const ARGV_OFFSET = 2;
+
+const MANIFEST = join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json');
 
 type CliError =
   | BlueprintExportInvalid
@@ -35,11 +52,9 @@ type CliError =
   | BlueprintFileUnreadable
   | BlueprintInvalid
   | BlueprintLoadFailed
-  | BlueprintWriteFailed
-  | CommandLineInvalid;
+  | BlueprintWriteFailed;
 
 type Outcome =
-  | { readonly action: 'help' }
   | {
       readonly action: 'wrote';
       readonly path: string;
@@ -61,39 +76,35 @@ const complain = (text: string): void => {
   if (text !== '') process.stderr.write(`${text}\n`);
 };
 
-const execute = (argv: readonly string[], from: string): Promise<ResultType<Outcome, CliError>> =>
+const execute = (
+  name: CommandName,
+  options: CommandOptions,
+  from: string,
+): Promise<ResultType<Outcome, CliError>> =>
   Result.gen(async function* () {
-    const args = yield* parseArguments(argv);
-
-    if (args.action === 'help') {
-      const help: Outcome = { action: 'help' };
-
-      return Result.ok(help);
-    }
-
     const blueprintPath = yield* Result.await(
-      discover({ from, file: args.file, port: nodeFilePort }),
+      discover({ from, file: options.file, port: nodeFilePort }),
     );
     const value = yield* Result.await(load(blueprintPath));
     const target =
-      args.out === undefined
+      options.out === undefined
         ? join(dirname(blueprintPath), 'render.yaml')
-        : resolve(from, args.out);
+        : resolve(from, options.out);
 
-    if (args.command === 'synth') {
+    if (name === 'synth') {
       const written = yield* Result.await(writeBlueprint(value, { path: target }));
       const wrote: Outcome = {
         action: 'wrote',
         path: written.path,
         warnings: written.warnings,
-        strict: args.strict,
+        strict: options.strict,
       };
 
       return Result.ok(wrote);
     }
 
     const report = yield* Result.await(checkBlueprint(value, { path: target }));
-    const checked: Outcome = { action: 'checked', path: target, report, strict: args.strict };
+    const checked: Outcome = { action: 'checked', path: target, report, strict: options.strict };
 
     return Result.ok(checked);
   });
@@ -123,10 +134,6 @@ const completeCheck = (path: string, report: DriftReport, strict: boolean): numb
 
 const complete = (outcome: Outcome): number => {
   switch (outcome.action) {
-    case 'help':
-      say(USAGE);
-      return EXIT_OK;
-
     case 'wrote':
       complain(formatWarnings(outcome.warnings));
       say(`Wrote ${outcome.path}`);
@@ -147,14 +154,36 @@ const failed = (error: CliError): number => {
       BlueprintInvalid: (invalid) => formatIssues(invalid.issues),
       BlueprintLoadFailed: formatFailure,
       BlueprintWriteFailed: formatFailure,
-      CommandLineInvalid: (invalid) => `${invalid.message}\n\n${USAGE}`,
     }),
   );
 
   return EXIT_FAILED;
 };
 
-const run = async (argv: readonly string[], from: string): Promise<number> => {
+// brocli's run() discards whatever a handler returns, so the exit code the CLI owns is recorded here
+// by the handler and by the event handler, and read once run() has settled.
+let exitCode: number = EXIT_OK;
+
+const runner: CommandRunner = async (name, options) => {
+  exitCode = (await execute(name, options, process.cwd())).match({ ok: complete, err: failed });
+};
+
+const showVersion = async (): Promise<void> => {
+  say(await packageVersion(MANIFEST, nodeFilePort));
+};
+
+const config: RunConfig = {
+  name: CLI_NAME,
+  description: CLI_DESCRIPTION,
+  argSource: process.argv,
+  version: showVersion,
+  theme: usageTheme(() => {
+    exitCode = EXIT_FAILED;
+  }),
+  noExit: true,
+};
+
+const main = async (): Promise<number> => {
   if (belowNodeFloor(process.versions.node)) {
     complain(
       `render-blueprint needs Node ${NODE_FLOOR} or newer to strip the types from a TypeScript blueprint; this is Node ${process.versions.node}.`,
@@ -162,13 +191,20 @@ const run = async (argv: readonly string[], from: string): Promise<number> => {
     return EXIT_FAILED;
   }
 
-  const outcome = await execute(argv, from);
+  // brocli answers a bare command line with the generated help; naming no command is still the usage
+  // error it was before brocli, so it keeps exit 1.
+  if (process.argv.length <= ARGV_OFFSET) {
+    complain(`No command given. Run ${CLI_NAME} --help.`);
+    exitCode = EXIT_FAILED;
+  }
 
-  return outcome.match({ ok: complete, err: failed });
+  await run(commands(runner), config);
+
+  return exitCode;
 };
 
 try {
-  process.exitCode = await run(process.argv.slice(2), process.cwd());
+  process.exitCode = await main();
 } catch (defect) {
   if (isPanic(defect)) {
     complain(`render-blueprint hit a defect and cannot continue.\n  ${defect.message}`);
