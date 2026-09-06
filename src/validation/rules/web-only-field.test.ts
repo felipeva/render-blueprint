@@ -46,16 +46,23 @@ describe('webOnlyField', () => {
     ).toEqual([]);
   });
 
-  it('warns about nothing on a cron job, whose schema branch carries none of the fields', () => {
-    expect(
-      webOnlyField([
-        cron('nightly', {
-          runtime: 'node',
-          schedule: '0 2 * * *',
-          extraFields: { healthCheckPath: '/healthz' },
-        }),
-      ]),
-    ).toEqual([]);
+  // spec §4.8: cronService lists none of the six and takes no property beyond the ones it lists, so
+  // the emitted document is one Render's own schema rejects.
+  it('warns about a web-only field on a cron job, whose schema carries none of them', () => {
+    const warnings = webOnlyField([
+      cron('nightly', {
+        runtime: 'node',
+        schedule: '0 2 * * *',
+        extraFields: { domains: ['a.com'], healthCheckPath: '/healthz' },
+      }),
+    ]);
+
+    expect(warnings.map((warning) => warning.at.field)).toEqual([
+      'extraFields.healthCheckPath',
+      'extraFields.domains',
+    ]);
+    expect(warnings[0]?.message).toContain('cron job');
+    expect(warnings[0]?.code).toBe('WebOnlyField');
   });
 
   it('warns about nothing when a worker sets no extra fields', () => {

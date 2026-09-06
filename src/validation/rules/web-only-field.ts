@@ -4,7 +4,7 @@ import type { ValidationWarning } from '../issue.js';
 
 // spec §16 F: all six sit on the serverService branch a worker and a private service share with a
 // web service, and Render's prose gives them to web services alone. The library models none of them
-// on the two kinds, so extraFields is the only way one reaches the emitted mapping.
+// on the three kinds below, so extraFields is the only way one reaches the emitted mapping.
 const WEB_ONLY_FIELDS = [
   'healthCheckPath',
   'maintenanceMode',
@@ -15,7 +15,7 @@ const WEB_ONLY_FIELDS = [
 ] as const;
 
 interface WebOnlyCandidate {
-  readonly type: string;
+  readonly type: 'pserv' | 'worker' | 'cron';
   readonly extraFields: JsonObject;
 }
 
@@ -29,8 +29,11 @@ const candidate = (resource: BlueprintResource): WebOnlyCandidate | undefined =>
       return resource.config.extraFields === undefined
         ? undefined
         : { type: 'worker', extraFields: resource.config.extraFields };
-    case 'web':
     case 'cron':
+      return resource.config.extraFields === undefined
+        ? undefined
+        : { type: 'cron', extraFields: resource.config.extraFields };
+    case 'web':
     case 'staticSite':
     case 'keyValue':
     case 'postgres':
@@ -39,8 +42,19 @@ const candidate = (resource: BlueprintResource): WebOnlyCandidate | undefined =>
   }
 };
 
-// Render neither documents the field on these two kinds nor rejects it in the published schema, so
-// a sync may apply it, ignore it, or fail; that unknown is a warning rather than an issue.
+// spec §4.8: a cron job does not share the serverService branch at all, and cronService allows no
+// property beyond the ones it lists, so the six are further out of reach there than on the two
+// kinds the prose merely excludes.
+const message = (name: string, type: WebOnlyCandidate['type'], field: string): string => {
+  switch (type) {
+    case 'cron':
+      return `"${name}" sets "${field}" through extraFields, and Render's schema for a cron job carries no such field. A cron job takes no property beyond the ones cronService lists, so the emitted document is one Render reads as invalid rather than one it ignores the field in.`;
+    case 'pserv':
+    case 'worker':
+      return `"${name}" sets "${field}" through extraFields, and Render's documentation gives that field to web services. Whether a sync applies it to a "${type}" service, ignores it, or fails is unstated.`;
+  }
+};
+
 export const webOnlyField = (
   resources: readonly BlueprintResource[],
 ): readonly ValidationWarning[] => {
@@ -56,7 +70,7 @@ export const webOnlyField = (
       warnings.push({
         code: 'WebOnlyField',
         at: { resource: resource.name, field: `extraFields.${field}` },
-        message: `"${resource.name}" sets "${field}" through extraFields, and Render's documentation gives that field to web services. Whether a sync applies it to a "${found.type}" service, ignores it, or fails is unstated.`,
+        message: message(resource.name, found.type, field),
       });
     }
   }
