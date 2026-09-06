@@ -22,6 +22,7 @@ export const WARNING_CODES = [
   'MissingStaticPublishPath',
   'BranchDisablesPreviews',
   'SecretSkipsPreviews',
+  'UnknownServiceEnvVarKey',
 ] as const;
 
 export type WarningCode = (typeof WARNING_CODES)[number];

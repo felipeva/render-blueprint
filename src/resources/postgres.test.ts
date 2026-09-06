@@ -47,6 +47,7 @@ describe('postgres', () => {
     expect(postgres('elephant').connectionString).toEqual({
       reference: 'fromDatabase',
       name: 'elephant',
+      origin: 'blueprint',
       property: 'connectionString',
     });
   });

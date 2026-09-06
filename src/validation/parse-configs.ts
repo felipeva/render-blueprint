@@ -4,6 +4,8 @@ import {
   parseResourceName,
   resourceConfigIssues,
   resourceEntryIssues,
+  resourceEnvIsCallback,
+  resourceEnvIssues,
   type BlueprintResource,
 } from '../resources/resource.js';
 import { VALIDATION_CODES, type ValidationCode, type ValidationIssue } from './issue.js';
@@ -66,12 +68,18 @@ export const parseConfigs = (resources: readonly BlueprintResource[]): ParsedCon
 
     const onName = nameIssues(resource);
     const onConfig = resourceConfigIssues(resource);
+    // BlueprintInvalid carries every issue, so a config that failed elsewhere still has its env map
+    // parsed. Only the callback form waits: resolving one runs the author's code against a config
+    // the schema already rejected.
+    const onEnv =
+      onConfig.length === 0 || !resourceEnvIsCallback(resource) ? resourceEnvIssues(resource) : [];
 
     for (const issue of onName) issues.push(...translate(name, ['name'], issue));
     for (const issue of onConfig) issues.push(...translate(name, [], issue));
+    for (const issue of onEnv) issues.push(...translate(name, ['env'], issue));
 
     if (onName.length === 0) named.push(resource);
-    if (onName.length === 0 && onConfig.length === 0) accepted.push(resource);
+    if (onName.length === 0 && onConfig.length === 0 && onEnv.length === 0) accepted.push(resource);
   }
 
   return { issues, named, accepted };

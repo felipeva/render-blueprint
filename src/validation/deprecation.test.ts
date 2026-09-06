@@ -46,4 +46,14 @@ describe('deprecationScope', () => {
   it('reads an environment group as its own scope', () => {
     expect(deprecationScope('envGroup')).toBe('envGroup');
   });
+
+  // spec §13: previewPlan is the current form on a datastore, and a Key Value instance is one
+  // even though Render lists it under services.
+  it('reads a Key Value instance as a datastore', () => {
+    expect(deprecationScope('keyValue')).toBe('datastore');
+  });
+
+  it('leaves previewPlan alone on a Key Value instance, where it is the current form', () => {
+    expect(deprecation('previewPlan', 'starter', deprecationScope('keyValue'))).toBeUndefined();
+  });
 });

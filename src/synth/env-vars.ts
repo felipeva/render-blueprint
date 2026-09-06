@@ -6,11 +6,13 @@ import type { EnvironmentGroup } from '../resources/env-group.js';
 import {
   ENV_VAR_FROM_DATABASE_KEY_ORDER,
   ENV_VAR_FROM_GROUP_KEY_ORDER,
+  ENV_VAR_FROM_SERVICE_KEY_ORDER,
   ENV_VAR_GENERATED_KEY_ORDER,
   ENV_VAR_KEY_ORDER,
   ENV_VAR_LITERAL_KEY_ORDER,
   ENV_VAR_SECRET_KEY_ORDER,
   FROM_DATABASE_KEY_ORDER,
+  FROM_SERVICE_KEY_ORDER,
 } from './key-order.js';
 import { mapping } from './mapping.js';
 
@@ -41,6 +43,24 @@ const envVar = (entry: EnvEntry): YAMLMap => {
           fromDatabase: mapping(
             FROM_DATABASE_KEY_ORDER,
             { name: entry.reference.name, property: entry.reference.property },
+            undefined,
+          ),
+        },
+        undefined,
+      );
+    case 'fromService':
+      return mapping(
+        ENV_VAR_FROM_SERVICE_KEY_ORDER,
+        {
+          key: entry.key,
+          fromService: mapping(
+            FROM_SERVICE_KEY_ORDER,
+            {
+              type: entry.reference.type,
+              name: entry.reference.name,
+              property: 'property' in entry.reference ? entry.reference.property : undefined,
+              envVarKey: 'envVarKey' in entry.reference ? entry.reference.envVarKey : undefined,
+            },
             undefined,
           ),
         },

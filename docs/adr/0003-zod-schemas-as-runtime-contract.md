@@ -63,3 +63,9 @@ and `noUncheckedIndexedAccess` established:
   one.
 - Accepted limitation: a config object with a throwing getter throws inside Zod and reaches the
   CLI's single `Panic` boundary. Nothing short of copying every input can prevent it.
+- The `env` callback form is resolved on every pass that reads an environment map — each rule, the
+  parse of the resolved map, and synth — so a callback must be pure; one with side effects runs
+  several times per synthesis, and one that throws reaches the same `Panic` boundary a throwing
+  getter does. The resolved map is parsed as a second tier, after the config schema accepted the
+  field as written, because a union of the map and the callback reports one issue on `env` and
+  loses the key at fault.

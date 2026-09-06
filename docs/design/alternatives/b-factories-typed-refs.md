@@ -341,7 +341,7 @@ resources.
 | 5 | Cron with no `schedule`; Key Value with no `ipAllowList` | **Compile** | required fields |
 | 6 | `secret()` inside an env group | **Compile** | `EnvGroupValue` excludes `SecretValue` (spec §10) |
 | 7 | Both `value` and `generateValue` on one var | **Compile** | `literal()` / `generated()` are disjoint `EnvValue` members — unrepresentable |
-| 8 | `fromService` with both `property` and `envVarKey` | **Compile** | `ServiceReferenceValue` is a two-member union; a handle yields one or the other |
+| 8 | `fromService` with both `property` and `envVarKey` | **Synth** | unrepresentable through the API: a handle yields one or the other, and nothing builds the pair. An object literal annotated `ServiceReferenceValue` is *not* rejected, because TypeScript admits any property a union member declares, so the two strict branches of the value schema are what reject it (ADR-0001) |
 | 9 | Typo `RENDER_EXTERNAL_HOSTNAM` | **Compile** | `renderVar` takes the closed `RenderProvidedKey` union |
 | 10 | `healthCheckPath: "healthz"` | **Compile** | typed `` `/${string}` `` |
 | 11 | `runtime: "static"` on a worker; `plan: "free"` on worker/pserv | **Compile** | `WorkerRuntime` excludes `static`; `WorkerPlan = Exclude<ServerPlan, "free">` — both stricter than the schema, per prose |

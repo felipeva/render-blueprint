@@ -2,7 +2,9 @@ import * as z from 'zod';
 
 import {
   databaseReferenceValueSchema,
+  serviceReferenceValueSchema,
   type DatabaseReferenceValue,
+  type ServiceReferenceValue,
 } from '../references/reference-value.js';
 import { generatedValueSchema, type GeneratedValue } from './generated.js';
 import { literalValueSchema, type LiteralValue } from './literal.js';
@@ -14,7 +16,8 @@ export type EnvValue =
   | LiteralValue
   | SecretValue
   | GeneratedValue
-  | DatabaseReferenceValue;
+  | DatabaseReferenceValue
+  | ServiceReferenceValue;
 
 // spec §6.3: Render ignores a sync: false variable inside a group, and spec §6.1 gives a group's
 // items the key-value form only, so no reference reaches one.
@@ -36,10 +39,11 @@ const envValueSchema = z.union(
     secretValueSchema,
     generatedValueSchema,
     databaseReferenceValueSchema,
+    serviceReferenceValueSchema,
   ],
   {
     error:
-      'An environment variable value is a string, a number, a literal, a secret, a generated value, or a property of a database a handle produced.',
+      'An environment variable value is a string, a number, a literal, a secret, a generated value, or a property of a database or a service a handle produced.',
   },
 );
 

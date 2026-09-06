@@ -43,6 +43,7 @@ export const deprecationScope = (kind: BlueprintResource['kind']): DeprecationSc
     case 'web':
     case 'staticSite':
       return 'service';
+    case 'keyValue':
     case 'postgres':
       return 'datastore';
     case 'envGroup':

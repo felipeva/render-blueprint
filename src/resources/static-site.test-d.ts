@@ -57,6 +57,19 @@ describe('staticSite', () => {
   });
 });
 
+describe('staticSite self-reference', () => {
+  it('takes the callback form of env, typed to the opaque handle', () => {
+    staticSite('marketing', {
+      env: (self) => ({ SITE_NAME: self.renderVar('RENDER_SERVICE_NAME') }),
+    });
+  });
+
+  it('rejects the host property on the self handle', () => {
+    // @ts-expect-error spec §6.2: a static site answers no host, port or hostport.
+    staticSite('marketing', { env: (self) => ({ SITE_HOST: self.host }) });
+  });
+});
+
 describe('STATIC_SITE_CONFIG_SCHEMA_MATCHES_INTERFACE', () => {
   it('is the literal true the guard produces', () => {
     expectTypeOf(STATIC_SITE_CONFIG_SCHEMA_MATCHES_INTERFACE).toEqualTypeOf<true>();

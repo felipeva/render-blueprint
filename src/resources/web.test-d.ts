@@ -46,6 +46,33 @@ describe('web', () => {
   });
 });
 
+describe('web self-reference', () => {
+  it('takes the callback form of env, typed to the web service handle', () => {
+    web('api', {
+      runtime: 'node',
+      env: (self) => ({
+        APP_HOST: self.renderVar('RENDER_EXTERNAL_HOSTNAME'),
+        APP_HOSTPORT: self.hostport,
+      }),
+    });
+  });
+
+  it('rejects a variable Render does not provide on the self handle', () => {
+    web('api', {
+      runtime: 'node',
+      env: (self) => ({
+        // @ts-expect-error spec §6.6: renderVar takes the closed list, so a typo does not compile.
+        APP_HOST: self.renderVar('RENDER_HOSTNAME'),
+      }),
+    });
+  });
+
+  it('rejects a callback returning something other than an environment map', () => {
+    // @ts-expect-error the callback answers with the map Render emits as envVars.
+    web('api', { runtime: 'node', env: () => 'NODE_ENV=production' });
+  });
+});
+
 describe('WEB_CONFIG_SCHEMA_MATCHES_INTERFACE', () => {
   it('is the literal true the guard produces', () => {
     expectTypeOf(WEB_CONFIG_SCHEMA_MATCHES_INTERFACE).toEqualTypeOf<true>();

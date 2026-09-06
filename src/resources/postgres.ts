@@ -123,5 +123,5 @@ export const postgres = (name: string, config: PostgresConfig = {}): PostgresDat
   kind: 'postgres',
   name,
   config,
-  ...postgresReference(name),
+  ...postgresReference(name, 'blueprint'),
 });

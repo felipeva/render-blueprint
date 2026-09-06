@@ -51,3 +51,8 @@ name and the name string is accepted.
   cross-resource rules are synth-time. Anything needing workspace state passes through.
 - Tagged errors are declared beside their producer and re-exported from `src/index.ts`; there is
   no shared errors directory.
+- Row 8 of design B's mistake matrix — a `fromService` node carrying both `property` and
+  `envVarKey` — holds through the handles, which yield one or the other, and at runtime, where
+  both branches of the value schema are strict. It does not hold for an object literal annotated
+  with `ServiceReferenceValue`: TypeScript admits any property declared by any member of a union
+  target, so the pair is unrepresentable through the API rather than in the type.

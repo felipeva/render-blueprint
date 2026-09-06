@@ -1,6 +1,7 @@
 import { YAMLMap, YAMLSeq } from 'yaml';
 
-import type { BlueprintResource } from '../resources/resource.js';
+import { KEY_VALUE_STORE_FIELDS, type KeyValueStore } from '../resources/key-value.js';
+import { resourceEnv, type BlueprintResource } from '../resources/resource.js';
 import {
   HEADER_FIELDS,
   ROUTE_FIELDS,
@@ -11,6 +12,7 @@ import {
 } from '../resources/static-site.js';
 import { WEB_SERVICE_FIELDS, type WebService } from '../resources/web.js';
 import { envVars } from './env-vars.js';
+import { ipAllowList } from './ip-allow-list.js';
 import { mapping } from './mapping.js';
 
 const webService = (resource: WebService): YAMLMap => {
@@ -31,7 +33,7 @@ const webService = (resource: WebService): YAMLMap => {
       buildCommand: config.buildCommand,
       startCommand: config.startCommand,
       preDeployCommand: config.preDeployCommand,
-      envVars: envVars(config.env, config.envGroups),
+      envVars: envVars(resourceEnv(resource), config.envGroups),
       autoDeployTrigger: config.autoDeployTrigger,
     },
     config.extraFields,
@@ -84,7 +86,7 @@ const staticSiteService = (resource: StaticSite): YAMLMap => {
       staticPublishPath: config.staticPublishPath,
       headers: config.headers === undefined ? undefined : headers(config.headers),
       routes: config.routes === undefined ? undefined : routes(config.routes),
-      envVars: envVars(config.env, config.envGroups),
+      envVars: envVars(resourceEnv(resource), config.envGroups),
       rootDir: config.rootDir,
       repo: config.repo,
       branch: config.branch,
@@ -96,12 +98,33 @@ const staticSiteService = (resource: StaticSite): YAMLMap => {
   );
 };
 
+// spec §5: a Key Value instance is a service to Render, and `keyvalue` retires the `redis` type.
+const keyValueService = (resource: KeyValueStore): YAMLMap => {
+  const config = resource.config;
+
+  return mapping(
+    KEY_VALUE_STORE_FIELDS,
+    {
+      type: 'keyvalue',
+      name: resource.name,
+      region: config.region,
+      ipAllowList: ipAllowList(config.ipAllowList),
+      plan: config.plan,
+      maxmemoryPolicy: config.maxmemoryPolicy,
+      persistenceMode: config.persistenceMode,
+    },
+    config.extraFields,
+  );
+};
+
 const serviceNode = (resource: BlueprintResource): YAMLMap | undefined => {
   switch (resource.kind) {
     case 'web':
       return webService(resource);
     case 'staticSite':
       return staticSiteService(resource);
+    case 'keyValue':
+      return keyValueService(resource);
     case 'postgres':
     case 'envGroup':
       return undefined;

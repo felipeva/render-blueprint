@@ -4,16 +4,32 @@ export type { AutoDeployTrigger } from './enums/auto-deploy-trigger.js';
 export type { DatabaseProperty } from './enums/database-property.js';
 export type { DiskSizeGB } from './enums/disk-size.js';
 export type { EnvironmentProtection } from './enums/environment-protection.js';
+export type { KeyValuePersistenceMode } from './enums/key-value-persistence-mode.js';
+export type { MaxmemoryPolicy } from './enums/maxmemory-policy.js';
 export type { NetworkIsolation } from './enums/network-isolation.js';
-export type { PostgresPlan, ServerPlan } from './enums/plan.js';
+export type { KeyValuePlan, PostgresPlan, ServerPlan } from './enums/plan.js';
 export type { PostgresMajorVersion } from './enums/postgres-major-version.js';
 export type { PreviewGeneration } from './enums/preview-generation.js';
+export type { ReferenceableServiceType } from './enums/referenceable-service-type.js';
+export type { RenderProvidedKey } from './enums/render-provided-key.js';
 export type { Region } from './enums/region.js';
 export type { RouteType } from './enums/route-type.js';
+export type { ServiceProperty } from './enums/service-property.js';
 export type { NativeRuntime } from './enums/runtime.js';
 
-export type { DatabaseReferenceValue } from './references/reference-value.js';
+export { external } from './references/external.js';
+export type { ExternalReferences } from './references/external.js';
+export type { HttpServiceReference } from './references/http-service-reference.js';
+export type { KeyValueReference } from './references/key-value-reference.js';
+export type { OpaqueServiceReference } from './references/opaque-service-reference.js';
 export type { PostgresReference } from './references/postgres-reference.js';
+export type { ReferenceOrigin } from './references/reference-origin.js';
+export type {
+  DatabaseReferenceValue,
+  ServiceEnvVarReferenceValue,
+  ServicePropertyReferenceValue,
+  ServiceReferenceValue,
+} from './references/reference-value.js';
 
 export type {
   EnvGroupEnvironment,
@@ -27,11 +43,14 @@ export { literal } from './env/literal.js';
 export type { LiteralOptions, LiteralValue } from './env/literal.js';
 export { secret } from './env/secret.js';
 export type { SecretValue } from './env/secret.js';
+export type { SelfEnvironment, ServiceEnvironment } from './env/self-environment.js';
 
 export { envGroup } from './resources/env-group.js';
 export type { EnvGroupConfig, EnvironmentGroup } from './resources/env-group.js';
 export { staticSite } from './resources/static-site.js';
 export type { Header, Route, StaticSite, StaticSiteConfig } from './resources/static-site.js';
+export { keyValue } from './resources/key-value.js';
+export type { KeyValueConfig, KeyValueStore } from './resources/key-value.js';
 export { web } from './resources/web.js';
 export type { HealthCheckPath, WebConfig, WebService } from './resources/web.js';
 export { postgres } from './resources/postgres.js';

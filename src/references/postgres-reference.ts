@@ -1,4 +1,5 @@
 import type { DatabaseProperty } from '../enums/database-property.js';
+import type { ReferenceOrigin } from './reference-origin.js';
 import type { DatabaseReferenceValue } from './reference-value.js';
 
 export interface PostgresReference {
@@ -11,18 +12,23 @@ export interface PostgresReference {
   readonly database: DatabaseReferenceValue;
 }
 
-const property = (name: string, value: DatabaseProperty): DatabaseReferenceValue => ({
+const property = (
+  name: string,
+  origin: ReferenceOrigin,
+  value: DatabaseProperty,
+): DatabaseReferenceValue => ({
   reference: 'fromDatabase',
   name,
+  origin,
   property: value,
 });
 
-export const postgresReference = (name: string): PostgresReference => ({
-  connectionString: property(name, 'connectionString'),
-  connectionPoolString: property(name, 'connectionPoolString'),
-  host: property(name, 'host'),
-  port: property(name, 'port'),
-  user: property(name, 'user'),
-  password: property(name, 'password'),
-  database: property(name, 'database'),
+export const postgresReference = (name: string, origin: ReferenceOrigin): PostgresReference => ({
+  connectionString: property(name, origin, 'connectionString'),
+  connectionPoolString: property(name, origin, 'connectionPoolString'),
+  host: property(name, origin, 'host'),
+  port: property(name, origin, 'port'),
+  user: property(name, origin, 'user'),
+  password: property(name, origin, 'password'),
+  database: property(name, origin, 'database'),
 });

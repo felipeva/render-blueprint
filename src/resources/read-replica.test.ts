@@ -14,6 +14,7 @@ describe('readReplica', () => {
     expect(readReplica('elephant-replica').connectionString).toEqual({
       reference: 'fromDatabase',
       name: 'elephant-replica',
+      origin: 'blueprint',
       property: 'connectionString',
     });
   });

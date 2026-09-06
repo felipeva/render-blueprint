@@ -2,9 +2,13 @@ import * as z from 'zod';
 
 import type { AutoDeployTrigger } from '../enums/auto-deploy-trigger.js';
 import { routeTypeSchema, type RouteType } from '../enums/route-type.js';
-import type { EnvironmentMap } from '../env/env-value.js';
+import { serviceEnvironmentSchema, type ServiceEnvironment } from '../env/self-environment.js';
 import type { Equal, Expect } from '../equal.js';
 import type { JsonObject } from '../json.js';
+import {
+  opaqueServiceReference,
+  type OpaqueServiceReference,
+} from '../references/opaque-service-reference.js';
 import type { EnvironmentGroup } from './env-group.js';
 import { optionalCommonServiceFields } from './service-fields.js';
 
@@ -31,12 +35,12 @@ export interface StaticSiteConfig {
   readonly headers?: readonly Header[];
   readonly domains?: readonly string[];
   readonly autoDeployTrigger?: AutoDeployTrigger;
-  readonly env?: EnvironmentMap;
+  readonly env?: ServiceEnvironment<OpaqueServiceReference>;
   readonly envGroups?: readonly EnvironmentGroup[];
   readonly extraFields?: JsonObject;
 }
 
-export interface StaticSite {
+export interface StaticSite extends OpaqueServiceReference {
   readonly kind: 'staticSite';
   readonly name: string;
   readonly config: StaticSiteConfig;
@@ -87,6 +91,7 @@ const staticSiteConfigSchema = z
     routes: z.array(routeSchema).readonly().exactOptional(),
     headers: z.array(headerSchema).readonly().exactOptional(),
     domains: z.array(z.string()).readonly().exactOptional(),
+    env: serviceEnvironmentSchema<OpaqueServiceReference>().exactOptional(),
   })
   .readonly();
 
@@ -101,8 +106,11 @@ export const parseStaticSiteConfig = (
   config: StaticSiteConfig,
 ): z.ZodSafeParseResult<StaticSiteConfig> => staticSiteConfigSchema.safeParse(config);
 
+// spec §6.2: a static site answers fromService with type "static", which is not a value its own
+// type field takes.
 export const staticSite = (name: string, config: StaticSiteConfig): StaticSite => ({
   kind: 'staticSite',
   name,
   config,
+  ...opaqueServiceReference({ name, type: 'static', origin: 'blueprint' }),
 });

@@ -9,10 +9,20 @@ describe('staticSite', () => {
       staticPublishPath: './dist',
     };
 
-    expect(staticSite('marketing', config)).toEqual({
-      kind: 'staticSite',
+    const site = staticSite('marketing', config);
+
+    expect(site.kind).toBe('staticSite');
+    expect(site.name).toBe('marketing');
+    expect(site.config).toBe(config);
+  });
+
+  it('answers fromService with the type Render reserves for a static site', () => {
+    expect(staticSite('marketing', {}).envVar('BUILD_ID')).toEqual({
+      reference: 'fromService',
       name: 'marketing',
-      config,
+      origin: 'blueprint',
+      type: 'static',
+      envVarKey: 'BUILD_ID',
     });
   });
 

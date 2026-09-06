@@ -23,6 +23,7 @@ import { resourceInMultipleLocations } from './rules/resource-in-multiple-locati
 import { rootDeprecatedField } from './rules/root-deprecated-field.js';
 import { rootExtraFieldConflict } from './rules/root-extra-field-conflict.js';
 import { secretSkipsPreviews } from './rules/secret-skips-previews.js';
+import { unknownServiceEnvVarKey } from './rules/unknown-service-env-var-key.js';
 
 export interface ValidatedBlueprint {
   readonly previews: RootPreviews | undefined;
@@ -46,7 +47,12 @@ const CONFIG_RULES = [
   deprecatedField,
 ] as const;
 
-const WARNING_RULES = [missingBuildCommand, missingStartCommand, missingStaticPublishPath] as const;
+const WARNING_RULES = [
+  missingBuildCommand,
+  missingStartCommand,
+  missingStaticPublishPath,
+  unknownServiceEnvVarKey,
+] as const;
 
 export const validate = (value: Blueprint): ResultType<ValidatedBlueprint, BlueprintInvalid> => {
   // A blueprint whose own structure did not parse cannot be walked; ADR-0003 defers the rest.
