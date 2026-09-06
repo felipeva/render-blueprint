@@ -1,5 +1,5 @@
 import { ROOT_NAME, type Blueprint } from '../../blueprint/blueprint.js';
-import { deprecation } from '../deprecation.js';
+import { deprecation, deprecationAdvice } from '../deprecation.js';
 import type { ValidationIssue } from '../issue.js';
 
 export const rootDeprecatedField = (value: Blueprint): readonly ValidationIssue[] => {
@@ -15,7 +15,7 @@ export const rootDeprecatedField = (value: Blueprint): readonly ValidationIssue[
     issues.push({
       code: 'DeprecatedField',
       at: { resource: ROOT_NAME, field: `extraFields.${key}` },
-      message: `Render deprecated "${key}"; use "${retired.replacement}". The escape hatch never emits a retired form.`,
+      message: deprecationAdvice(retired),
     });
   }
 

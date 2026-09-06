@@ -1,5 +1,5 @@
 import type { BlueprintResource } from '../../resources/resource.js';
-import { deprecation, deprecationScope } from '../deprecation.js';
+import { deprecation, deprecationAdvice, deprecationScope } from '../deprecation.js';
 import type { ValidationIssue } from '../issue.js';
 
 export const deprecatedField = (
@@ -18,10 +18,7 @@ export const deprecatedField = (
       issues.push({
         code: 'DeprecatedField',
         at: { resource: resource.name, field: `extraFields.${key}` },
-        message:
-          key === 'type'
-            ? `Render deprecated the service type "redis"; use "${retired.replacement}". The escape hatch never emits a retired form.`
-            : `Render deprecated "${key}"; use "${retired.replacement}". The escape hatch never emits a retired form.`,
+        message: deprecationAdvice(retired),
       });
     }
   }
