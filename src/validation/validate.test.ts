@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { blueprint } from '../blueprint/blueprint.js';
 import type { JsonObject } from '../json.js';
 import type { BlueprintResource } from '../resources/resource.js';
+import { staticSite, type StaticSiteConfig } from '../resources/static-site.js';
 import { web, type WebConfig } from '../resources/web.js';
 import { BlueprintInvalid } from './blueprint-invalid.js';
 import { validate } from './validate.js';
@@ -12,6 +13,7 @@ import { validate } from './validate.js';
 // through Node type stripping, which erases types without checking them, so the annotation is
 // deliberately stronger than the value — the gap ADR-0003 gives the schemas to close.
 const unchecked: (json: string) => WebConfig = JSON.parse;
+const uncheckedStatic: (json: string) => StaticSiteConfig = JSON.parse;
 const uncheckedName: (json: string) => string = JSON.parse;
 const uncheckedResource: (json: string) => BlueprintResource = JSON.parse;
 
@@ -137,6 +139,65 @@ describe('validate', () => {
     if (!Result.isError(result)) return;
     expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
     expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'replicas' });
+  });
+
+  it('reports a field the library does not model on a static site', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          staticSite(
+            'marketing',
+            uncheckedStatic('{"staticPublishPath":"./dist","plan":"starter"}'),
+          ),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'marketing', field: 'plan' });
+  });
+
+  it('reports an absolute rootDir on a static site', () => {
+    const result = validate(
+      blueprint({ resources: [staticSite('marketing', { rootDir: '/apps/marketing' })] }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['RootDirNotRelative']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'marketing', field: 'rootDir' });
+  });
+
+  it('reports a route type outside the published pair', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          staticSite(
+            'marketing',
+            uncheckedStatic('{"routes":[{"type":"proxy","source":"/*","destination":"/"}]}'),
+          ),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['InvalidConfig']);
+    expect(result.error.issues[0].at.field).toBe('routes.0.type');
+  });
+
+  it('carries the static site warning on the accepted blueprint', () => {
+    const result = validate(
+      blueprint({ resources: [staticSite('marketing', { buildCommand: 'pnpm build' })] }),
+    );
+
+    expect(Result.isOk(result)).toBe(true);
+    if (!Result.isOk(result)) return;
+    expect(result.value.warnings.map((warning) => warning.code)).toEqual([
+      'MissingStaticPublishPath',
+    ]);
   });
 
   it('reports one issue per unrecognized key', () => {

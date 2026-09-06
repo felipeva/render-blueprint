@@ -3,10 +3,13 @@ export type { JsonObject, JsonValue } from './json.js';
 export type { AutoDeployTrigger } from './enums/auto-deploy-trigger.js';
 export type { ServerPlan } from './enums/plan.js';
 export type { Region } from './enums/region.js';
+export type { RouteType } from './enums/route-type.js';
 export type { NativeRuntime } from './enums/runtime.js';
 
 export type { EnvironmentMap, EnvValue } from './env/env-value.js';
 
+export { staticSite } from './resources/static-site.js';
+export type { Header, Route, StaticSite, StaticSiteConfig } from './resources/static-site.js';
 export { web } from './resources/web.js';
 export type { HealthCheckPath, WebConfig, WebService } from './resources/web.js';
 export type { BlueprintResource } from './resources/resource.js';
