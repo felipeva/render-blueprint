@@ -96,6 +96,11 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `main` is
   the diff against `origin/main`, the acceptance criteria in the issue, and untracked files for
   secrets. Summarize each returned agent to the user in five lines: verdict, what changed, what
   you verified yourself versus what is only claimed, what is red, what needs the user.
+- Before a PR reaches the user, run a read-only adversarial review by an Opus agent on any slice
+  whose pattern later slices copy (a new factory kind, a new reference form, the emitter, the
+  validation step, the CLI contract). In this project every such review found a defect the
+  agent's own verification missed, three of them blocking. Send the findings to the owning agent
+  as one prompt with a decision per finding; do not fix them yourself.
 - Integrate with `probe-merge.sh` before promising anything about conflicts. Rebase stacked
   slices bottom-up and delegate each resolve to the agent that owns the upper branch.
 - Merge only on an instruction from the user that names the merge. A green CI is permission to
