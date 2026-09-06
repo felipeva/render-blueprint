@@ -111,7 +111,7 @@ services:
     buildCommand: go build
     startCommand: ./auth
     preDeployCommand: ./migrate
-    autoDeployTrigger: off
+    autoDeployTrigger: 'off'
 `,
     );
   });
@@ -533,7 +533,7 @@ databases:
     region: frankfurt
     plan: basic-1gb
     diskSizeGB: 35
-    postgresMajorVersion: "17"
+    postgresMajorVersion: '17'
     highAvailability:
       enabled: true
     ipAllowList:
@@ -548,7 +548,7 @@ databases:
   it('quotes the major version, because Render reads it as a string', () => {
     expect(
       emit(blueprint({ resources: [postgres('elephant', { postgresMajorVersion: '18' })] })),
-    ).toContain('postgresMajorVersion: "18"');
+    ).toContain("postgresMajorVersion: '18'");
   });
 
   it('emits an empty ipAllowList, which tells Render to allow no external connection', () => {
@@ -837,7 +837,7 @@ services:
   - type: web
     name: api
     runtime: node
-version: "1"
+version: '1'
 `,
     );
   });
@@ -901,6 +901,150 @@ version: "1"
             runtime: node
         databases:
           - name: elephant
+`,
+    );
+  });
+
+  it('quotes autoDeployTrigger off, which a YAML 1.1 parser reads as false', () => {
+    const api = web('api', { runtime: 'node', autoDeployTrigger: 'off' });
+
+    expect(emit(blueprint({ resources: [api] }))).toContain("autoDeployTrigger: 'off'\n");
+  });
+
+  it('leaves the autoDeployTrigger values a YAML 1.1 parser reads as strings bare', () => {
+    const api = web('api', { runtime: 'node', autoDeployTrigger: 'commit' });
+    const admin = web('admin', { runtime: 'node', autoDeployTrigger: 'checksPass' });
+
+    const emitted = emit(blueprint({ resources: [api, admin] }));
+
+    expect(emitted).toContain('autoDeployTrigger: commit\n');
+    expect(emitted).toContain('autoDeployTrigger: checksPass\n');
+  });
+
+  it('quotes the root previews generation off', () => {
+    const value = blueprint({
+      previews: { generation: 'off' },
+      resources: [web('api', { runtime: 'node' })],
+    });
+
+    expect(emit(value)).toContain("previews:\n  generation: 'off'\n");
+  });
+
+  it('quotes every env var value a YAML 1.1 parser reads as a non-string', () => {
+    const api = web('api', {
+      runtime: 'node',
+      env: {
+        V1: 'on',
+        V2: 'off',
+        V3: 'yes',
+        V4: 'no',
+        V5: 'y',
+        V6: 'n',
+        V7: 'true',
+        V8: 'null',
+        V9: '~',
+        V10: '1_000',
+        V11: '0b1',
+        V12: '2024-01-01',
+        V13: '<<',
+        V14: '.inf',
+      },
+    });
+
+    expect(emit(blueprint({ resources: [api] }))).toContain(
+      `    envVars:
+      - key: V1
+        value: 'on'
+      - key: V2
+        value: 'off'
+      - key: V3
+        value: 'yes'
+      - key: V4
+        value: 'no'
+      - key: V5
+        value: 'y'
+      - key: V6
+        value: 'n'
+      - key: V7
+        value: 'true'
+      - key: V8
+        value: 'null'
+      - key: V9
+        value: '~'
+      - key: V10
+        value: '1_000'
+      - key: V11
+        value: '0b1'
+      - key: V12
+        value: '2024-01-01'
+      - key: V13
+        value: '<<'
+      - key: V14
+        value: '.inf'
+`,
+    );
+  });
+
+  it('quotes an env var key a YAML 1.1 parser reads as a boolean', () => {
+    const api = web('api', { runtime: 'node', env: { NO: 'a', KEEP: 'b' } });
+
+    expect(emit(blueprint({ resources: [api] }))).toContain(
+      `    envVars:
+      - key: 'NO'
+        value: a
+      - key: KEEP
+        value: b
+`,
+    );
+  });
+
+  it('leaves an env var value an ordinary string bare', () => {
+    const api = web('api', {
+      runtime: 'node',
+      env: { REGION_NAME: 'oregon', SITE_URL: 'https://acme.dev' },
+    });
+
+    expect(emit(blueprint({ resources: [api] }))).toContain(
+      `    envVars:
+      - key: REGION_NAME
+        value: oregon
+      - key: SITE_URL
+        value: https://acme.dev
+`,
+    );
+  });
+
+  it('emits a number and a boolean the author wrote as such unquoted', () => {
+    const api = web('api', {
+      runtime: 'node',
+      instances: 3,
+      env: { PORT: 3000, TOKEN: secret(), NONCE: generated() },
+    });
+
+    const emitted = emit(blueprint({ resources: [api] }));
+
+    expect(emitted).toContain('numInstances: 3\n');
+    expect(emitted).toContain('        value: 3000\n');
+    expect(emitted).toContain('        sync: false\n');
+    expect(emitted).toContain('        generateValue: true\n');
+  });
+
+  it('quotes an ambiguous scalar nested inside a seq and inside extraFields', () => {
+    const api = web('api', {
+      runtime: 'node',
+      buildFilter: { ignoredPaths: ['**/*.md', 'no'] },
+      extraFields: { nested: { deep: ['off', 'keep'] } },
+    });
+
+    expect(emit(blueprint({ resources: [api] }))).toContain(
+      `    buildFilter:
+      ignoredPaths:
+        - '**/*.md'
+        - 'no'
+    nested:
+      deep:
+        - 'off'
+        - keep
 `,
     );
   });
