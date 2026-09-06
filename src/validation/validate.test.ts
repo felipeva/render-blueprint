@@ -452,6 +452,19 @@ describe('validate', () => {
     ]);
   });
 
+  it('reports a prebuilt image whose url is empty', () => {
+    const result = validate(
+      blueprint({
+        resources: [worker('jobs', { runtime: 'image', image: { url: '' } })],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['InvalidConfig']);
+    expect(result.error.issues[0].at.field).toBe('image.url');
+  });
+
   it('reports a field the library does not model beside a registry credential', () => {
     const result = validate(
       blueprint({

@@ -50,12 +50,20 @@ export interface ImageSource {
 
 export type ServiceSource = NativeSource | DockerSource | ImageSource;
 
+const URL_ERROR =
+  'A prebuilt image is named by its url, tag or digest included, so the url is not empty.';
+
 const imageSchema = z
   .strictObject({
-    url: z.string(),
+    url: z.string({ error: URL_ERROR }).min(1, { error: URL_ERROR }),
     creds: registryCredentialReferenceSchema.exactOptional(),
   })
   .readonly();
+
+type ImageSchemaMatchesInterface = Expect<Equal<z.infer<typeof imageSchema>, ServiceImage>>;
+
+export const SERVICE_IMAGE_SCHEMA_MATCHES_INTERFACE: true =
+  true satisfies ImageSchemaMatchesInterface;
 
 export interface NativeSourceFields {
   readonly runtime: z.ZodEnum<z.core.util.ToEnum<NativeRuntime>>;
@@ -108,6 +116,8 @@ export const imageSourceFields: ImageSourceFields = {
 // Every key the three branches own between them. A key here on a config whose runtime picked
 // another branch names the wrong source rather than a field the library does not model, and
 // service-source.test.ts holds this tuple to the field maps above.
+const notTheDiscriminator = (key: string): boolean => key !== 'runtime';
+
 export const SOURCE_FIELDS = [
   'repo',
   'branch',
@@ -131,6 +141,14 @@ type SourceSchemaMatchesInterface = Expect<Equal<z.infer<typeof sourceSchema>, S
 
 export const SERVICE_SOURCE_SCHEMA_MATCHES_INTERFACE: true =
   true satisfies SourceSchemaMatchesInterface;
+
+// Which of SOURCE_FIELDS the branch a runtime picks owns. A factory's emission tuple lists all
+// eight, because one service or another emits each; only the branch says which this config has.
+export const ownedSourceFields = (runtime: string): readonly string[] => {
+  if (runtime === 'image') return Object.keys(imageSourceFields).filter(notTheDiscriminator);
+  if (runtime === 'docker') return Object.keys(dockerSourceFields).filter(notTheDiscriminator);
+  return Object.keys(nativeSourceFields).filter(notTheDiscriminator);
+};
 
 // spec §4.2 and §4.3: Render builds a Dockerfile with the commands inside it and does not build a
 // prebuilt image at all, so a build or start command is only missing from a native source.

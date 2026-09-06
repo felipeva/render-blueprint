@@ -10,7 +10,12 @@ import {
   type BlueprintResource,
 } from '../resources/resource.js';
 import { SOURCE_FIELDS } from '../resources/service-source.js';
-import { VALIDATION_CODES, type ValidationCode, type ValidationIssue } from './issue.js';
+import {
+  VALIDATION_CODES,
+  type ResourcePath,
+  type ValidationCode,
+  type ValidationIssue,
+} from './issue.js';
 
 export interface ParsedConfigs {
   readonly issues: readonly ValidationIssue[];
@@ -37,10 +42,15 @@ const SOURCE_KEYS: ReadonlySet<string> = new Set(SOURCE_FIELDS);
 // spec §4.2 and §4.3: a service builds from one source, and `runtime` says which. A key another
 // branch owns is the wrong source rather than a field the library does not model, so the message
 // names the runtime that rejected it and never offers extraFields, which would emit the conflict.
-const conflictingSource = (name: string, runtime: string, key: string): ValidationIssue => ({
+// The config route and the extraFields route both reach it, so both say the same thing.
+export const conflictingSource = (
+  at: ResourcePath,
+  runtime: string,
+  key: string,
+): ValidationIssue => ({
   code: 'ConflictingSource',
-  at: { resource: name, field: key },
-  message: `"${name}" picks its source with runtime "${runtime}", which does not take "${key}". A native runtime builds the repository, "docker" builds a Dockerfile, and "image" pulls a prebuilt image; drop "${key}" or pick the runtime that reads it.`,
+  at,
+  message: `"${at.resource}" picks its source with runtime "${runtime}", which does not take "${key}". A native runtime builds the repository, "docker" builds a Dockerfile, and "image" pulls a prebuilt image; drop "${key}" or pick the runtime that reads it.`,
 });
 
 // The runtime is the enclosing config's own, so only a key at the top of that config can name
@@ -53,7 +63,7 @@ const unrecognized = (
   runtime: string | undefined,
 ): ValidationIssue =>
   runtime !== undefined && base.length === 0 && path.length === 0 && SOURCE_KEYS.has(key)
-    ? conflictingSource(name, runtime, key)
+    ? conflictingSource({ resource: name, field: fieldPath([key]) }, runtime, key)
     : {
         code: 'UnknownField',
         at: { resource: name, field: fieldPath([...base, ...path, key]) },
