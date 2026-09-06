@@ -20,6 +20,15 @@ describe('deprecation', () => {
       replacement: 'autoDeployTrigger',
     });
   });
+
+  it('retires nothing inside an environment group, which has none of the retired fields', () => {
+    expect([
+      deprecation('env', 'node', 'envGroup'),
+      deprecation('autoDeploy', true, 'envGroup'),
+      deprecation('previewPlan', 'starter', 'envGroup'),
+      deprecation('type', 'redis', 'envGroup'),
+    ]).toEqual([undefined, undefined, undefined, undefined]);
+  });
 });
 
 describe('deprecationScope', () => {
@@ -32,5 +41,9 @@ describe('deprecationScope', () => {
 
   it('reads a Postgres database as a datastore', () => {
     expect(deprecationScope('postgres')).toBe('datastore');
+  });
+
+  it('reads an environment group as its own scope', () => {
+    expect(deprecationScope('envGroup')).toBe('envGroup');
   });
 });

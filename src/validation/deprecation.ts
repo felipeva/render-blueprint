@@ -28,6 +28,9 @@ export const deprecation = (
   value: JsonValue,
   scope: DeprecationScope,
 ): Deprecation | undefined => {
+  // spec §6.1: a group carries a name and its variables, so no retired field of §13 is one of
+  // its fields; naming a replacement for a field a group never had would misdirect the author.
+  if (scope === 'envGroup') return undefined;
   if (scope === 'datastore' && CURRENT_ON_A_DATASTORE.has(key)) return undefined;
 
   const replacement = REPLACEMENTS.get(key);
