@@ -84,7 +84,7 @@ Revisit only if the CLI grows a real dependency. `render-blueprint` is the npm n
 │   ├── synth/                       the ONLY module that knows YAML exists
 │   │   ├── synthesize.ts  document.ts   validate → document → emit; ValidatedBlueprint → a Document
 │   │   ├── mapping.ts  key-order.ts   the ordered builder that never writes an undefined value (§5),
-│   │   │                            and the single source of emission order per node kind
+│   │   │                            and the root and env-entry key orders; each resource's field order is the tuple beside its factory
 │   │   ├── services.ts              the four disjoint service branches + (type, runtime) discrimination
 │   │   ├── databases.ts             postgres → `databases:`, read-replica registration
 │   │   ├── env-vars.ts              map → `envVars:` list, `fromGroup` entries, the five value forms
