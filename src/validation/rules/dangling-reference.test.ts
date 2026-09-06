@@ -101,6 +101,29 @@ describe('danglingReference', () => {
     ]);
   });
 
+  // The review's repro: the reference resolves by name alone unless the type is read beside it.
+  it('reports a reference whose name a listed service of another kind takes', () => {
+    const cache = keyValue('cache', { ipAllowList: [] });
+    const decoy = web('cache', { runtime: 'node' });
+    const api = web('api', { runtime: 'node', env: { CACHE_URL: cache.connectionString } });
+
+    expect(danglingReference(parsed([api, decoy]))).toEqual([
+      {
+        code: 'DanglingReference',
+        at: { resource: 'api', field: 'env.CACHE_URL' },
+        message:
+          '"api" reads "CACHE_URL" from the "keyvalue" service "cache", and the only "cache" this blueprint lists is a "web" service. Render resolves a fromService reference by name and type together.',
+      },
+    ]);
+  });
+
+  it('reports nothing when the listed service of that name is of the referenced kind', () => {
+    const cache = keyValue('cache', { ipAllowList: [] });
+    const api = web('api', { runtime: 'node', env: { CACHE_URL: cache.connectionString } });
+
+    expect(danglingReference(parsed([api, cache]))).toEqual([]);
+  });
+
   it('reports nothing for a reference an external handle produced', () => {
     const api = web('api', {
       runtime: 'node',
