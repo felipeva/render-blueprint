@@ -105,8 +105,11 @@ Revisit only if the CLI grows a real dependency. `render-blueprint` is the npm n
 │   │                                (spec §9) — and owns the JsonValue accessors it alone needs
 │   ├── fs/                          the only module that touches the filesystem
 │   │   ├── write-blueprint.ts       the public writeBlueprint()
-│   │   ├── file-port.ts             FileReader + FileWriter + FilePort: the injected seam
-│   │   ├── node-file-port.ts        the default; its writer creates the parent directories
+│   │   ├── file-port.ts             FileReader + FileWriter + FilePort: the injected seam.
+│   │                                FilePort also carries exists(), which the CLI's walk up from
+│   │                                the working directory needs (issue #11)
+│   │   ├── node-file-port.ts        the default; its writer creates the parent directories, and
+│   │                                it is re-exported from index.ts so the CLI can name it
 │   │   ├── memory-file-port.ts      the in-memory implementation, published at the testing subpath
 │   │   └── write-text-file.ts  read-text-file.ts   the two Result.tryPromise boundaries; each
 │   │                                declares the error it produces — BlueprintWriteFailed and
@@ -114,6 +117,11 @@ Revisit only if the CLI grows a real dependency. `render-blueprint` is the npm n
 │   └── cli/                         nothing in src/ outside this directory may import it
 │       ├── main.ts                  the bin entry; the ONE isPanic boundary; exit codes 0/1/2
 │       ├── discover.ts  load.ts     walk up from cwd for render.ts (--file overrides), then import()
+│       ├── parse-arguments.ts       the hand-rolled command line: two commands, three flags, and
+│       │                            CommandLineInvalid. No dependency, because the library would
+│       │                            ship it to every consumer
+│       ├── node-floor.ts            refuses a Node older than the type-stripping floor with a
+│       │                            sentence, rather than letting the loader fail (§7 engines)
 │       └── format.ts                human rendering of issues, warnings, and the drift diff
 ├── test/                            cross-module tests only; unit tests live beside their source
 │   ├── golden.test.ts               fixtures/canonical/render.ts → byte-equal render.yaml (§6.2)
@@ -121,7 +129,9 @@ Revisit only if the CLI grows a real dependency. `render-blueprint` is the npm n
 │   ├── cli.test.ts                  spawn the binary in a temp dir; assert exit codes 0/1/2 (§6.6)
 │   ├── fixtures/canonical/render.ts   design B §3 verbatim — the scenario every design doc shares
 │   ├── fixtures/canonical/render.yaml the golden output; the only file `vitest -u` may rewrite
-│   ├── fixtures/cli/                seed directories — clean, drifted, invalid
+│   ├── fixtures/cli/                seed directories — clean, drifted, invalid, warned. Each
+│   │                                holds render.ts.seed, whose import specifier is a placeholder
+│   │                                the smoke test rewrites to the built entry's file URL
 │   └── schema/render.yaml.schema.json the conformance oracle, refreshed by script only (§6.3)
 ├── tools/oxlint/anti-slop/          written by the install skill; committed; never linted or edited
 └── .gitignore  .oxfmtrc.json  .oxlintrc.json  CLAUDE.md  package.json  pnpm-lock.yaml
@@ -363,7 +373,8 @@ accepts both, and no test may assert behaviour the library does not promise.
 **6.5 CLI smoke test.** `test/cli.test.ts` spawns the built binary in a temp directory seeded from
 `test/fixtures/cli/`, once per outcome: clean tree (exit 0), drifted `render.yaml` (exit 2),
 invalid blueprint (exit 1). It asserts exit codes and that stderr names the resource, nothing about
-formatting. ADR-0002 fixes the CLI's contract at exactly this.
+formatting. ADR-0002 fixes the CLI's contract at exactly this. It builds the binary itself in
+`beforeAll`, so it can never pass against a stale `dist/` and `pnpm check` stays self-contained.
 
 **6.6 `pnpm check`** is the one command CI and agents run:
 `oxfmt --check && oxlint && tsc -p tsconfig.check.json && vitest run && vitest run --typecheck`. Format first,
