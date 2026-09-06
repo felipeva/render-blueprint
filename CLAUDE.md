@@ -76,7 +76,13 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `main` is
 - Dispatch: `dispatch.sh <repo> <issue> <branch> <prompt-file> --name <name> --setup "pnpm install"`.
   Branch is `<type>/<issue>-<slug>` (`feat/12-env-values`). Agent name starts with the slugged
   issue, lowercase letters, digits and hyphens, 32 characters at most (`i12-env-values`).
-  Pass `--setup "pnpm install"` every time; there is no Makefile.
+  Pass the setup every time; there is no Makefile. Workers run on Opus per the delegation
+  policy, and the dispatch script has no model flag, so the setup command pins it through a
+  per-worktree settings file that `.gitignore` already excludes:
+  `--setup 'pnpm install --frozen-lockfile && mkdir -p .claude && printf "{\"model\":\"opus\"}\n" > .claude/settings.local.json'`.
+  Confirm the pane's status line reads `Model: Opus` on the first read.
+- After `herdr agent prompt`, `agent get` can still report `idle` for a few seconds. Re-read the
+  status and the pane before concluding the prompt was lost; a second send duplicates the work.
 - Write every prompt to a file under the scratchpad and pass the path. The brief carries: the
   issue and its parent; `CONTEXT.md` and the ADRs that touch the slice; the phase plan with an
   explicit stop after each phase; what is out of scope; `pnpm check` as the test command and the
