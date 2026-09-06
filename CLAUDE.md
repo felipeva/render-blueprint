@@ -2,8 +2,8 @@
 
 `render-blueprint` is a TypeScript library of factories that describe Render.com resources and
 synthesize them to `render.yaml`. Generator only: it never calls the Render API. The npm package
-and the CLI binary are both named `render-blueprint`. Phases 1 and 2 are done; phase 3 (specs
-with a dependency graph) is next. There is no code yet.
+and the CLI binary are both named `render-blueprint`. Phases 1 to 3 are done: the spec is issue #1 and the tickets are #2 to #14 plus #17, with
+native blocked-by edges. Phase 4 is running: Herdr agents land tickets as PRs against `main`.
 
 - `CONTEXT.md` — the glossary. Read it before exploring.
 - `docs/design/requirements.md` — what the library must do.
@@ -124,6 +124,12 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `main` is
 - The ordered list of YAML keys a resource can emit lives beside its factory (`WEB_SERVICE_FIELDS`
   in the web factory file); `src/synth/key-order.ts` reads it and validation reads it, because
   validation may not import synth.
+- Every resource config has a hand-written public interface and a module-private Zod schema in
+  the factory's file, built with `.readonly()` and `.exactOptional()` so the inferred type equals
+  the interface. Export a `true` constant typed by an identity guard between the two; never let
+  a schema be reachable from an exported declaration's type, or `isolatedDeclarations` fails.
+  `validate` parses configs with the schemas; value rules are refinements; cross-resource rules
+  stay rule functions. No schema and no Zod type crosses the public entry. See ADR-0003.
 - Capture exit codes, never summaries. The `tsc` wrapper in this environment printed "No errors
   found" on a run whose raw log held a TS6059 error. Judge a gate by `$?` and the tool's own output.
 - Declare a tagged error in the file that produces it, never in a shared errors directory:
