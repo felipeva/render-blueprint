@@ -135,7 +135,7 @@ Imports flow strictly up this list. A module may import anything above it and no
 cycles, no lateral imports inside a layer.
 
 ```
-  L0  json.ts · enums/               no internal imports
+  L0  json.ts · enums/ · equal.ts               no internal imports
   L1  references/                    imports L0
   L2  env/                           imports L0-L1
   L3  resources/                     imports L0-L2
