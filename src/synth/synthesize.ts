@@ -12,7 +12,8 @@ export interface SynthesisReport {
   readonly warnings: readonly ValidationWarning[];
 }
 
-const YAML_OPTIONS: ToStringOptions = { lineWidth: 0, indent: 2 };
+// Render's own blueprints write the ambiguous scalars single-quoted (`autoDeployTrigger: 'off'`).
+const YAML_OPTIONS: ToStringOptions = { lineWidth: 0, indent: 2, singleQuote: true };
 
 const report = (value: ValidatedBlueprint): SynthesisReport => ({
   yaml: document(value).toString(YAML_OPTIONS),

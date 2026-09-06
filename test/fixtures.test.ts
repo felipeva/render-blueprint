@@ -82,6 +82,14 @@ describe('synthesize', () => {
         expect(produced).toBe(readFileSync(expectedPath, 'utf8'));
       });
 
+      it('reads the same under YAML 1.1 as under YAML 1.2', async () => {
+        const text = await emit(name);
+        const asYaml12: unknown = parse(text, { version: '1.2', schema: 'core' });
+        const asYaml11: unknown = parse(text, { version: '1.1' });
+
+        expect(asYaml11).toEqual(asYaml12);
+      });
+
       it("emits a document Render's JSON Schema accepts", async () => {
         // SAFETY: yaml's parse returns any. Its input is the text synthesize just produced, whose
         // leaves are all JsonValue, so it round-trips into JsonValue.

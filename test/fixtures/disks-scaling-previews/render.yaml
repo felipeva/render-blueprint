@@ -24,7 +24,7 @@ services:
       paths:
         - apps/api/**
       ignoredPaths:
-        - "**/*.md"
+        - '**/*.md'
     previews:
       generation: automatic
       plan: starter
@@ -115,7 +115,7 @@ services:
       generation: automatic
     buildFilter:
       ignoredPaths:
-        - "**/*.md"
+        - '**/*.md'
     rootDir: apps/marketing
     repo: https://github.com/acme/api
     branch: main

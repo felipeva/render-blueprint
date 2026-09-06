@@ -29,7 +29,7 @@ databases:
     region: oregon
     plan: basic-1gb
     diskSizeGB: 35
-    postgresMajorVersion: "17"
+    postgresMajorVersion: '17'
     highAvailability:
       enabled: true
     ipAllowList:
