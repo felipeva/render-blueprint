@@ -8,6 +8,7 @@ export const ENVIRONMENT_KEY_ORDER = [
   'name',
   'services',
   'databases',
+  'envVarGroups',
   'networking',
   'permissions',
 ] as const;
@@ -16,7 +17,7 @@ export const ENVIRONMENT_NETWORKING_KEY_ORDER = ['isolation'] as const;
 
 export const ENVIRONMENT_PERMISSIONS_KEY_ORDER = ['protection'] as const;
 
-export const UNGROUPED_KEY_ORDER = ['services', 'databases'] as const;
+export const UNGROUPED_KEY_ORDER = ['services', 'databases', 'envVarGroups'] as const;
 
 // spec §6.1: the four env var forms are disjoint, so each carries its own order rather than one
 // flat list, and only the fromGroup form has no key at all.

@@ -8,6 +8,7 @@ import type {
 import type { Project } from '../blueprint/project.js';
 import type { BlueprintResource } from '../resources/resource.js';
 import { databases } from './databases.js';
+import { envVarGroups } from './env-var-groups.js';
 import {
   ENVIRONMENT_KEY_ORDER,
   ENVIRONMENT_NETWORKING_KEY_ORDER,
@@ -35,6 +36,7 @@ const environmentNode = (value: Environment): YAMLMap =>
       name: value.name,
       services: services(value.resources),
       databases: databases(value.resources),
+      envVarGroups: envVarGroups(value.resources),
       networking: networking(value.networking),
       permissions: permissions(value.permissions),
     },
@@ -69,6 +71,10 @@ export const ungrouped = (resources: readonly BlueprintResource[]): YAMLMap | un
     ? undefined
     : mapping(
         UNGROUPED_KEY_ORDER,
-        { services: services(resources), databases: databases(resources) },
+        {
+          services: services(resources),
+          databases: databases(resources),
+          envVarGroups: envVarGroups(resources),
+        },
         undefined,
       );

@@ -4,6 +4,10 @@ import { describe, expect, it } from 'vitest';
 import { blueprint, type Blueprint } from '../blueprint/blueprint.js';
 import { environment } from '../blueprint/environment.js';
 import { project } from '../blueprint/project.js';
+import { generated } from '../env/generated.js';
+import { literal } from '../env/literal.js';
+import { secret } from '../env/secret.js';
+import { envGroup } from '../resources/env-group.js';
 import { postgres } from '../resources/postgres.js';
 import { readReplica } from '../resources/read-replica.js';
 import { staticSite } from '../resources/static-site.js';
@@ -133,6 +137,104 @@ services:
         value: production
       - key: PORT
         value: 8080
+`,
+    );
+  });
+
+  it('emits a preview value beside the value it overrides', () => {
+    const api = web('api', {
+      runtime: 'node',
+      env: { LOG_FORMAT: literal('json', { previewValue: 'pretty' }) },
+    });
+
+    expect(emit(blueprint({ resources: [api] }))).toContain(
+      `    envVars:
+      - key: LOG_FORMAT
+        value: json
+        previewValue: pretty
+`,
+    );
+  });
+
+  it('emits a secret as sync: false and writes no value for it', () => {
+    const api = web('api', { runtime: 'node', env: { STRIPE_KEY: secret() } });
+
+    expect(emit(blueprint({ resources: [api] }))).toContain(
+      `    envVars:
+      - key: STRIPE_KEY
+        sync: false
+`,
+    );
+  });
+
+  it('emits a generated value as generateValue: true and writes no value for it', () => {
+    const api = web('api', { runtime: 'node', env: { SESSION_SECRET: generated() } });
+
+    expect(emit(blueprint({ resources: [api] }))).toContain(
+      `    envVars:
+      - key: SESSION_SECRET
+        generateValue: true
+`,
+    );
+  });
+
+  it('emits an imported group as a keyless fromGroup entry after the variables the map declared', () => {
+    const settings = envGroup('shared-settings', { env: { LOG_LEVEL: 'info' } });
+    const api = web('api', {
+      runtime: 'node',
+      env: { NODE_ENV: 'production' },
+      envGroups: [settings],
+    });
+
+    expect(emit(blueprint({ resources: [api, settings] }))).toContain(
+      `    envVars:
+      - key: NODE_ENV
+        value: production
+      - fromGroup: shared-settings
+`,
+    );
+  });
+
+  it('emits an environment group under envVarGroups, after the databases', () => {
+    const settings = envGroup('shared-settings', { env: { LOG_LEVEL: literal('info') } });
+    const elephant = postgres('elephant', { plan: 'basic-256mb' });
+
+    expect(emit(blueprint({ resources: [settings, elephant] }))).toContain(
+      `databases:
+  - name: elephant
+    plan: basic-256mb
+envVarGroups:
+  - name: shared-settings
+    envVars:
+      - key: LOG_LEVEL
+        value: info
+`,
+    );
+  });
+
+  it('emits an environment group under the environment that declares it', () => {
+    const settings = envGroup('shared-settings', { env: { LOG_LEVEL: 'info' } });
+    const value = blueprint({
+      projects: [
+        project('acme', { environments: [environment('production', { resources: [settings] })] }),
+      ],
+    });
+
+    expect(emit(value)).toContain(
+      `      - name: production
+        envVarGroups:
+          - name: shared-settings
+`,
+    );
+  });
+
+  it('emits an environment group under ungrouped when that is where it is declared', () => {
+    const settings = envGroup('shared-settings', { env: { LOG_LEVEL: 'info' } });
+
+    expect(emit(blueprint({ ungrouped: [settings] }))).toContain(
+      `ungrouped:
+  envVarGroups:
+    - name: shared-settings
 `,
     );
   });
