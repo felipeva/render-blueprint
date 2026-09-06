@@ -5,7 +5,7 @@ import {
   type TaggedErrorClass,
 } from 'better-result';
 
-export const COMMANDS = ['synth'] as const;
+export const COMMANDS = ['synth', 'check'] as const;
 
 export type Command = (typeof COMMANDS)[number];
 
@@ -13,19 +13,22 @@ export const USAGE = `Usage: render-blueprint <command> [options]
 
 Commands:
   synth           Synthesize the blueprint and write the YAML file.
+  check           Compare the committed YAML file against the blueprint.
 
 Options:
   --file <path>   The blueprint file. Defaults to the nearest render.ts, render.mts,
                   render.js or render.mjs, walking up from the working directory.
-  --out <path>    The YAML file to write. Defaults to render.yaml beside the
-                  blueprint file.
-  --strict        Treat validation warnings as a failure.
+  --out <path>    The YAML file to write or compare. Defaults to render.yaml beside
+                  the blueprint file.
+  --strict        Treat validation warnings as a failure. It applies to both
+                  commands: synth still writes the file, then fails.
   --help, -h      Print this message.
 
 Exit codes:
-  0               the file was written
+  0               the file was written, or the committed file is clean
   1               the blueprint is invalid, a file could not be read or written, or
-                  --strict turned a warning into a failure`;
+                  --strict turned a warning into a failure
+  2               the committed file has drifted from the blueprint`;
 
 const CommandLineInvalidBase: TaggedErrorClass<'CommandLineInvalid'> =
   TaggedError('CommandLineInvalid');
@@ -92,7 +95,7 @@ export const parseArguments = (
   if (!isCommand(head)) {
     return Result.err(
       new CommandLineInvalid({
-        message: `Unknown command "${head}". The commands are ${COMMANDS.join(', ')}.`,
+        message: `Unknown command "${head}". The commands are ${COMMANDS.join(' and ')}.`,
       }),
     );
   }

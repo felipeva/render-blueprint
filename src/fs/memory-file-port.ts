@@ -20,6 +20,8 @@ export const memoryFilePort = (config?: MemoryFilePortConfig): MemoryFilePort =>
   return {
     files,
 
+    exists: (path) => Promise.resolve(files.has(path)),
+
     readTextFile: (path) => {
       const text = files.get(path);
 

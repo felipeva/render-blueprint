@@ -1,0 +1,11 @@
+import { blueprint, web, type Blueprint } from '__RENDER_BLUEPRINT__';
+
+const config = {
+  runtime: 'node',
+  buildCommand: 'pnpm build',
+  startCommand: 'pnpm start',
+} as const;
+
+const value: Blueprint = blueprint({ resources: [web('api', config), web('api', config)] });
+
+export default value;

@@ -32,6 +32,7 @@ export type { WriteOptions, WriteReport } from './fs/write-blueprint.js';
 export { BlueprintWriteFailed } from './fs/write-text-file.js';
 export { BlueprintFileUnreadable } from './fs/read-text-file.js';
 export type { FilePort, FileReader, FileWriter } from './fs/file-port.js';
+export { nodeFilePort } from './fs/node-file-port.js';
 
 export { checkBlueprint } from './drift/check-blueprint.js';
 export type { CheckOptions, DriftReport } from './drift/check-blueprint.js';

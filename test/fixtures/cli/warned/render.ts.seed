@@ -1,0 +1,7 @@
+import { blueprint, web, type Blueprint } from '__RENDER_BLUEPRINT__';
+
+const value: Blueprint = blueprint({
+  resources: [web('api', { runtime: 'node', region: 'oregon', plan: 'starter' })],
+});
+
+export default value;

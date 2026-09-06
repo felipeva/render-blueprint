@@ -3,20 +3,34 @@ import { dirname, join, resolve } from 'node:path';
 
 import { isPanic, Result, type Result as ResultType } from 'better-result';
 
-import type { BlueprintInvalid, BlueprintWriteFailed, ValidationWarning } from '../index.js';
-import { writeBlueprint } from '../index.js';
+import type {
+  BlueprintFileUnreadable,
+  BlueprintInvalid,
+  BlueprintWriteFailed,
+  DriftReport,
+  ValidationWarning,
+} from '../index.js';
+import { checkBlueprint, nodeFilePort, writeBlueprint } from '../index.js';
 import { discover, type BlueprintFileNotFound } from './discover.js';
-import { formatCause, formatIssues, formatWarnings } from './format.js';
-import { load, type BlueprintExportMissing, type BlueprintLoadFailed } from './load.js';
-import { nodeFileProbe } from './node-file-probe.js';
+import { formatCause, formatDrift, formatIssues, formatWarnings } from './format.js';
+import {
+  load,
+  type BlueprintExportInvalid,
+  type BlueprintExportMissing,
+  type BlueprintLoadFailed,
+} from './load.js';
+import { belowNodeFloor, NODE_FLOOR } from './node-floor.js';
 import { parseArguments, USAGE, type CommandLineInvalid } from './parse-arguments.js';
 
 const EXIT_OK = 0;
 const EXIT_FAILED = 1;
+const EXIT_DRIFT = 2;
 
 type CliError =
+  | BlueprintExportInvalid
   | BlueprintExportMissing
   | BlueprintFileNotFound
+  | BlueprintFileUnreadable
   | BlueprintInvalid
   | BlueprintLoadFailed
   | BlueprintWriteFailed
@@ -28,6 +42,12 @@ type Outcome =
       readonly action: 'wrote';
       readonly path: string;
       readonly warnings: readonly ValidationWarning[];
+      readonly strict: boolean;
+    }
+  | {
+      readonly action: 'checked';
+      readonly path: string;
+      readonly report: DriftReport;
       readonly strict: boolean;
     };
 
@@ -50,13 +70,26 @@ const execute = (argv: readonly string[], from: string): Promise<ResultType<Outc
     }
 
     const blueprintPath = yield* Result.await(
-      discover({ from, file: args.file, probe: nodeFileProbe }),
+      discover({ from, file: args.file, port: nodeFilePort }),
     );
     const value = yield* Result.await(load(blueprintPath));
     const target =
       args.out === undefined
         ? join(dirname(blueprintPath), 'render.yaml')
         : resolve(from, args.out);
+
+    if (args.command === 'check') {
+      const report = yield* Result.await(checkBlueprint(value, { path: target }));
+      const checked: Outcome = {
+        action: 'checked',
+        path: target,
+        report,
+        strict: args.strict,
+      };
+
+      return Result.ok(checked);
+    }
+
     const written = yield* Result.await(writeBlueprint(value, { path: target }));
     const wrote: Outcome = {
       action: 'wrote',
@@ -79,6 +112,18 @@ const strictlyFailed = (strict: boolean, warnings: readonly ValidationWarning[])
   return true;
 };
 
+const completeCheck = (path: string, report: DriftReport, strict: boolean): number => {
+  complain(formatWarnings(report.warnings));
+
+  if (report.status === 'drift') {
+    complain(formatDrift(path, report));
+    return EXIT_DRIFT;
+  }
+
+  say(`${path} is up to date.`);
+  return strictlyFailed(strict, report.warnings) ? EXIT_FAILED : EXIT_OK;
+};
+
 const complete = (outcome: Outcome): number => {
   switch (outcome.action) {
     case 'help':
@@ -89,14 +134,19 @@ const complete = (outcome: Outcome): number => {
       complain(formatWarnings(outcome.warnings));
       say(`Wrote ${outcome.path}`);
       return strictlyFailed(outcome.strict, outcome.warnings) ? EXIT_FAILED : EXIT_OK;
+
+    case 'checked':
+      return completeCheck(outcome.path, outcome.report, outcome.strict);
   }
 };
 
 const failed = (error: CliError): number => {
   complain(
     error.match({
+      BlueprintExportInvalid: (invalid) => invalid.message,
       BlueprintExportMissing: (missing) => missing.message,
       BlueprintFileNotFound: (absent) => absent.message,
+      BlueprintFileUnreadable: (failure) => `${failure.message}\n  ${formatCause(failure.cause)}`,
       BlueprintInvalid: (invalid) => formatIssues(invalid.issues),
       BlueprintLoadFailed: (failure) => `${failure.message}\n  ${formatCause(failure.cause)}`,
       BlueprintWriteFailed: (failure) => `${failure.message}\n  ${formatCause(failure.cause)}`,
@@ -108,6 +158,13 @@ const failed = (error: CliError): number => {
 };
 
 const run = async (argv: readonly string[], from: string): Promise<number> => {
+  if (belowNodeFloor(process.versions.node)) {
+    complain(
+      `render-blueprint needs Node ${NODE_FLOOR} or newer to strip the types from a TypeScript blueprint; this is Node ${process.versions.node}.`,
+    );
+    return EXIT_FAILED;
+  }
+
   const outcome = await execute(argv, from);
 
   return outcome.match({ ok: complete, err: failed });

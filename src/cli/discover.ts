@@ -7,7 +7,7 @@ import {
   type TaggedErrorClass,
 } from 'better-result';
 
-import type { FileProbe } from './file-probe.js';
+import type { FilePort } from '../index.js';
 
 export const BLUEPRINT_FILE_NAMES = ['render.ts', 'render.mts', 'render.js', 'render.mjs'] as const;
 
@@ -39,17 +39,17 @@ export class BlueprintFileNotFound extends BlueprintFileNotFoundBase<{
 export interface DiscoverOptions {
   readonly from: string;
   readonly file: string | undefined;
-  readonly probe: FileProbe;
+  readonly port: FilePort;
 }
 
-const walkUp = async (from: string, probe: FileProbe): Promise<string | undefined> => {
+const walkUp = async (from: string, port: FilePort): Promise<string | undefined> => {
   let directory = from;
 
   for (;;) {
     for (const name of BLUEPRINT_FILE_NAMES) {
       const candidate = join(directory, name);
 
-      if (await probe.exists(candidate)) return candidate;
+      if (await port.exists(candidate)) return candidate;
     }
 
     const parent = dirname(directory);
@@ -67,12 +67,12 @@ export const discover = async (
   if (options.file !== undefined) {
     const path = resolve(from, options.file);
 
-    return (await options.probe.exists(path))
+    return (await options.port.exists(path))
       ? Result.ok(path)
       : Result.err(new BlueprintFileNotFound({ path, names: [], walked: false }));
   }
 
-  const found = await walkUp(from, options.probe);
+  const found = await walkUp(from, options.port);
 
   return found === undefined
     ? Result.err(

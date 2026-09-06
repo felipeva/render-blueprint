@@ -3,24 +3,22 @@ import { join, resolve } from 'node:path';
 import { Result } from 'better-result';
 import { describe, expect, it } from 'vitest';
 
+import type { FilePort } from '../index.js';
+import { memoryFilePort } from '../testing.js';
 import { BlueprintFileNotFound, discover } from './discover.js';
-import type { FileProbe } from './file-probe.js';
 
 const root = resolve('/repo');
 const nested = join(root, 'apps', 'api');
 
-const probeOver = (paths: readonly string[]): FileProbe => {
-  const present = new Set(paths);
-
-  return { exists: (path) => Promise.resolve(present.has(path)) };
-};
+const portOver = (paths: readonly string[]): FilePort =>
+  memoryFilePort({ files: Object.fromEntries(paths.map((path) => [path, ''])) });
 
 const found = async (
   from: string,
   file: string | undefined,
   paths: readonly string[],
 ): Promise<string> => {
-  const result = await discover({ from, file, probe: probeOver(paths) });
+  const result = await discover({ from, file, port: portOver(paths) });
 
   return result.unwrap('The blueprint under test must be discoverable');
 };
@@ -73,7 +71,7 @@ describe('discover', () => {
   });
 
   it('reports BlueprintFileNotFound naming every name it looked for', async () => {
-    const result = await discover({ from: nested, file: undefined, probe: probeOver([]) });
+    const result = await discover({ from: nested, file: undefined, port: portOver([]) });
 
     expect(Result.isError(result)).toBe(true);
     if (!Result.isError(result)) return;
@@ -84,7 +82,7 @@ describe('discover', () => {
   });
 
   it('reports BlueprintFileNotFound naming the path --file gave', async () => {
-    const result = await discover({ from: nested, file: 'absent.ts', probe: probeOver([]) });
+    const result = await discover({ from: nested, file: 'absent.ts', port: portOver([]) });
 
     expect(Result.isError(result)).toBe(true);
     if (!Result.isError(result)) return;
@@ -96,7 +94,7 @@ describe('discover', () => {
     const result = await discover({
       from: nested,
       file: 'render.ts',
-      probe: probeOver([join(root, 'render.ts')]),
+      port: portOver([join(root, 'render.ts')]),
     });
 
     expect(Result.isError(result)).toBe(true);
