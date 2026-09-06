@@ -55,9 +55,15 @@ export type { SelfEnvironment, ServiceEnvironment } from './env/self-environment
 export { envGroup } from './resources/env-group.js';
 export type { EnvGroupConfig, EnvironmentGroup } from './resources/env-group.js';
 export { staticSite } from './resources/static-site.js';
-export type { Header, Route, StaticSite, StaticSiteConfig } from './resources/static-site.js';
+export type {
+  Header,
+  Route,
+  StaticSite,
+  StaticSiteConfig,
+  StaticSitePreviews,
+} from './resources/static-site.js';
 export { keyValue } from './resources/key-value.js';
-export type { KeyValueConfig, KeyValueStore } from './resources/key-value.js';
+export type { KeyValueConfig, KeyValuePreviews, KeyValueStore } from './resources/key-value.js';
 export { web } from './resources/web.js';
 export type {
   DockerWebConfig,
@@ -100,9 +106,18 @@ export type {
   ServiceSource,
 } from './resources/service-source.js';
 export { postgres } from './resources/postgres.js';
-export type { HighAvailability, PostgresConfig, PostgresDatabase } from './resources/postgres.js';
+export type {
+  HighAvailability,
+  PostgresConfig,
+  PostgresDatabase,
+  PostgresPreviews,
+} from './resources/postgres.js';
 export { readReplica } from './resources/read-replica.js';
 export type { ReadReplica } from './resources/read-replica.js';
+export type { BuildFilter } from './resources/build-filter.js';
+export type { Disk } from './resources/disk.js';
+export type { ServicePreviews } from './resources/previews.js';
+export type { Scaling } from './resources/scaling.js';
 export type { IpAllowList, IpAllowListEntry } from './resources/ip-allow-list.js';
 export type { BlueprintResource } from './resources/resource.js';
 

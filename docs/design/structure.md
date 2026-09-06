@@ -51,6 +51,8 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   ├── testing.ts                   the `render-blueprint/testing` subpath — memoryFilePort only,
 │                                    so a consumer's runtime bundle never carries the in-memory port
 │   ├── json.ts                      JsonValue / JsonObject — the escape-hatch types (design B §7)
+│   ├── bounded-integer.ts           z.int() plus the bound the spec sets, raising the one
+│                                    OutOfRange code every bounded number shares (issue #12)
 │   ├── enums/                       `as const` tuples + derived unions, one family per file: region,
 │   │                                runtime, plan, disk-size, auto-deploy-trigger, maxmemory-policy,
 │   │                                preview-generation, service-type, render-provided-key,
@@ -83,8 +85,13 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   │                            the repo+branch | dockerfilePath | image source union the four
 │   │   │                            sourced kinds share, and the tuple of keys its branches own
 │   │   ├── disk.ts  scaling.ts  build-filter.ts  ip-allow-list.ts  previews.ts
-│   │   │                            the sub-configs shared across service kinds. Route and Header
-│   │   │                            are not shared — only a static site takes them (spec §4.8), so
+│   │   │                            the sub-configs shared across service kinds, each with its own
+│   │   │                            ordered field tuple. disk.ts also carries DiskPreventsScaling
+│   │   │                            for the three kinds that spread it and scaling.ts the two
+│   │   │                            scaling codes; previews.ts holds the serverService previews
+│   │   │                            object alone, because a static site, Postgres and Key Value
+│   │   │                            each take a different one (issue #12). Route and Header are
+│   │   │                            not shared — only a static site takes them (spec §4.8), so
 │   │   │                            they live in static-site.ts with the factory (issue #6)
 │   │   ├── web.ts  private-service.ts  worker.ts  cron.ts  static-site.ts  key-value.ts
 │   │   │   postgres.ts  env-group.ts   each: the factory, its Config, and its output type
@@ -100,11 +107,13 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   │                            ValidationIssue, ValidationCode, ResourcePath, ValidationWarning
 │   │   ├── blueprint-invalid.ts     the BlueprintInvalid class — declared at its only producer (§5)
 │   │   └── rules/                   one pure Blueprint → issues[] file per family: duplicate-name,
-│                                     dangling-reference, multiple-locations, env-collision, scaling,
-│                                     service-env-var-key, numeric-range, high-availability,
-│                                     extra-field-conflict, warnings, env-key-collision,
-│                                     unknown-service-env-var-key, secret-skips-previews,
-│                                     web-only-field
+│                                     dangling-reference, multiple-locations, env-collision,
+│                                     service-env-var-key, extra-field-conflict, warnings,
+│                                     env-key-collision, unknown-service-env-var-key,
+│                                     secret-skips-previews, web-only-field,
+│                                     instances-ignored-by-scaling. The scaling, numeric-range and
+│                                     high-availability families are refinements beside their own
+│                                     config instead, because each reads one config and no other
 │   ├── synth/                       the ONLY module that knows YAML exists
 │   │   ├── synthesize.ts  document.ts   validate → document → emit; ValidatedBlueprint → a Document
 │   │   ├── mapping.ts  key-order.ts   the ordered builder that never writes an undefined value (§5),
@@ -157,6 +166,8 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   ├── golden.test.ts               fixtures/canonical/render.ts → byte-equal render.yaml (§6.2)
 │   ├── schema-conformance.test.ts   parse the golden YAML, validate against the Render schema (§6.3)
 │   ├── cli.test.ts                  spawn the binary in a temp dir; assert exit codes 0/1/2 (§6.6)
+│   ├── key-order-conformance.test.ts   every emission tuple against the property order its
+│   │                                definition carries in the published schema (issue #12)
 │   ├── fixtures/canonical/render.ts   design B §3 verbatim — the scenario every design doc shares
 │   ├── fixtures/canonical/render.yaml the golden output; the only file `vitest -u` may rewrite
 │   ├── fixtures/cli/                seed directories — clean, drifted, invalid, warned. Each
@@ -255,10 +266,12 @@ literals use the same convention one level down — `DanglingReference`, `Duplic
 `ResourceInMultipleLocations`, `ScalingRangeInverted`, `HighAvailabilityUnsupported`,
 `ExtraFieldConflict`, `EnvKeyCollision` — one literal per rule, named after the rule file that
 produces it. The config tier mints the few no rule file produces, from the issues a schema raises:
-`UnknownField`, `InvalidConfig`, `RootDirNotRelative`, and `ConflictingSource` for a key one source
-branch owns on a config whose runtime picked another (issue #10). `WarningCode` follows the same
+`UnknownField`, `InvalidConfig`, `RootDirNotRelative`, `ConflictingSource` for a key one source
+branch owns on a config whose runtime picked another (issue #10), `OutOfRange` for every numeric
+bound the spec sets, and `ScalingTargetMissing` and `DiskPreventsScaling` for the two pairs a
+serverService config may not hold at once (issue #12). `WarningCode` follows the same
 convention one tier down, for a rule that never blocks synthesis — `SecretSkipsPreviews`,
-`UnknownServiceEnvVarKey` and `WebOnlyField` among them.
+`UnknownServiceEnvVarKey`, `WebOnlyField` and `InstancesIgnoredByScaling` among them.
 
 **Enums.** `erasableSyntaxOnly` bans `enum`. Every closed set is a SCREAMING_SNAKE `as const`
 tuple plus its derived union, in one file; the tuple is exported because validation and tests
