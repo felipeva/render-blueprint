@@ -1,5 +1,5 @@
 import { resolveEnv } from '../../env/resolve-env.js';
-import type { BlueprintResource } from '../../resources/resource.js';
+import { resourceEnv, type BlueprintResource } from '../../resources/resource.js';
 import type { ValidationIssue } from '../issue.js';
 
 export const duplicateEnvKey = (
@@ -8,7 +8,7 @@ export const duplicateEnvKey = (
   const issues: ValidationIssue[] = [];
 
   for (const resource of resources) {
-    const env = resource.config.env;
+    const env = resourceEnv(resource);
     if (env === undefined) continue;
 
     const seen = new Set<string>();

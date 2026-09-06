@@ -8,6 +8,9 @@ export const VALIDATION_CODES = [
   'ExtraFieldConflict',
   'DeprecatedField',
   'ResourceInMultipleLocations',
+  'DanglingReference',
+  'HighAvailabilityUnsupported',
+  'TooManyReadReplicas',
 ] as const;
 
 export type ValidationCode = (typeof VALIDATION_CODES)[number];

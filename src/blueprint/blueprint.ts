@@ -30,7 +30,13 @@ export interface Blueprint {
 export const ROOT_NAME = 'blueprint' as const;
 
 // Emission order follows the schema's root property order, with previews ahead of the resources.
-export const BLUEPRINT_FIELDS = ['previews', 'services', 'projects', 'ungrouped'] as const;
+export const BLUEPRINT_FIELDS = [
+  'previews',
+  'services',
+  'databases',
+  'projects',
+  'ungrouped',
+] as const;
 
 const EXPIRE_AFTER_DAYS_ERROR =
   'An expireAfterDays is a whole number of days of at least 1; Render deprovisions a preview environment that goes that long without a push.';

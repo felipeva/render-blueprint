@@ -2,6 +2,17 @@ import type { RootPreviews } from '../../blueprint/blueprint.js';
 import type { BlueprintResource } from '../../resources/resource.js';
 import type { ValidationWarning } from '../issue.js';
 
+// spec §9: a database has no repo, so no branch pins it.
+const branchOf = (resource: BlueprintResource): string | undefined => {
+  switch (resource.kind) {
+    case 'web':
+    case 'staticSite':
+      return resource.config.branch;
+    case 'postgres':
+      return undefined;
+  }
+};
+
 // spec §11: a service that pins a branch builds it in every preview environment.
 export const branchDisablesPreviews = (
   previews: RootPreviews | undefined,
@@ -12,7 +23,7 @@ export const branchDisablesPreviews = (
   const warnings: ValidationWarning[] = [];
 
   for (const resource of resources) {
-    const branch = resource.config.branch;
+    const branch = branchOf(resource);
     if (branch === undefined) continue;
 
     warnings.push({

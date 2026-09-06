@@ -9,7 +9,7 @@ export const rootDeprecatedField = (value: Blueprint): readonly ValidationIssue[
   const issues: ValidationIssue[] = [];
 
   for (const [key, entry] of Object.entries(extraFields)) {
-    const retired = deprecation(key, entry);
+    const retired = deprecation(key, entry, 'root');
     if (retired === undefined) continue;
 
     issues.push({

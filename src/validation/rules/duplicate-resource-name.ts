@@ -1,6 +1,15 @@
 import type { BlueprintResource } from '../../resources/resource.js';
 import type { ValidationIssue } from '../issue.js';
 
+// spec §9 and §12: a read replica is addressed by its own name, so it shares the one namespace.
+const replicaNames = (resource: BlueprintResource): readonly string[] => {
+  if (resource.kind !== 'postgres') return [];
+
+  const declared = resource.config?.readReplicas;
+  // The name tier runs ahead of config parsing (ADR-0003), so this list may not be one yet.
+  return Array.isArray(declared) ? declared.map((replica) => replica.name) : [];
+};
+
 export const duplicateResourceName = (
   resources: readonly BlueprintResource[],
 ): readonly ValidationIssue[] => {
@@ -20,6 +29,17 @@ export const duplicateResourceName = (
       });
     }
     names.add(resource.name);
+
+    for (const replica of replicaNames(resource)) {
+      if (names.has(replica)) {
+        issues.push({
+          code: 'DuplicateResourceName',
+          at: { resource: resource.name, field: 'readReplicas' },
+          message: `The read replica "${replica}" on "${resource.name}" takes a name another resource already takes. Render addresses a replica by its own name, so replicas and resources share one namespace.`,
+        });
+      }
+      names.add(replica);
+    }
   }
 
   return issues;

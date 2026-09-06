@@ -2,6 +2,7 @@ import { Document } from 'yaml';
 
 import type { ValidatedBlueprint } from '../validation/validate.js';
 import { BANNER } from './banner.js';
+import { databases } from './databases.js';
 import { ROOT_KEY_ORDER } from './key-order.js';
 import { mapping } from './mapping.js';
 import { projects, ungrouped } from './projects.js';
@@ -15,6 +16,7 @@ export const document = (value: ValidatedBlueprint): Document => {
       {
         previews: rootPreviews(value.previews),
         services: services(value.resources),
+        databases: databases(value.resources),
         projects: projects(value.projects),
         ungrouped: ungrouped(value.ungrouped),
       },

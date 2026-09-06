@@ -1,5 +1,5 @@
 import { modeledFields, type BlueprintResource } from '../../resources/resource.js';
-import { deprecation } from '../deprecation.js';
+import { deprecation, deprecationScope } from '../deprecation.js';
 import type { ValidationIssue } from '../issue.js';
 
 export const extraFieldConflict = (
@@ -14,7 +14,11 @@ export const extraFieldConflict = (
     const modeled = new Set<string>(modeledFields(resource));
 
     for (const [key, value] of Object.entries(extraFields)) {
-      if (!modeled.has(key) || deprecation(key, value) !== undefined) continue;
+      if (
+        !modeled.has(key) ||
+        deprecation(key, value, deprecationScope(resource.kind)) !== undefined
+      )
+        continue;
 
       issues.push({
         code: 'ExtraFieldConflict',

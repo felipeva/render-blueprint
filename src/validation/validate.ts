@@ -10,6 +10,7 @@ import type { ValidationWarning } from './issue.js';
 import { parseConfigs } from './parse-configs.js';
 import { parsePlacement } from './parse-placement.js';
 import { branchDisablesPreviews } from './rules/branch-disables-previews.js';
+import { danglingReference } from './rules/dangling-reference.js';
 import { deprecatedField } from './rules/deprecated-field.js';
 import { duplicateEnvKey } from './rules/duplicate-env-key.js';
 import { duplicateResourceName } from './rules/duplicate-resource-name.js';
@@ -53,6 +54,7 @@ export const validate = (value: Blueprint): ResultType<ValidatedBlueprint, Bluep
     ...PLACEMENT_RULES.flatMap((rule) => rule(placed)),
     ...NAME_RULES.flatMap((rule) => rule(parsed.named)),
     ...CONFIG_RULES.flatMap((rule) => rule(parsed.accepted)),
+    ...danglingReference(parsed),
   ];
 
   return first === undefined

@@ -5,9 +5,12 @@ import { describe, expect, it } from 'vitest';
 import * as z from 'zod';
 
 import { AUTO_DEPLOY_TRIGGERS } from '../src/enums/auto-deploy-trigger.js';
+import { DATABASE_PROPERTIES } from '../src/enums/database-property.js';
+import { DISK_SIZES_GB } from '../src/enums/disk-size.js';
 import { ENVIRONMENT_PROTECTIONS } from '../src/enums/environment-protection.js';
 import { NETWORK_ISOLATIONS } from '../src/enums/network-isolation.js';
-import { SERVER_PLANS } from '../src/enums/plan.js';
+import { POSTGRES_PLANS, SERVER_PLANS } from '../src/enums/plan.js';
+import { POSTGRES_MAJOR_VERSIONS } from '../src/enums/postgres-major-version.js';
 import { PREVIEW_GENERATIONS } from '../src/enums/preview-generation.js';
 import { REGIONS } from '../src/enums/region.js';
 import { ROUTE_TYPES } from '../src/enums/route-type.js';
@@ -22,6 +25,8 @@ interface RenderSchemaProperty {
 
 interface RenderSchemaDefinition {
   readonly enum?: readonly string[];
+  readonly type?: string;
+  readonly minimum?: number;
   readonly properties?: { readonly [name: string]: RenderSchemaProperty };
   readonly allOf?: readonly RenderSchemaProperty[];
 }
@@ -107,5 +112,45 @@ describe('ENVIRONMENT_PROTECTIONS', () => {
     expect(converted(ENVIRONMENT_PROTECTIONS)).toEqual(
       publishedInEnvironment('permissions', 'protection'),
     );
+  });
+});
+
+describe('POSTGRES_PLANS', () => {
+  it('holds the postgresPlan enum Render publishes', () => {
+    expect(converted(POSTGRES_PLANS)).toEqual(published('postgresPlan'));
+  });
+});
+
+describe('DATABASE_PROPERTIES', () => {
+  it('holds the databaseEnvVarProperty enum Render publishes', () => {
+    expect(converted(DATABASE_PROPERTIES)).toEqual(published('databaseEnvVarProperty'));
+  });
+});
+
+describe('POSTGRES_MAJOR_VERSIONS', () => {
+  it('holds the postgresMajorVersion enum Render publishes on a database', () => {
+    expect(converted(POSTGRES_MAJOR_VERSIONS)).toEqual(
+      publishedField('database', 'postgresMajorVersion'),
+    );
+  });
+});
+
+describe('DISK_SIZES_GB', () => {
+  it('holds sizes the published diskSizeGB definition accepts', () => {
+    const definition = renderSchema.definitions['diskSizeGB'];
+
+    expect(definition?.type).toBe('integer');
+    expect(definition?.enum).toBeUndefined();
+    expect(
+      DISK_SIZES_GB.filter((size) => !Number.isInteger(size) || size < (definition?.minimum ?? 1)),
+    ).toEqual([]);
+  });
+
+  it('holds 1 and every multiple of 5 up to its ceiling, in ascending order', () => {
+    // spec §8.3: the "1 or a multiple of 5" rule is prose-only, so the schema cannot check it.
+    const [first, ...rest] = DISK_SIZES_GB;
+
+    expect(first).toBe(1);
+    expect(rest.filter((size, index) => size !== (index + 1) * 5)).toEqual([]);
   });
 });
