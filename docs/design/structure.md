@@ -173,8 +173,9 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │       │                            sentence, rather than letting the loader fail (§7 engines)
 │       └── format.ts                human rendering of issues, warnings, and the drift diff
 ├── test/                            cross-module tests only; unit tests live beside their source
-│   ├── golden.test.ts               fixtures/canonical/render.ts → byte-equal render.yaml (§6.2)
-│   ├── schema-conformance.test.ts   parse the golden YAML, validate against the Render schema (§6.3)
+│   ├── fixtures.test.ts             every test/fixtures/*/render.ts → byte-equal render.yaml, then
+│   │                                parsed and validated against the Render schema (§6.2, §6.3)
+│   ├── enum-conformance.test.ts     every enum tuple against the enum values the schema publishes
 │   ├── cli.test.ts                  spawn the binary in a temp dir; assert exit codes 0/1/2 (§6.6)
 │   ├── key-order-conformance.test.ts   every emission tuple that names a published definition,
 │   │                                against the property order that definition lists them in.
@@ -397,13 +398,13 @@ test per issue code plus its negative case), `synth/env-vars.ts` (all five env-v
 `fromGroup` ordering), `defaults/apply-defaults.ts` (the matrix, including fields that must *not*
 propagate), `drift/normalize.ts`.
 
-**6.2 The golden test.** `test/golden.test.ts` imports `test/fixtures/canonical/render.ts` — design
+**6.2 The golden test.** `test/fixtures.test.ts` imports `test/fixtures/canonical/render.ts` — design
 B §3 verbatim, the scenario every design document was judged on — calls `synthesize`, and compares
-with `test/fixtures/canonical/render.yaml` via `toMatchFileSnapshot`. `vitest -u` regenerates it
-and a human reviews the diff. This is the single regression net for key order, quoting, the header
+with `test/fixtures/canonical/render.yaml` byte for byte, as it does every other fixture directory.
+`pnpm fixtures:update` regenerates them and a human reviews the diff. This is the single regression net for key order, quoting, the header
 and the map→list conversion, and the only file a test may rewrite.
 
-**6.3 JSON Schema conformance.** `test/schema-conformance.test.ts` parses the golden YAML back with
+**6.3 JSON Schema conformance.** The same `test/fixtures.test.ts` parses each golden YAML back with
 `yaml.parse` and validates it against `test/schema/render.yaml.schema.json`. Validator: **ajv 8.x**
 imported as `ajv/dist/2020` — the schema declares
 `"$schema": "https://json-schema.org/draft/2020-12/schema"` and ajv 8's `2020` build is its draft
