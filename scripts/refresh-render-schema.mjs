@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const SCHEMA_URL = "https://render.com/schema/render.yaml.json";
+const SCHEMA_URL = 'https://render.com/schema/render.yaml.json';
 const target = resolve(
   dirname(fileURLToPath(import.meta.url)),
-  "../test/schema/render.yaml.schema.json",
+  '../test/schema/render.yaml.schema.json',
 );
 
 const response = await fetch(SCHEMA_URL);

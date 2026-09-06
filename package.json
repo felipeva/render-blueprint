@@ -17,7 +17,7 @@
     }
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -p tsconfig.check.json",
     "lint": "oxlint",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
@@ -25,7 +25,8 @@
     "test:types": "vitest run --typecheck.only",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:types",
     "build": "tsdown",
-    "schema:refresh": "node scripts/refresh-render-schema.mjs"
+    "schema:refresh": "node scripts/refresh-render-schema.mjs",
+    "fixtures:update": "UPDATE_FIXTURES=1 vitest run test/fixtures.test.ts"
   },
   "dependencies": {
     "better-result": "3.0.1",
@@ -34,6 +35,7 @@
   "devDependencies": {
     "@oxlint/plugins": "1.81.0",
     "@types/node": "26.4.1",
+    "ajv": "8.20.0",
     "oxfmt": "0.66.0",
     "oxlint": "1.81.0",
     "tsdown": "0.23.0",
