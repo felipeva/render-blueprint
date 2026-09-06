@@ -10,6 +10,7 @@ const REPLACEMENTS: ReadonlyMap<string, string> = new Map([
   ['env', 'runtime'],
   ['autoDeploy', 'autoDeployTrigger'],
   ['previewsEnabled', 'previews.generation'],
+  ['previewsExpireAfterDays', 'previews.expireAfterDays'],
   ['pullRequestPreviewsEnabled', 'previews.generation'],
   ['previewPlan', 'previews.plan'],
 ]);

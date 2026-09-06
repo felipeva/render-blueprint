@@ -6,6 +6,7 @@ import * as z from 'zod';
 
 import { AUTO_DEPLOY_TRIGGERS } from '../src/enums/auto-deploy-trigger.js';
 import { SERVER_PLANS } from '../src/enums/plan.js';
+import { PREVIEW_GENERATIONS } from '../src/enums/preview-generation.js';
 import { REGIONS } from '../src/enums/region.js';
 import { ROUTE_TYPES } from '../src/enums/route-type.js';
 import { NATIVE_RUNTIMES } from '../src/enums/runtime.js';
@@ -70,5 +71,11 @@ describe('NATIVE_RUNTIMES', () => {
 describe('ROUTE_TYPES', () => {
   it('holds the route type enum Render publishes', () => {
     expect(converted(ROUTE_TYPES)).toEqual(publishedField('route', 'type'));
+  });
+});
+
+describe('PREVIEW_GENERATIONS', () => {
+  it('holds the previewsGeneration enum Render publishes', () => {
+    expect(converted(PREVIEW_GENERATIONS)).toEqual(published('previewsGeneration'));
   });
 });
