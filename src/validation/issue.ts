@@ -7,6 +7,7 @@ export const VALIDATION_CODES = [
   'DuplicateEnvKey',
   'ExtraFieldConflict',
   'DeprecatedField',
+  'ResourceInMultipleLocations',
 ] as const;
 
 export type ValidationCode = (typeof VALIDATION_CODES)[number];
@@ -15,6 +16,7 @@ export const WARNING_CODES = [
   'MissingBuildCommand',
   'MissingStartCommand',
   'MissingStaticPublishPath',
+  'BranchDisablesPreviews',
 ] as const;
 
 export type WarningCode = (typeof WARNING_CODES)[number];

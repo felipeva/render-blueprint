@@ -28,7 +28,7 @@ const raisedCode = (issue: z.core.$ZodIssueCustom): ValidationCode =>
   VALIDATION_CODES.find((code) => code === String(issue.params?.['validationCode'])) ??
   'InvalidConfig';
 
-const translate = (
+export const translate = (
   name: string,
   base: readonly string[],
   issue: z.core.$ZodIssue,

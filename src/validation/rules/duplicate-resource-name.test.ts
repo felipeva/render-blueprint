@@ -34,4 +34,9 @@ describe('duplicateResourceName', () => {
       duplicateResourceName([web('api', { runtime: 'node' }), web('admin', { runtime: 'node' })]),
     ).toEqual([]);
   });
+  it('reports nothing for one resource value flattened out of two placements', () => {
+    const api = web('api', { runtime: 'node' });
+
+    expect(duplicateResourceName([api, api])).toEqual([]);
+  });
 });
