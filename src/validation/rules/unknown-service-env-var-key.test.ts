@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { external } from '../../references/external.js';
+import { envGroup } from '../../resources/env-group.js';
 import { web } from '../../resources/web.js';
 import { unknownServiceEnvVarKey } from './unknown-service-env-var-key.js';
 
@@ -12,7 +13,7 @@ describe('unknownServiceEnvVarKey', () => {
     expect(unknownServiceEnvVarKey([api, auth])).toEqual([]);
   });
 
-  it('names the source resource, the env key, and the key the target does not declare', () => {
+  it('warns naming the source resource, the env key, and the key the target does not declare', () => {
     const auth = web('auth', { runtime: 'node', env: { ROOT_PASSWORD: 'set-in-dashboard' } });
     const api = web('api', { runtime: 'node', env: { PASSWORD: auth.envVar('ROOT_PASSWRD') } });
 
@@ -21,9 +22,17 @@ describe('unknownServiceEnvVarKey', () => {
         code: 'UnknownServiceEnvVarKey',
         at: { resource: 'api', field: 'env.PASSWORD' },
         message:
-          '"api" reads "PASSWORD" from the environment variable "ROOT_PASSWRD" on "auth", which declares no such key. Declare it there, or name one of the variables Render provides.',
+          '"api" reads "PASSWORD" from the environment variable "ROOT_PASSWRD" on "auth", which declares no such key. Render keeps variables a blueprint omits, so the key may exist on Render already; declare it on "auth", or reach for the target through an external handle.',
       },
     ]);
+  });
+
+  it('accepts a key the target imports from an environment group', () => {
+    const shared = envGroup('shared-settings', { env: { ROOT_PASSWORD: 'set-in-dashboard' } });
+    const auth = web('auth', { runtime: 'node', envGroups: [shared] });
+    const api = web('api', { runtime: 'node', env: { PASSWORD: auth.envVar('ROOT_PASSWORD') } });
+
+    expect(unknownServiceEnvVarKey([api, auth, shared])).toEqual([]);
   });
 
   it('accepts a variable Render provides, which no service declares itself', () => {
@@ -90,7 +99,7 @@ describe('unknownServiceEnvVarKey', () => {
     expect(unknownServiceEnvVarKey([api, auth])).toEqual([]);
   });
 
-  it('reports every unknown key, never the first only', () => {
+  it('warns for every unknown key, never the first only', () => {
     const auth = web('auth', { runtime: 'node' });
     const api = web('api', {
       runtime: 'node',

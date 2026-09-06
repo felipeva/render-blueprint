@@ -5,6 +5,7 @@ import { blueprint } from '../blueprint/blueprint.js';
 import type { EnvValue } from '../env/env-value.js';
 import { secret } from '../env/secret.js';
 import type { JsonObject } from '../json.js';
+import { external } from '../references/external.js';
 import { envGroup, type EnvGroupConfig } from '../resources/env-group.js';
 import { keyValue, type KeyValueConfig } from '../resources/key-value.js';
 import { postgres, type PostgresConfig } from '../resources/postgres.js';
@@ -182,7 +183,9 @@ describe('validate', () => {
     expect(result.error.issues[0].at).toEqual({ resource: 'cache', field: 'runtime' });
   });
 
-  it('reports a key the referenced service does not declare', () => {
+  // spec §6.4: Render keeps a variable the blueprint omits, so the key may be there already. The
+  // blueprint still synthesizes, and the warning rides on the accepted value.
+  it('warns, rather than fails, on a key the referenced service does not declare', () => {
     const auth = web('auth', { runtime: 'node', buildCommand: 'x', startCommand: 'y' });
     const api = web('api', {
       runtime: 'node',
@@ -192,10 +195,27 @@ describe('validate', () => {
     });
     const result = validate(blueprint({ resources: [api, auth] }));
 
-    expect(Result.isError(result)).toBe(true);
-    if (!Result.isError(result)) return;
-    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownServiceEnvVarKey']);
-    expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'env.PASSWORD' });
+    expect(Result.isOk(result)).toBe(true);
+    if (!Result.isOk(result)) return;
+    expect(result.value.warnings.map((warning) => warning.code)).toEqual([
+      'UnknownServiceEnvVarKey',
+    ]);
+    expect(result.value.warnings[0]?.at).toEqual({ resource: 'api', field: 'env.PASSWORD' });
+  });
+
+  it('silences that warning when the reference is an external handle', () => {
+    const auth = web('auth', { runtime: 'node', buildCommand: 'x', startCommand: 'y' });
+    const api = web('api', {
+      runtime: 'node',
+      buildCommand: 'x',
+      startCommand: 'y',
+      env: { PASSWORD: external.web('auth').envVar('ROOT_PASSWORD') },
+    });
+    const result = validate(blueprint({ resources: [api, auth] }));
+
+    expect(Result.isOk(result)).toBe(true);
+    if (!Result.isOk(result)) return;
+    expect(result.value.warnings).toEqual([]);
   });
 
   it('accepts a blueprint whose services reference each other and themselves', () => {

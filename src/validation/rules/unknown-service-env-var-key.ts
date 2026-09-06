@@ -5,32 +5,36 @@ import {
   serviceReferenceType,
   type BlueprintResource,
 } from '../../resources/resource.js';
-import type { ValidationIssue } from '../issue.js';
+import { envKeyOrigins } from '../env-key-origins.js';
+import type { ValidationWarning } from '../issue.js';
 
 // spec §6.6: Render sets these on every service, so a reference to one always resolves.
 const RENDER_PROVIDED: ReadonlySet<string> = new Set(RENDER_PROVIDED_KEYS);
 
+// A key reaches a service directly or through a group it imports, and either one declares it.
 const declaredKeys = (
   resources: readonly BlueprintResource[],
 ): ReadonlyMap<string, ReadonlySet<string>> => {
   const declared = new Map<string, ReadonlySet<string>>();
 
-  for (const resource of resources) {
+  for (const { resource, origins } of envKeyOrigins(resources)) {
     if (serviceReferenceType(resource) === undefined) continue;
 
-    const env = resourceEnv(resource);
-    declared.set(resource.name, new Set<string>(env === undefined ? [] : Object.keys(env)));
+    declared.set(resource.name, new Set(origins.map((origin) => origin.key)));
   }
 
   return declared;
 };
 
-// A target this blueprint does not list carries no key list, so danglingReference owns it.
+// spec §6.4: Render preserves variables a blueprint omits, so a key this blueprint cannot see may
+// exist on the service already. That makes an unresolvable key probably wrong rather than wrong,
+// which is the warning tier. A target this blueprint does not list carries no key list at all, so
+// danglingReference owns that one.
 export const unknownServiceEnvVarKey = (
   resources: readonly BlueprintResource[],
-): readonly ValidationIssue[] => {
+): readonly ValidationWarning[] => {
   const declared = declaredKeys(resources);
-  const issues: ValidationIssue[] = [];
+  const warnings: ValidationWarning[] = [];
 
   for (const resource of resources) {
     const env = resourceEnv(resource);
@@ -46,13 +50,13 @@ export const unknownServiceEnvVarKey = (
       const key = entry.reference.envVarKey;
       if (target === undefined || RENDER_PROVIDED.has(key) || target.has(key)) continue;
 
-      issues.push({
+      warnings.push({
         code: 'UnknownServiceEnvVarKey',
         at: { resource: resource.name, field: `env.${entry.key}` },
-        message: `"${resource.name}" reads "${entry.key}" from the environment variable "${key}" on "${entry.reference.name}", which declares no such key. Declare it there, or name one of the variables Render provides.`,
+        message: `"${resource.name}" reads "${entry.key}" from the environment variable "${key}" on "${entry.reference.name}", which declares no such key. Render keeps variables a blueprint omits, so the key may exist on Render already; declare it on "${entry.reference.name}", or reach for the target through an external handle.`,
       });
     }
   }
 
-  return issues;
+  return warnings;
 };

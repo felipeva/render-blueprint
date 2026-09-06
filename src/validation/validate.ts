@@ -45,10 +45,14 @@ const CONFIG_RULES = [
   envKeyCollision,
   extraFieldConflict,
   deprecatedField,
-  unknownServiceEnvVarKey,
 ] as const;
 
-const WARNING_RULES = [missingBuildCommand, missingStartCommand, missingStaticPublishPath] as const;
+const WARNING_RULES = [
+  missingBuildCommand,
+  missingStartCommand,
+  missingStaticPublishPath,
+  unknownServiceEnvVarKey,
+] as const;
 
 export const validate = (value: Blueprint): ResultType<ValidatedBlueprint, BlueprintInvalid> => {
   // A blueprint whose own structure did not parse cannot be walked; ADR-0003 defers the rest.
