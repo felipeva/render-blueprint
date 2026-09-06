@@ -25,6 +25,7 @@ import { rootDeprecatedField } from './rules/root-deprecated-field.js';
 import { rootExtraFieldConflict } from './rules/root-extra-field-conflict.js';
 import { secretSkipsPreviews } from './rules/secret-skips-previews.js';
 import { unknownServiceEnvVarKey } from './rules/unknown-service-env-var-key.js';
+import { unusedDefault } from './rules/unused-default.js';
 import { webOnlyField } from './rules/web-only-field.js';
 
 export interface ValidatedBlueprint {
@@ -56,6 +57,7 @@ const WARNING_RULES = [
   unknownServiceEnvVarKey,
   webOnlyField,
   instancesIgnoredByScaling,
+  unusedDefault,
 ] as const;
 
 export const validate = (value: Blueprint): ResultType<ValidatedBlueprint, BlueprintInvalid> => {

@@ -120,6 +120,17 @@ export type { ServicePreviews } from './resources/previews.js';
 export type { Scaling } from './resources/scaling.js';
 export type { IpAllowList, IpAllowListEntry } from './resources/ip-allow-list.js';
 export type { BlueprintResource } from './resources/resource.js';
+export type {
+  AppliedDefault,
+  DefaultField,
+  DefaultKey,
+  DefaultsDeclaration,
+  DefaultsProvenance,
+} from './resources/defaults-provenance.js';
+
+export { withDefaults } from './defaults/with-defaults.js';
+export type { ResourceFactories } from './defaults/with-defaults.js';
+export type { PlanDefaults, ResourceDefaults } from './defaults/resource-defaults.js';
 
 export { blueprint } from './blueprint/blueprint.js';
 export type { Blueprint, BlueprintConfig, RootPreviews } from './blueprint/blueprint.js';

@@ -11,6 +11,7 @@ import type { Equal, Expect } from '../equal.js';
 import { jsonObjectSchema, type JsonObject } from '../json.js';
 import { raise } from '../raise.js';
 import { postgresReference, type PostgresReference } from '../references/postgres-reference.js';
+import type { DefaultsProvenance } from './defaults-provenance.js';
 import type { IpAllowList } from './ip-allow-list.js';
 import { readReplicaSchema, type ReadReplica } from './read-replica.js';
 
@@ -43,6 +44,7 @@ export interface PostgresDatabase extends PostgresReference {
   readonly kind: 'postgres';
   readonly name: string;
   readonly config: PostgresConfig;
+  readonly defaults?: DefaultsProvenance;
 }
 
 // Emission order follows the schema's highAvailability property order.

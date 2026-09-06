@@ -12,6 +12,7 @@ Use these words. Definitions come from `docs/design/structure.md`,
 - **Factory** — a lowercase `(name, config)` function returning a resource with no construction side effects. Factories are total; only `validate`, `synthesize`, `writeBlueprint` and `checkBlueprint` return `Result`.
 - **Config** — a factory's input type, always suffixed `Config` (`WebConfig`, `PostgresConfig`).
 - **Output value** — a factory's output type, a bare domain noun (`WebService`, `KeyValueStore`). Never suffixed.
+- **Defaults provenance** — the optional field the seven kinds a scope can fill carry, saying which defaults scopes created the resource and which defaults landed on it, each attributed to the scope that declared it: `DefaultsProvenance`. A bare factory never sets it and it never reaches YAML; the unused-default rule reads it, and a config issue on a field a scope filled says so. `src/resources/defaults-provenance.ts`.
 
 ## References
 

@@ -5,6 +5,7 @@ import { environmentMapSchema, type EnvironmentMap } from '../env/env-value.js';
 import { isSelfEnvironment, selfEnvironment } from '../env/self-environment.js';
 import type { Equal, Expect } from '../equal.js';
 import { CRON_JOB_FIELDS, parseCronConfig, type CronJob } from './cron.js';
+import type { DefaultsProvenance } from './defaults-provenance.js';
 import {
   ENVIRONMENT_GROUP_FIELDS,
   parseEnvGroupConfig,
@@ -70,6 +71,29 @@ export const modeledFields = (resource: BlueprintResource): readonly string[] =>
       return POSTGRES_DATABASE_FIELDS;
     case 'envGroup':
       return ENVIRONMENT_GROUP_FIELDS;
+  }
+};
+
+// A defaults scope fills the seven kinds that take a default; a group takes none, so it carries no
+// provenance to read.
+export const resourceDefaults = (resource: BlueprintResource): DefaultsProvenance | undefined => {
+  switch (resource.kind) {
+    case 'web':
+      return resource.defaults;
+    case 'privateService':
+      return resource.defaults;
+    case 'worker':
+      return resource.defaults;
+    case 'cron':
+      return resource.defaults;
+    case 'staticSite':
+      return resource.defaults;
+    case 'keyValue':
+      return resource.defaults;
+    case 'postgres':
+      return resource.defaults;
+    case 'envGroup':
+      return undefined;
   }
 };
 

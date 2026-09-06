@@ -11,6 +11,7 @@ import {
   type HttpServiceReference,
 } from '../references/http-service-reference.js';
 import type { BuildFilter } from './build-filter.js';
+import type { DefaultsProvenance } from './defaults-provenance.js';
 import { raiseDiskPreventsScaling, type Disk } from './disk.js';
 import type { EnvironmentGroup } from './env-group.js';
 import { servicePreviewsSchema, type ServicePreviews } from './previews.js';
@@ -59,6 +60,7 @@ export interface PrivateService extends HttpServiceReference {
   readonly kind: 'privateService';
   readonly name: string;
   readonly config: PrivateServiceConfig;
+  readonly defaults?: DefaultsProvenance;
 }
 
 // Emission order follows the schema's serverService property order.
