@@ -9,6 +9,15 @@ import { servicePropertySchema, type ServiceProperty } from '../enums/service-pr
 import type { Equal, Expect } from '../equal.js';
 import { referenceOriginSchema, type ReferenceOrigin } from './reference-origin.js';
 
+const NAME_ERROR = 'A reference names the resource it reads, so the name is not empty.';
+
+const ENV_VAR_KEY_ERROR =
+  'A fromService reference names the variable it reads, so the key is not empty.';
+
+const referenceNameSchema: z.ZodString = z.string({ error: NAME_ERROR }).min(1, {
+  error: NAME_ERROR,
+});
+
 export interface DatabaseReferenceValue {
   readonly reference: 'fromDatabase';
   readonly name: string;
@@ -40,7 +49,7 @@ const referenceValueSchema = z
   .strictObject(
     {
       reference: z.literal('fromDatabase'),
-      name: z.string(),
+      name: referenceNameSchema,
       origin: referenceOriginSchema,
       property: databasePropertySchema,
     },
@@ -64,7 +73,7 @@ const serviceValueSchema = z.union(
     z
       .strictObject({
         reference: z.literal('fromService'),
-        name: z.string(),
+        name: referenceNameSchema,
         origin: referenceOriginSchema,
         type: referenceableServiceTypeSchema,
         property: servicePropertySchema,
@@ -73,10 +82,10 @@ const serviceValueSchema = z.union(
     z
       .strictObject({
         reference: z.literal('fromService'),
-        name: z.string(),
+        name: referenceNameSchema,
         origin: referenceOriginSchema,
         type: referenceableServiceTypeSchema,
-        envVarKey: z.string(),
+        envVarKey: z.string({ error: ENV_VAR_KEY_ERROR }).min(1, { error: ENV_VAR_KEY_ERROR }),
       })
       .readonly(),
   ],

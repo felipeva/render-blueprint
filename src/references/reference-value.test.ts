@@ -54,6 +54,30 @@ describe('serviceReferenceValueSchema', () => {
     ).toBe(false);
   });
 
+  it('rejects a reference naming no variable, which would emit an empty envVarKey', () => {
+    expect(
+      accepts({
+        reference: 'fromService',
+        name: 'api',
+        origin: 'blueprint',
+        type: 'web',
+        envVarKey: '',
+      }),
+    ).toBe(false);
+  });
+
+  it('rejects a reference naming no target, which would emit an empty name', () => {
+    expect(
+      accepts({
+        reference: 'fromService',
+        name: '',
+        origin: 'blueprint',
+        type: 'web',
+        property: 'host',
+      }),
+    ).toBe(false);
+  });
+
   it('rejects a service type Render reserves for referencing it does not publish here', () => {
     expect(
       accepts(
