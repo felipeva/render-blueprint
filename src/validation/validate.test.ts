@@ -17,6 +17,7 @@ import { staticSite, type StaticSiteConfig } from '../resources/static-site.js';
 import { web, type WebConfig } from '../resources/web.js';
 import { worker, type WorkerConfig } from '../resources/worker.js';
 import { BlueprintInvalid } from './blueprint-invalid.js';
+import type { ValidationCode } from './issue.js';
 import { validate } from './validate.js';
 
 // SAFETY: JSON.parse returns any. Every config below stands in for a blueprint the CLI loaded
@@ -33,6 +34,9 @@ const uncheckedResource: (json: string) => BlueprintResource = JSON.parse;
 const uncheckedWorker: (json: string) => WorkerConfig = JSON.parse;
 const uncheckedPrivateService: (json: string) => PrivateServiceConfig = JSON.parse;
 const uncheckedCron: (json: string) => CronConfig = JSON.parse;
+
+const reportedCodes = (result: ReturnType<typeof validate>): readonly ValidationCode[] =>
+  Result.isError(result) ? result.error.issues.map((issue) => issue.code) : [];
 
 describe('validate', () => {
   it('accepts a blueprint that trips no rule', () => {
@@ -386,6 +390,86 @@ describe('validate', () => {
     expect(Result.isOk(result)).toBe(true);
     if (!Result.isOk(result)) return;
     expect(result.value.warnings.map((warning) => warning.code)).toEqual(['WebOnlyField']);
+  });
+
+  // ADR-0003: the identity guard cannot see strictness, so each strict object needs a runtime test
+  // that it rejects an unknown key. A sourced config is three of them, one per source branch.
+  it('reports a field the library does not model on each source branch of a web service', () => {
+    const results = [
+      '{"runtime":"node","nope":1}',
+      '{"runtime":"docker","nope":1}',
+      '{"runtime":"image","image":{"url":"u"},"nope":1}',
+    ].map((json) => validate(blueprint({ resources: [web('api', unchecked(json))] })));
+
+    expect(results.map(reportedCodes)).toEqual([
+      ['UnknownField'],
+      ['UnknownField'],
+      ['UnknownField'],
+    ]);
+  });
+
+  it('reports a field the library does not model on each source branch of a worker', () => {
+    const results = [
+      '{"runtime":"node","nope":1}',
+      '{"runtime":"docker","nope":1}',
+      '{"runtime":"image","image":{"url":"u"},"nope":1}',
+    ].map((json) => validate(blueprint({ resources: [worker('jobs', uncheckedWorker(json))] })));
+
+    expect(results.map(reportedCodes)).toEqual([
+      ['UnknownField'],
+      ['UnknownField'],
+      ['UnknownField'],
+    ]);
+  });
+
+  it('reports a field the library does not model on each source branch of a private service', () => {
+    const results = [
+      '{"runtime":"node","nope":1}',
+      '{"runtime":"docker","nope":1}',
+      '{"runtime":"image","image":{"url":"u"},"nope":1}',
+    ].map((json) =>
+      validate(blueprint({ resources: [privateService('auth', uncheckedPrivateService(json))] })),
+    );
+
+    expect(results.map(reportedCodes)).toEqual([
+      ['UnknownField'],
+      ['UnknownField'],
+      ['UnknownField'],
+    ]);
+  });
+
+  it('reports a field the library does not model on each source branch of a cron job', () => {
+    const results = [
+      '{"runtime":"node","schedule":"0 2 * * *","nope":1}',
+      '{"runtime":"docker","schedule":"0 2 * * *","nope":1}',
+      '{"runtime":"image","schedule":"0 2 * * *","image":{"url":"u"},"nope":1}',
+    ].map((json) => validate(blueprint({ resources: [cron('nightly', uncheckedCron(json))] })));
+
+    expect(results.map(reportedCodes)).toEqual([
+      ['UnknownField'],
+      ['UnknownField'],
+      ['UnknownField'],
+    ]);
+  });
+
+  it('reports a field the library does not model beside a registry credential', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          worker(
+            'jobs',
+            uncheckedWorker(
+              '{"runtime":"image","image":{"url":"u","creds":{"fromRegistryCreds":{"name":"n"},"nope":1}}}',
+            ),
+          ),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+    expect(result.error.issues[0].at.field).toBe('image.creds.nope');
   });
 
   it('reports a field the library does not model on a Key Value instance', () => {
