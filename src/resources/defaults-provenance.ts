@@ -36,10 +36,14 @@ export interface AppliedDefault {
 }
 
 // What a defaults scope leaves on a resource it filled: the scopes it was created through, outer
-// first, and the defaults that landed, each attributed to the innermost scope that declared it. It
-// is inert, no factory sets it without a scope, and nothing emits it; the unused-default rule and
-// the config issue messages are its only readers.
+// first; every declared default this resource's kind and source branch can take, landed or
+// overridden; and the defaults that landed, each attributed to the innermost scope that declared
+// it. Eligibility is what says a default applies to something at all, so a value a resource or an
+// inner scope overrode is still a default that reached a resource that had the field. It is inert,
+// no factory sets it without a scope, and nothing emits it; the unused-default rule and the config
+// issue messages are its only readers.
 export interface DefaultsProvenance {
   readonly scopes: readonly DefaultsDeclaration[];
+  readonly eligible: readonly DefaultKey[];
   readonly applied: readonly AppliedDefault[];
 }

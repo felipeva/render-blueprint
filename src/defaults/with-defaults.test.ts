@@ -138,6 +138,68 @@ services:
     expect(emitted).not.toContain('branch:');
   });
 
+  it('synthesizes a base scope an inner scope overrides without a warning', () => {
+    const team = withDefaults({
+      region: 'frankfurt',
+      repo: 'https://github.com/acme/mono',
+      branch: 'main',
+    });
+    const preview = team.withDefaults({ branch: 'preview' });
+    const report = synthesize(
+      blueprint({
+        resources: [
+          preview.web('api', {
+            runtime: 'node',
+            buildCommand: 'pnpm build',
+            startCommand: 'pnpm start',
+          }),
+        ],
+      }),
+    ).unwrap('The blueprint under test must synthesize');
+
+    expect(report.warnings).toEqual([]);
+  });
+
+  it('takes a record the type stripping could not check', () => {
+    // @ts-expect-error a JavaScript caller can call withDefaults with no record at all.
+    expect(() => withDefaults()).not.toThrow();
+    expect(() => withDefaults(unchecked('null'))).not.toThrow();
+    expect(() => withDefaults(unchecked('{ "plan": null }'))).not.toThrow();
+  });
+
+  it('treats a record it cannot read as an empty one', () => {
+    const scope = withDefaults(unchecked('null')).withDefaults(unchecked('{ "plan": null }'));
+
+    expect(scope.web('api', { runtime: 'node' }).config).toEqual({ runtime: 'node' });
+  });
+
+  it('carries every default the resource could take, landed or overridden', () => {
+    const scope = withDefaults({ region: 'frankfurt', repo: 'https://github.com/acme/mono' });
+
+    expect(scope.web('api', { runtime: 'node', region: 'ohio' }).defaults).toEqual({
+      scopes: [{ keys: ['region', 'repo'] }],
+      eligible: ['region', 'repo'],
+      applied: [{ key: 'repo', field: 'repo', scope: { keys: ['region', 'repo'] } }],
+    });
+  });
+
+  it('carries no eligibility for a field the kind does not have', () => {
+    const scope = withDefaults({ region: 'frankfurt', repo: 'https://github.com/acme/mono' });
+
+    expect(scope.staticSite('site', { buildCommand: 'pnpm build' }).defaults?.eligible).toEqual([
+      'repo',
+    ]);
+  });
+
+  it('freezes the declaration and the keys it holds', () => {
+    const declaration = withDefaults({ region: 'frankfurt' }).web('api', { runtime: 'node' })
+      .defaults?.scopes[0];
+
+    expect(declaration?.keys).toEqual(['region']);
+    expect(Object.isFrozen(declaration)).toBe(true);
+    expect(Object.isFrozen(declaration?.keys)).toBe(true);
+  });
+
   it('carries the scopes that created a resource, outer first', () => {
     const team = withDefaults({ region: 'frankfurt' });
     const app = team.withDefaults({ repo: 'https://github.com/acme/mono' });

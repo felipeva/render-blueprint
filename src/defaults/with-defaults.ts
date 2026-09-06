@@ -1,6 +1,5 @@
 import { cron, type CronConfig, type CronJob } from '../resources/cron.js';
 import type {
-  AppliedDefault,
   DefaultKey,
   DefaultsDeclaration,
   DefaultsProvenance,
@@ -17,6 +16,7 @@ import { staticSite, type StaticSite, type StaticSiteConfig } from '../resources
 import { web, type WebConfig, type WebService } from '../resources/web.js';
 import { worker, type Worker, type WorkerConfig } from '../resources/worker.js';
 import {
+  type AppliedConfig,
   cronDefaults,
   keyValueDefaults,
   postgresDefaults,
@@ -60,6 +60,18 @@ const PLAN_FIELDS: ReadonlySet<string> = new Set([
   'postgres',
 ]);
 
+// A JavaScript caller can pass anything the CLI's type stripping let through. Only a value that is
+// its own boxed form is a record, so a string, a number and null are not, and neither reaches
+// Object.keys below. spec: a plan default is a record with one key per kind, so a plan that is not
+// one declares the bare `plan` key, which applies to nothing and is reported as unused.
+const asRecord = <T>(value: T | undefined): T | undefined => {
+  const boxed: object = Object(value);
+
+  return boxed === value ? value : undefined;
+};
+
+const isPresent = <T>(value: T | undefined): boolean => value !== undefined && value !== null;
+
 // A JavaScript caller can write a key the record does not model. Keeping it is what turns a
 // misspelled default into an unused-default warning rather than into silence.
 const unmodeledKeys = (
@@ -67,6 +79,7 @@ const unmodeledKeys = (
   plan: PlanDefaults | undefined,
 ): readonly string[] => [
   ...Object.keys(record).filter((key) => !RECORD_FIELDS.has(key)),
+  ...(plan === undefined && isPresent(record.plan) ? ['plan'] : []),
   ...(plan === undefined
     ? []
     : Object.keys(plan)
@@ -129,11 +142,16 @@ const scopeValues = (
   },
 });
 
-// The declaration is frozen because its identity is the scope: every resource a scope fills points
-// at the same object, and the unused-default rule counts by that identity.
-const nest = (outer: Scope | undefined, record: ResourceDefaults): Scope => {
-  const plan = record.plan;
-  const scope: DefaultsDeclaration = Object.freeze({ keys: declaredKeys(record, plan) });
+// The declaration's identity is the scope: every resource a scope fills points at the same object,
+// and the unused-default rule counts by that identity. Freezing it and its keys is what stops a
+// JavaScript caller from declaring a default after the fact, on a scope resources already carry.
+// A record or a plan the caller left out is an empty one, because withDefaults is total.
+const nest = (outer: Scope | undefined, given: ResourceDefaults): Scope => {
+  const record: ResourceDefaults = asRecord(given) ?? {};
+  const plan = asRecord(record.plan);
+  const scope: DefaultsDeclaration = Object.freeze({
+    keys: Object.freeze(declaredKeys(record, plan)),
+  });
 
   return {
     values: scopeValues(outer?.values, record, scope, plan),
@@ -142,39 +160,40 @@ const nest = (outer: Scope | undefined, record: ResourceDefaults): Scope => {
 };
 
 const factories = (scope: Scope): ResourceFactories => {
-  const provenance = (applied: readonly AppliedDefault[]): DefaultsProvenance => ({
+  const provenance = <T>(merged: AppliedConfig<T>): DefaultsProvenance => ({
     scopes: scope.declarations,
-    applied,
+    eligible: merged.eligible,
+    applied: merged.applied,
   });
 
   return {
     web: (name, config) => {
       const merged = webDefaults(scope.values, config);
-      return { ...web(name, merged.config), defaults: provenance(merged.applied) };
+      return { ...web(name, merged.config), defaults: provenance(merged) };
     },
     privateService: (name, config) => {
       const merged = privateServiceDefaults(scope.values, config);
-      return { ...privateService(name, merged.config), defaults: provenance(merged.applied) };
+      return { ...privateService(name, merged.config), defaults: provenance(merged) };
     },
     worker: (name, config) => {
       const merged = workerDefaults(scope.values, config);
-      return { ...worker(name, merged.config), defaults: provenance(merged.applied) };
+      return { ...worker(name, merged.config), defaults: provenance(merged) };
     },
     cron: (name, config) => {
       const merged = cronDefaults(scope.values, config);
-      return { ...cron(name, merged.config), defaults: provenance(merged.applied) };
+      return { ...cron(name, merged.config), defaults: provenance(merged) };
     },
     staticSite: (name, config) => {
       const merged = staticSiteDefaults(scope.values, config);
-      return { ...staticSite(name, merged.config), defaults: provenance(merged.applied) };
+      return { ...staticSite(name, merged.config), defaults: provenance(merged) };
     },
     keyValue: (name, config) => {
       const merged = keyValueDefaults(scope.values, config);
-      return { ...keyValue(name, merged.config), defaults: provenance(merged.applied) };
+      return { ...keyValue(name, merged.config), defaults: provenance(merged) };
     },
     postgres: (name, config = {}) => {
       const merged = postgresDefaults(scope.values, config);
-      return { ...postgres(name, merged.config), defaults: provenance(merged.applied) };
+      return { ...postgres(name, merged.config), defaults: provenance(merged) };
     },
     envGroup,
     withDefaults: (defaults) => factories(nest(scope, defaults)),

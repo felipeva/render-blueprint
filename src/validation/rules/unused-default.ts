@@ -1,26 +1,36 @@
 import { DEFAULT_KEYS, type DefaultsDeclaration } from '../../resources/defaults-provenance.js';
 import { resourceDefaults, type BlueprintResource } from '../../resources/resource.js';
+import { describeNames } from '../env-key-origins.js';
 import type { ValidationWarning } from '../issue.js';
 
 interface ScopeUse {
-  readonly first: string;
+  readonly firstListed: string;
   readonly names: string[];
-  readonly used: Set<string>;
+  readonly eligible: Set<string>;
 }
 
 const MODELED_KEYS: ReadonlySet<string> = new Set(DEFAULT_KEYS);
 
-const listed = (names: readonly string[]): string =>
-  names.map((name) => `"${name}"`).join(names.length === 2 ? ' and ' : ', ');
+// One cause: nothing the scope created has the field. A resource that set its own value and an
+// inner scope that overrode the key both took a default that applies to something, so neither is
+// reported here.
+const message = (key: string, names: readonly string[]): string => {
+  const scope = `The defaults scope that created ${describeNames(names)} sets "${key}"`;
 
-const message = (key: string, names: readonly string[]): string =>
-  MODELED_KEYS.has(key)
-    ? `The defaults scope that created ${listed(names)} sets "${key}", and nothing it created takes it. A resource that sets the field wins over the scope, and a kind the field does not reach never receives it.`
-    : `The defaults scope that created ${listed(names)} sets "${key}", which is not a default this library models, so nothing reads it.`;
+  if (key === 'plan') {
+    return `${scope}, which is not a plan the library can read: a plan default is a record with one key per kind, like { web: "standard" }.`;
+  }
+
+  if (!MODELED_KEYS.has(key)) {
+    return `${scope}, which is not a default this library models, so nothing reads it.`;
+  }
+
+  return `${scope}, and no resource it created has that field: a default reaches only the kinds and the source branches Render gives the field to.`;
+};
 
 // A scope reaches validation through the resources it filled, so a scope whose resources are never
-// listed says nothing here, and a key every resource overrode counts as unused just as a key no
-// kind accepts does.
+// listed says nothing here. A key is used when one of those resources could take it, landed or
+// overridden, and unused when the field reaches none of them at all.
 export const unusedDefault = (
   resources: readonly BlueprintResource[],
 ): readonly ValidationWarning[] => {
@@ -35,28 +45,27 @@ export const unusedDefault = (
 
       if (use === undefined) {
         scopes.set(declaration, {
-          first: resource.name,
+          firstListed: resource.name,
           names: [resource.name],
-          used: new Set(),
+          eligible: new Set(provenance.eligible),
         });
         continue;
       }
 
       use.names.push(resource.name);
+      for (const key of provenance.eligible) use.eligible.add(key);
     }
-
-    for (const entry of provenance.applied) scopes.get(entry.scope)?.used.add(entry.key);
   }
 
   const warnings: ValidationWarning[] = [];
 
   for (const [declaration, use] of scopes) {
     for (const key of declaration.keys) {
-      if (use.used.has(key)) continue;
+      if (use.eligible.has(key)) continue;
 
       warnings.push({
         code: 'UnusedDefault',
-        at: { resource: use.first, field: `defaults.${key}` },
+        at: { resource: use.firstListed, field: `defaults.${key}` },
         message: message(key, use.names),
       });
     }

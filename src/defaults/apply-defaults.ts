@@ -47,7 +47,16 @@ export interface ScopeValues {
 
 export interface AppliedConfig<T> {
   readonly config: T;
+  readonly eligible: readonly DefaultKey[];
   readonly applied: readonly AppliedDefault[];
+}
+
+// What one merge learned: every declared default the kind and the source branch can take, and the
+// subset that landed because the resource left the field open. A scope declares a key exactly when
+// the chain holds a value for it, so the value being there is the eligibility test.
+interface Marks {
+  readonly eligible: DefaultKey[];
+  readonly applied: AppliedDefault[];
 }
 
 // The three fields a repository-built source takes. A prebuilt image takes none of them.
@@ -86,17 +95,21 @@ const appliedDefault = (
 
 // A key the author wrote wins, and a key written as undefined is no value at all, so the scope
 // fills it: exactOptionalPropertyTypes makes that unreachable from TypeScript and the merge is what
-// a JavaScript caller meets.
+// a JavaScript caller meets. Reaching this function is what makes the field eligible, because a
+// kind that does not take it never calls in.
 const fillRegion = (
   values: ScopeValues,
   own: Region | undefined,
   fill: { region?: Region },
-  applied: AppliedDefault[],
+  marks: Marks,
 ): void => {
-  if (own !== undefined || values.region === undefined) return;
+  if (values.region === undefined) return;
+
+  marks.eligible.push('region');
+  if (own !== undefined) return;
 
   fill.region = values.region.value;
-  applied.push(appliedDefault('region', 'region', values.region.scope));
+  marks.applied.push(appliedDefault('region', 'region', values.region.scope));
 };
 
 const fillPlan = <P extends string>(
@@ -104,39 +117,49 @@ const fillPlan = <P extends string>(
   key: DefaultKey,
   own: P | undefined,
   fill: { plan?: P },
-  applied: AppliedDefault[],
+  marks: Marks,
 ): void => {
-  if (own !== undefined || plan === undefined) return;
+  if (plan === undefined) return;
+
+  marks.eligible.push(key);
+  if (own !== undefined) return;
 
   fill.plan = plan.value;
-  applied.push(appliedDefault(key, 'plan', plan.scope));
+  marks.applied.push(appliedDefault(key, 'plan', plan.scope));
 };
 
-const fillRepo = (
-  values: ScopeValues,
-  own: RepoFields,
-  fill: RepoFill,
-  applied: AppliedDefault[],
-): void => {
-  if (own.repo === undefined && values.repo !== undefined) {
-    fill.repo = values.repo.value;
-    applied.push(appliedDefault('repo', 'repo', values.repo.scope));
+const fillRepo = (values: ScopeValues, own: RepoFields, fill: RepoFill, marks: Marks): void => {
+  if (values.repo !== undefined) {
+    marks.eligible.push('repo');
+
+    if (own.repo === undefined) {
+      fill.repo = values.repo.value;
+      marks.applied.push(appliedDefault('repo', 'repo', values.repo.scope));
+    }
   }
 
-  if (own.branch === undefined && values.branch !== undefined) {
-    fill.branch = values.branch.value;
-    applied.push(appliedDefault('branch', 'branch', values.branch.scope));
+  if (values.branch !== undefined) {
+    marks.eligible.push('branch');
+
+    if (own.branch === undefined) {
+      fill.branch = values.branch.value;
+      marks.applied.push(appliedDefault('branch', 'branch', values.branch.scope));
+    }
   }
 
-  if (own.rootDir === undefined && values.rootDir !== undefined) {
-    fill.rootDir = values.rootDir.value;
-    applied.push(appliedDefault('rootDir', 'rootDir', values.rootDir.scope));
+  if (values.rootDir !== undefined) {
+    marks.eligible.push('rootDir');
+
+    if (own.rootDir === undefined) {
+      fill.rootDir = values.rootDir.value;
+      marks.applied.push(appliedDefault('rootDir', 'rootDir', values.rootDir.scope));
+    }
   }
 };
 
 interface Application<F> {
   readonly fill: F;
-  readonly applied: readonly AppliedDefault[];
+  readonly marks: Marks;
 }
 
 // The four kinds that choose a source take region, their own plan, and — on the two branches that
@@ -149,15 +172,15 @@ const sourcedApplication = <P extends string>(
   key: DefaultKey,
 ): Application<SourcedFill<P>> => {
   const fill: SourcedFill<P> = {};
-  const applied: AppliedDefault[] = [];
+  const marks: Marks = { eligible: [], applied: [] };
 
-  fillRegion(values, config.region, fill, applied);
-  fillPlan(plan, key, config.plan, fill, applied);
+  fillRegion(values, config.region, fill, marks);
+  fillPlan(plan, key, config.plan, fill, marks);
 
   const source = repoSource(config);
-  if (source !== undefined) fillRepo(values, source, fill, applied);
+  if (source !== undefined) fillRepo(values, source, fill, marks);
 
-  return { fill, applied };
+  return { fill, marks };
 };
 
 // spec §9 and §5: neither a database nor a Key Value instance builds from a repository, so repo,
@@ -169,18 +192,22 @@ const datastoreApplication = <P extends string>(
   key: DefaultKey,
 ): Application<DatastoreFill<P>> => {
   const fill: DatastoreFill<P> = {};
-  const applied: AppliedDefault[] = [];
+  const marks: Marks = { eligible: [], applied: [] };
 
-  fillRegion(values, config.region, fill, applied);
-  fillPlan(plan, key, config.plan, fill, applied);
+  fillRegion(values, config.region, fill, marks);
+  fillPlan(plan, key, config.plan, fill, marks);
 
-  return { fill, applied };
+  return { fill, marks };
 };
 
 export const webDefaults = (values: ScopeValues, config: WebConfig): AppliedConfig<WebConfig> => {
   const application = sourcedApplication(values, config, values.plan.web, 'plan.web');
 
-  return { config: { ...config, ...application.fill }, applied: application.applied };
+  return {
+    config: { ...config, ...application.fill },
+    eligible: application.marks.eligible,
+    applied: application.marks.applied,
+  };
 };
 
 export const privateServiceDefaults = (
@@ -194,7 +221,11 @@ export const privateServiceDefaults = (
     'plan.privateService',
   );
 
-  return { config: { ...config, ...application.fill }, applied: application.applied };
+  return {
+    config: { ...config, ...application.fill },
+    eligible: application.marks.eligible,
+    applied: application.marks.applied,
+  };
 };
 
 export const workerDefaults = (
@@ -203,7 +234,11 @@ export const workerDefaults = (
 ): AppliedConfig<WorkerConfig> => {
   const application = sourcedApplication(values, config, values.plan.worker, 'plan.worker');
 
-  return { config: { ...config, ...application.fill }, applied: application.applied };
+  return {
+    config: { ...config, ...application.fill },
+    eligible: application.marks.eligible,
+    applied: application.marks.applied,
+  };
 };
 
 export const cronDefaults = (
@@ -212,7 +247,11 @@ export const cronDefaults = (
 ): AppliedConfig<CronConfig> => {
   const application = sourcedApplication(values, config, values.plan.cron, 'plan.cron');
 
-  return { config: { ...config, ...application.fill }, applied: application.applied };
+  return {
+    config: { ...config, ...application.fill },
+    eligible: application.marks.eligible,
+    applied: application.marks.applied,
+  };
 };
 
 // spec §4.8 and §8.1: a static site runs nowhere and takes no plan, so region and plan never reach
@@ -222,11 +261,11 @@ export const staticSiteDefaults = (
   config: StaticSiteConfig,
 ): AppliedConfig<StaticSiteConfig> => {
   const fill: RepoFill = {};
-  const applied: AppliedDefault[] = [];
+  const marks: Marks = { eligible: [], applied: [] };
 
-  fillRepo(values, config, fill, applied);
+  fillRepo(values, config, fill, marks);
 
-  return { config: { ...config, ...fill }, applied };
+  return { config: { ...config, ...fill }, eligible: marks.eligible, applied: marks.applied };
 };
 
 export const keyValueDefaults = (
@@ -235,7 +274,11 @@ export const keyValueDefaults = (
 ): AppliedConfig<KeyValueConfig> => {
   const application = datastoreApplication(values, config, values.plan.keyValue, 'plan.keyValue');
 
-  return { config: { ...config, ...application.fill }, applied: application.applied };
+  return {
+    config: { ...config, ...application.fill },
+    eligible: application.marks.eligible,
+    applied: application.marks.applied,
+  };
 };
 
 export const postgresDefaults = (
@@ -244,5 +287,9 @@ export const postgresDefaults = (
 ): AppliedConfig<PostgresConfig> => {
   const application = datastoreApplication(values, config, values.plan.postgres, 'plan.postgres');
 
-  return { config: { ...config, ...application.fill }, applied: application.applied };
+  return {
+    config: { ...config, ...application.fill },
+    eligible: application.marks.eligible,
+    applied: application.marks.applied,
+  };
 };

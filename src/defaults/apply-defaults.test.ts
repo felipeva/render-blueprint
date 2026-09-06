@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_FIELDS, type DefaultsDeclaration } from '../resources/defaults-provenance.js';
+import type { DefaultsDeclaration } from '../resources/defaults-provenance.js';
 import type { WebConfig } from '../resources/web.js';
 import {
   cronDefaults,
@@ -30,15 +30,19 @@ const every: ScopeValues = {
   },
 };
 
+const REPOSITORY = {
+  repo: 'https://github.com/acme/mono',
+  branch: 'main',
+  rootDir: 'apps/api',
+};
+
 describe('webDefaults', () => {
   it('fills the region, the plan and the repository fields a native source takes', () => {
     expect(webDefaults(every, { runtime: 'node' }).config).toEqual({
       runtime: 'node',
       region: 'frankfurt',
       plan: 'standard',
-      repo: 'https://github.com/acme/mono',
-      branch: 'main',
-      rootDir: 'apps/api',
+      ...REPOSITORY,
     });
   });
 
@@ -47,27 +51,19 @@ describe('webDefaults', () => {
       runtime: 'docker',
       region: 'frankfurt',
       plan: 'standard',
-      repo: 'https://github.com/acme/mono',
-      branch: 'main',
-      rootDir: 'apps/api',
+      ...REPOSITORY,
     });
   });
 
   it('fills no repository field on an image source', () => {
-    const merged = webDefaults(every, {
-      runtime: 'image',
-      image: { url: 'acme/api:1.4.0' },
-    }).config;
-
-    expect(merged).toEqual({
+    expect(
+      webDefaults(every, { runtime: 'image', image: { url: 'acme/api:1.4.0' } }).config,
+    ).toEqual({
       runtime: 'image',
       image: { url: 'acme/api:1.4.0' },
       region: 'frankfurt',
       plan: 'standard',
     });
-    expect(merged).not.toHaveProperty('repo');
-    expect(merged).not.toHaveProperty('branch');
-    expect(merged).not.toHaveProperty('rootDir');
   });
 
   it('leaves every value the resource sets for itself', () => {
@@ -107,85 +103,159 @@ describe('webDefaults', () => {
     ]);
   });
 
-  it('reports the defaults a resource overrode as unapplied', () => {
-    expect(webDefaults(every, { runtime: 'node', region: 'ohio' }).applied).not.toContainEqual({
-      key: 'region',
-      field: 'region',
-      scope,
-    });
+  it('reports the fields it filled and no others', () => {
+    expect(webDefaults(every, { runtime: 'node' }).applied.map((entry) => entry.field)).toEqual([
+      'region',
+      'plan',
+      'repo',
+      'branch',
+      'rootDir',
+    ]);
   });
 
-  it('reports only fields a defaults scope can fill', () => {
-    const fields = webDefaults(every, { runtime: 'node' }).applied.map((entry) => entry.field);
+  it('reports a default the resource overrode as eligible and not applied', () => {
+    const merged = webDefaults(every, { runtime: 'node', region: 'ohio' });
 
-    expect(DEFAULT_FIELDS).toEqual(expect.arrayContaining(fields));
+    expect(merged.eligible).toEqual(['region', 'plan.web', 'repo', 'branch', 'rootDir']);
+    expect(merged.applied.map((entry) => entry.key)).toEqual([
+      'plan.web',
+      'repo',
+      'branch',
+      'rootDir',
+    ]);
+  });
+
+  it('reports as eligible only what an image source can take', () => {
+    expect(
+      webDefaults(every, { runtime: 'image', image: { url: 'acme/api:1.4.0' } }).eligible,
+    ).toEqual(['region', 'plan.web']);
   });
 });
 
 describe('privateServiceDefaults', () => {
-  it('fills the plan its own key holds', () => {
-    expect(privateServiceDefaults(every, { runtime: 'node' }).config).toMatchObject({
-      plan: 'starter',
+  it('fills the region, its own plan and the repository fields of a native source', () => {
+    expect(privateServiceDefaults(every, { runtime: 'node' }).config).toEqual({
+      runtime: 'node',
       region: 'frankfurt',
-      repo: 'https://github.com/acme/mono',
+      plan: 'starter',
+      ...REPOSITORY,
+    });
+  });
+
+  it('fills the repository fields of a Docker source', () => {
+    expect(privateServiceDefaults(every, { runtime: 'docker' }).config).toEqual({
+      runtime: 'docker',
+      region: 'frankfurt',
+      plan: 'starter',
+      ...REPOSITORY,
+    });
+  });
+
+  it('fills no repository field on an image source', () => {
+    expect(
+      privateServiceDefaults(every, { runtime: 'image', image: { url: 'acme/api:1.4.0' } }).config,
+    ).toEqual({
+      runtime: 'image',
+      image: { url: 'acme/api:1.4.0' },
+      region: 'frankfurt',
+      plan: 'starter',
     });
   });
 });
 
 describe('workerDefaults', () => {
-  it('fills the plan its own key holds', () => {
-    expect(workerDefaults(every, { runtime: 'node' }).config).toMatchObject({
-      plan: 'pro',
+  it('fills the region, its own plan and the repository fields of a native source', () => {
+    expect(workerDefaults(every, { runtime: 'node' }).config).toEqual({
+      runtime: 'node',
       region: 'frankfurt',
-      branch: 'main',
+      plan: 'pro',
+      ...REPOSITORY,
+    });
+  });
+
+  it('fills the repository fields of a Docker source', () => {
+    expect(workerDefaults(every, { runtime: 'docker' }).config).toEqual({
+      runtime: 'docker',
+      region: 'frankfurt',
+      plan: 'pro',
+      ...REPOSITORY,
+    });
+  });
+
+  it('fills no repository field on an image source', () => {
+    expect(
+      workerDefaults(every, { runtime: 'image', image: { url: 'acme/jobs:1.4.0' } }).config,
+    ).toEqual({
+      runtime: 'image',
+      image: { url: 'acme/jobs:1.4.0' },
+      region: 'frankfurt',
+      plan: 'pro',
     });
   });
 });
 
 describe('cronDefaults', () => {
-  it('fills the plan its own key holds', () => {
-    expect(cronDefaults(every, { runtime: 'node', schedule: '0 * * * *' }).config).toMatchObject({
-      plan: 'starter',
+  it('fills the region, its own plan and the repository fields of a native source', () => {
+    expect(cronDefaults(every, { runtime: 'node', schedule: '0 * * * *' }).config).toEqual({
+      runtime: 'node',
+      schedule: '0 * * * *',
       region: 'frankfurt',
-      rootDir: 'apps/api',
+      plan: 'starter',
+      ...REPOSITORY,
+    });
+  });
+
+  it('fills the repository fields of a Docker source', () => {
+    expect(cronDefaults(every, { runtime: 'docker', schedule: '0 * * * *' }).config).toEqual({
+      runtime: 'docker',
+      schedule: '0 * * * *',
+      region: 'frankfurt',
+      plan: 'starter',
+      ...REPOSITORY,
+    });
+  });
+
+  it('fills no repository field on an image source', () => {
+    expect(
+      cronDefaults(every, {
+        runtime: 'image',
+        schedule: '0 * * * *',
+        image: { url: 'acme/nightly:1.4.0' },
+      }).config,
+    ).toEqual({
+      runtime: 'image',
+      schedule: '0 * * * *',
+      image: { url: 'acme/nightly:1.4.0' },
+      region: 'frankfurt',
+      plan: 'starter',
     });
   });
 });
 
 describe('staticSiteDefaults', () => {
-  it('fills the repository fields and no region', () => {
-    const merged = staticSiteDefaults(every, { buildCommand: 'pnpm build' }).config;
+  it('fills the repository fields and neither a region nor a plan', () => {
+    const merged = staticSiteDefaults(every, { buildCommand: 'pnpm build' });
 
-    expect(merged).toEqual({
-      buildCommand: 'pnpm build',
-      repo: 'https://github.com/acme/mono',
-      branch: 'main',
-      rootDir: 'apps/api',
-    });
-    expect(merged).not.toHaveProperty('region');
-    expect(merged).not.toHaveProperty('plan');
+    expect(merged.config).toEqual({ buildCommand: 'pnpm build', ...REPOSITORY });
+    expect(merged.eligible).toEqual(['repo', 'branch', 'rootDir']);
   });
 });
 
 describe('keyValueDefaults', () => {
   it('fills the region and the plan and no repository field', () => {
-    const merged = keyValueDefaults(every, { ipAllowList: [] }).config;
+    const merged = keyValueDefaults(every, { ipAllowList: [] });
 
-    expect(merged).toEqual({ ipAllowList: [], region: 'frankfurt', plan: 'pro plus' });
-    expect(merged).not.toHaveProperty('repo');
-    expect(merged).not.toHaveProperty('branch');
-    expect(merged).not.toHaveProperty('rootDir');
+    expect(merged.config).toEqual({ ipAllowList: [], region: 'frankfurt', plan: 'pro plus' });
+    expect(merged.eligible).toEqual(['region', 'plan.keyValue']);
   });
 });
 
 describe('postgresDefaults', () => {
   it('fills the region and the plan and no repository field', () => {
-    const merged = postgresDefaults(every, {}).config;
+    const merged = postgresDefaults(every, {});
 
-    expect(merged).toEqual({ region: 'frankfurt', plan: 'pro-8gb' });
-    expect(merged).not.toHaveProperty('repo');
-    expect(merged).not.toHaveProperty('branch');
-    expect(merged).not.toHaveProperty('rootDir');
+    expect(merged.config).toEqual({ region: 'frankfurt', plan: 'pro-8gb' });
+    expect(merged.eligible).toEqual(['region', 'plan.postgres']);
   });
 
   it('leaves the plan the database sets for itself', () => {
