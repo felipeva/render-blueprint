@@ -55,6 +55,6 @@ export const DISK_SIZES_GB = [
 
 export type DiskSizeGB = (typeof DISK_SIZES_GB)[number];
 
-export const diskSizeGBSchema: z.ZodType<DiskSizeGB> = z.literal(DISK_SIZES_GB, {
+export const diskSizeGBSchema: z.ZodLiteral<DiskSizeGB> = z.literal(DISK_SIZES_GB, {
   error: 'A database disk size is 1 GB or a multiple of 5 GB, and Render never shrinks one.',
 });

@@ -15,5 +15,5 @@ export const POSTGRES_MAJOR_VERSIONS = [
 
 export type PostgresMajorVersion = (typeof POSTGRES_MAJOR_VERSIONS)[number];
 
-export const postgresMajorVersionSchema: z.ZodType<PostgresMajorVersion> =
+export const postgresMajorVersionSchema: z.ZodEnum<z.core.util.ToEnum<PostgresMajorVersion>> =
   z.enum(POSTGRES_MAJOR_VERSIONS);

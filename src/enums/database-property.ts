@@ -13,4 +13,5 @@ export const DATABASE_PROPERTIES = [
 
 export type DatabaseProperty = (typeof DATABASE_PROPERTIES)[number];
 
-export const databasePropertySchema: z.ZodType<DatabaseProperty> = z.enum(DATABASE_PROPERTIES);
+export const databasePropertySchema: z.ZodEnum<z.core.util.ToEnum<DatabaseProperty>> =
+  z.enum(DATABASE_PROPERTIES);

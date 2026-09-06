@@ -6,7 +6,7 @@ import {
   postgresMajorVersionSchema,
   type PostgresMajorVersion,
 } from '../enums/postgres-major-version.js';
-import { REGIONS, type Region } from '../enums/region.js';
+import { regionSchema, type Region } from '../enums/region.js';
 import type { Equal, Expect } from '../equal.js';
 import { jsonObjectSchema, type JsonObject } from '../json.js';
 import { raise } from '../raise.js';
@@ -62,7 +62,7 @@ const MAX_READ_REPLICAS = 5;
 
 const postgresConfigSchema = z
   .strictObject({
-    region: z.enum(REGIONS).exactOptional(),
+    region: regionSchema.exactOptional(),
     plan: postgresPlanSchema.exactOptional(),
     databaseName: z.string().exactOptional(),
     user: z.string().exactOptional(),
