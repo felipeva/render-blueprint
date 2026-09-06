@@ -26,3 +26,17 @@ export type {
 
 export { synthesize } from './synth/synthesize.js';
 export type { SynthesisReport } from './synth/synthesize.js';
+
+export { writeBlueprint } from './fs/write-blueprint.js';
+export type { WriteOptions, WriteReport } from './fs/write-blueprint.js';
+export { BlueprintWriteFailed } from './fs/write-text-file.js';
+export { BlueprintFileUnreadable } from './fs/read-text-file.js';
+export type { FilePort, FileReader, FileWriter } from './fs/file-port.js';
+
+export { checkBlueprint } from './drift/check-blueprint.js';
+export type { CheckOptions, DriftReport } from './drift/check-blueprint.js';
+export type {
+  DriftSection,
+  ImmutableField,
+  ImmutableFieldChange,
+} from './drift/immutable-field.js';

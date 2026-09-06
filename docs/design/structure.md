@@ -45,6 +45,8 @@ Revisit only if the CLI grows a real dependency. `render-blueprint` is the npm n
 ├── scripts/refresh-render-schema.mjs  re-downloads the Render JSON Schema into test/schema/ (§6.3)
 ├── src/                             the only compiled source root (tsconfig rootDir)
 │   ├── index.ts                     THE public entry — re-exports only, no logic
+│   ├── testing.ts                   the `render-blueprint/testing` subpath — memoryFilePort only,
+│                                    so a consumer's runtime bundle never carries the in-memory port
 │   ├── json.ts                      JsonValue / JsonObject — the escape-hatch types (design B §7)
 │   ├── enums/                       `as const` tuples + derived unions, one family per file: region,
 │   │                                runtime, plan, disk-size, auto-deploy-trigger, maxmemory-policy,
@@ -88,12 +90,21 @@ Revisit only if the CLI grows a real dependency. `render-blueprint` is the npm n
 │   │   ├── services.ts              the four disjoint service branches + (type, runtime) discrimination
 │   │   ├── databases.ts             postgres → `databases:`, read-replica registration
 │   │   ├── env-vars.ts              map → `envVars:` list, `fromGroup` entries, the five value forms
-│   │   └── projects.ts  banner.ts   projects[].environments[] and `ungrouped`; the banner
+│   │   ├── projects.ts  banner.ts   projects[].environments[] and `ungrouped`; the banner
+│   │   └── parse-text.ts  canonical-text.ts   the read direction, for drift/ only: text → JsonValue
+│   │                                under the 1.2 core schema, and JsonValue → key-sorted YAML.
+│   │                                drift/ never imports `yaml`; it receives a JsonValue.
 │   ├── drift/  check-blueprint.ts   synthesize + read + compare → DriftReport
-│   │   ├── normalize.ts  diff.ts    makes the committed file comparable; the diff DriftReport carries
-│   │   └── immutable-field.ts       classifies changes Render cannot apply in place (spec §9/§12)
+│   │   ├── normalize.ts  diff.ts    parses and re-emits the committed file so an equivalent one
+│   │   │                            compares clean; the unified diff DriftReport carries
+│   │   └── immutable-field.ts       classifies changes Render cannot apply in place — type and
+│   │                                region (spec §4.1), runtime (issue #8), the database fields
+│   │                                (spec §9) — and owns the JsonValue accessors it alone needs
 │   ├── fs/                          the only module that touches the filesystem
 │   │   ├── write-blueprint.ts       the public writeBlueprint()
+│   │   ├── file-port.ts             FileReader + FileWriter + FilePort: the injected seam
+│   │   ├── node-file-port.ts        the default; its writer creates the parent directories
+│   │   ├── memory-file-port.ts      the in-memory implementation, published at the testing subpath
 │   │   └── write-text-file.ts  read-text-file.ts   the two Result.tryPromise boundaries; each
 │   │                                declares the error it produces — BlueprintWriteFailed and
 │   │                                BlueprintFileUnreadable (§5). There is no src/errors/.
@@ -366,7 +377,7 @@ row says otherwise.
 | `.oxlintrc.json` | The skeleton verbatim: `plugins: ["typescript","unicorn","oxc"]`, `categories.correctness: "error"`, `ignorePatterns` for `.agents/**`, `.claude/**`, `.reference/**`, `dist/**`, `tools/oxlint/anti-slop/**`, the `jsPlugins` entry pointing at `./tools/oxlint/anti-slop/index.ts`, and all 15 `anti-slop/*` rules at `"error"`. `anti-slop-effect` stays omitted — no direct `effect` dependency. Add `test/fixtures/**`: the fixture `render.ts` is user-style code, not library code. |
 | `.oxfmtrc.json` | The skeleton verbatim: `printWidth` 100, `tabWidth` 2, `semi`, double quotes, `trailingComma: "all"`, `sortImports: true`, `sortPackageJson: true`, `ignorePatterns` for `.reference/**`, `dist/**`, `tools/oxlint/anti-slop/**`. |
 | `vitest.config.ts` | `test.include: ["src/**/*.test.ts","test/**/*.test.ts"]`, `test.typecheck.include: ["src/**/*.test-d.ts"]`, `test.typecheck.tsconfig: "tsconfig.json"`. INFERRED — the toolchain doc verifies vitest 5 with `--typecheck` but ships no config skeleton. |
-| `tsdown.config.ts` | `entry: { index: "src/index.ts", cli: "src/cli/main.ts" }`, `format: "esm"`, `fixedExtension: false`, `dts: true`, `deps: { neverBundle: ["yaml", "better-result"] }`, shebang on the `cli` entry. `fixedExtension: false` is required: tsdown 0.23 defaults it to true on the node platform and emits `.mjs` and `.d.mts`, which `exports`, `bin`, and CI would not find (verified in PR #15). `neverBundle` is mandatory — the default bundles dependencies and the toolchain doc measured 234 kB of `yaml` inlined. `better-result` in that list is INFERRED but forced: its types appear in the public signatures. |
+| `tsdown.config.ts` | `entry: { index: "src/index.ts", testing: "src/testing.ts", cli: "src/cli/main.ts" }`, `format: "esm"`, `fixedExtension: false`, `dts: true`, `deps: { neverBundle: ["yaml", "better-result"] }`, shebang on the `cli` entry. `fixedExtension: false` is required: tsdown 0.23 defaults it to true on the node platform and emits `.mjs` and `.d.mts`, which `exports`, `bin`, and CI would not find (verified in PR #15). `neverBundle` is mandatory — the default bundles dependencies and the toolchain doc measured 234 kB of `yaml` inlined. `better-result` in that list is INFERRED but forced: its types appear in the public signatures. |
 | `.github/workflows/ci.yml` | `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm build`. INFERRED. |
 | `.gitignore` | Unchanged; already covers `node_modules/`, `dist/`, `coverage/`, `*.tsbuildinfo`, `.reference/`. |
 
@@ -375,7 +386,10 @@ row says otherwise.
   "name": "render-blueprint",
   "type": "module",
   "sideEffects": false,
-  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+    "./testing": { "types": "./dist/testing.d.ts", "default": "./dist/testing.js" }
+  },
   "bin": { "render-blueprint": "./dist/cli.js" },
   "files": ["dist"],
   "engines": { "node": ">=22.12.0" },
