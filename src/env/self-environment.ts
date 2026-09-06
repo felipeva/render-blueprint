@@ -16,8 +16,10 @@ export const serviceEnvironmentSchema = <H>(): z.ZodType<ServiceEnvironment<H>> 
 // SAFETY: `typeof` narrows a representation rather than a domain value, and `instanceof` reads a
 // prototype chain the CLI's dynamic import can source from another realm. Object.prototype.toString
 // answers the value's own builtin tag, which no realm changes, and only a callable answers this one.
-const isSelfEnvironment = <H>(value: ServiceEnvironment<H>): value is SelfEnvironment<H> =>
-  Object.prototype.toString.call(value) === '[object Function]';
+export const isSelfEnvironment = <H>(
+  value: ServiceEnvironment<H> | undefined,
+): value is SelfEnvironment<H> =>
+  value !== undefined && Object.prototype.toString.call(value) === '[object Function]';
 
 export const selfEnvironment = <H>(
   env: ServiceEnvironment<H> | undefined,

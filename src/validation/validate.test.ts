@@ -255,6 +255,42 @@ describe('validate', () => {
     expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'env.CACHE_URL' });
   });
 
+  // The review's repro: a config that failed elsewhere used to hide every env issue it also had.
+  it('reports a bad env value beside the field that failed in the same config', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web(
+            'api',
+            unchecked('{"runtime":"node","plan":"nope","env":{"CACHE_URL":{"reference":"x"}}}'),
+          ),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.at.field)).toEqual(['plan', 'env.CACHE_URL']);
+  });
+
+  it('defers the env issues of a callback until the rest of the config parses', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', {
+            ...unchecked('{"plan":"nope"}'),
+            runtime: 'node',
+            env: () => ({ CACHE_URL: uncheckedEnvValue('{"reference":"x"}') }),
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.at.field)).toEqual(['plan']);
+  });
+
   it('reports an env that is neither a map nor a callback', () => {
     const result = validate(
       blueprint({ resources: [web('api', unchecked('{"runtime":"node","env":42}'))] }),

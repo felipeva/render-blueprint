@@ -2,7 +2,7 @@ import * as z from 'zod';
 
 import type { ReferenceableServiceType } from '../enums/referenceable-service-type.js';
 import { environmentMapSchema, type EnvironmentMap } from '../env/env-value.js';
-import { selfEnvironment } from '../env/self-environment.js';
+import { isSelfEnvironment, selfEnvironment } from '../env/self-environment.js';
 import type { Equal, Expect } from '../equal.js';
 import {
   ENVIRONMENT_GROUP_FIELDS,
@@ -53,22 +53,51 @@ export const modeledFields = (resource: BlueprintResource): readonly string[] =>
 export const resourceEnv = (resource: BlueprintResource): EnvironmentMap | undefined => {
   switch (resource.kind) {
     case 'web':
-      return selfEnvironment(resource.config.env, resource);
+      return selfEnvironment(resource.config?.env, resource);
     case 'staticSite':
-      return selfEnvironment(resource.config.env, resource);
+      return selfEnvironment(resource.config?.env, resource);
     case 'keyValue':
       return undefined;
     case 'postgres':
       return undefined;
     case 'envGroup':
-      return resource.config.env;
+      return resource.config?.env;
   }
 };
 
-// The config schema takes env as it is written, because a callback hides the map behind a call.
-// Resolving it first is what puts the failing key, not the whole field, on the issue.
+// A callback is the author's own code, and resolving it against a config the schema rejected runs
+// it on values it was never written for. A map is inert, so parse-configs parses one either way.
+export const resourceEnvIsCallback = (resource: BlueprintResource): boolean => {
+  switch (resource.kind) {
+    case 'web':
+      return isSelfEnvironment(resource.config?.env);
+    case 'staticSite':
+      return isSelfEnvironment(resource.config?.env);
+    case 'keyValue':
+    case 'postgres':
+    case 'envGroup':
+      return false;
+  }
+};
+
+// The env a config schema did not parse. A service config takes env as it is written, because a
+// callback hides the map behind a call; a group's own schema parses the narrower map it takes, and
+// no other kind carries one.
+const unparsedEnv = (resource: BlueprintResource): EnvironmentMap | undefined => {
+  switch (resource.kind) {
+    case 'web':
+    case 'staticSite':
+      return resourceEnv(resource);
+    case 'keyValue':
+    case 'postgres':
+    case 'envGroup':
+      return undefined;
+  }
+};
+
+// Resolving the callback first is what puts the failing key, not the whole field, on the issue.
 export const resourceEnvIssues = (resource: BlueprintResource): readonly z.core.$ZodIssue[] => {
-  const env = resourceEnv(resource);
+  const env = unparsedEnv(resource);
   if (env === undefined) return [];
 
   const result = environmentMapSchema.safeParse(env);
