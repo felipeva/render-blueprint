@@ -1,6 +1,7 @@
 export const VALIDATION_CODES = [
   'InvalidConfig',
   'UnknownField',
+  'ConflictingSource',
   'RootDirNotRelative',
   'CyclicExtraFields',
   'DuplicateResourceName',

@@ -55,7 +55,7 @@ export const sourceValues = (source: ServiceSource): SourceValues => {
       branch: undefined,
       image: image(source.image),
       rootDir: undefined,
-      dockerCommand: undefined,
+      dockerCommand: source.dockerCommand,
       dockerContext: undefined,
       dockerfilePath: undefined,
       buildCommand: undefined,

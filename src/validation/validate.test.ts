@@ -219,7 +219,7 @@ describe('validate', () => {
     expect(result.error.issues[0].at).toEqual({ resource: 'nightly', field: 'disk' });
   });
 
-  it('reports a field the library does not model on a Docker source', () => {
+  it('reports a build command beside a Dockerfile as the wrong source', () => {
     const result = validate(
       blueprint({
         resources: [
@@ -230,13 +230,26 @@ describe('validate', () => {
 
     expect(Result.isError(result)).toBe(true);
     if (!Result.isError(result)) return;
-    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['ConflictingSource']);
     expect(result.error.issues[0].at).toEqual({ resource: 'jobs', field: 'buildCommand' });
+  });
+
+  it('reports a field the library does not model on a Docker source', () => {
+    const result = validate(
+      blueprint({
+        resources: [worker('jobs', uncheckedWorker('{"runtime":"docker","replicas":3}'))],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'jobs', field: 'replicas' });
   });
 
   // spec §4.3: image and repo are the two alternative sources, and the published schema enforces
   // no exclusivity between them; the source union is what rejects the pair.
-  it('reports a repository beside a prebuilt image', () => {
+  it('reports a repository beside a prebuilt image as the wrong source', () => {
     const result = validate(
       blueprint({
         resources: [
@@ -250,8 +263,54 @@ describe('validate', () => {
 
     expect(Result.isError(result)).toBe(true);
     if (!Result.isError(result)) return;
-    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['ConflictingSource']);
     expect(result.error.issues[0].at).toEqual({ resource: 'jobs', field: 'repo' });
+    expect(result.error.issues[0].message).toContain('"image"');
+    expect(result.error.issues[0].message).not.toContain('extraFields');
+  });
+
+  it('reports a Dockerfile path beside a native runtime as the wrong source', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          worker('jobs', uncheckedWorker('{"runtime":"node","dockerfilePath":"./Dockerfile"}')),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['ConflictingSource']);
+    expect(result.error.issues[0].message).toContain('"node"');
+  });
+
+  // A source key is only the wrong source on the config that picked the runtime; a kind that picks
+  // none, and an object nested inside one, answer with the unknown field they always did.
+  it('reports a source key on a kind that picks no source as an unknown field', () => {
+    const result = validate(
+      blueprint({
+        resources: [staticSite('marketing', uncheckedStatic('{"dockerfilePath":"./Dockerfile"}'))],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+  });
+
+  it('reports a source key nested inside a prebuilt image as an unknown field', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          worker('jobs', uncheckedWorker('{"runtime":"image","image":{"url":"u","repo":"r"}}')),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+    expect(result.error.issues[0].at.field).toBe('image.repo');
   });
 
   it('reports a field the library does not model on a prebuilt image', () => {

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { nativeSource, repoSource } from './service-source.js';
+import {
+  dockerSourceFields,
+  imageSourceFields,
+  nativeSourceFields,
+  nativeSource,
+  repoSource,
+  SOURCE_FIELDS,
+} from './service-source.js';
 
 describe('nativeSource', () => {
   it('answers with the source a native runtime describes', () => {
@@ -40,5 +47,18 @@ describe('repoSource', () => {
     expect(
       repoSource({ runtime: 'image', image: { url: 'docker.io/acme/api:1' } }),
     ).toBeUndefined();
+  });
+});
+
+describe('SOURCE_FIELDS', () => {
+  it('holds every field the three branches own, and no discriminator', () => {
+    const declared = new Set([
+      ...Object.keys(nativeSourceFields),
+      ...Object.keys(dockerSourceFields),
+      ...Object.keys(imageSourceFields),
+    ]);
+    declared.delete('runtime');
+
+    expect([...SOURCE_FIELDS].sort()).toEqual([...declared].sort());
   });
 });

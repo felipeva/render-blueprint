@@ -79,6 +79,16 @@ describe('worker source', () => {
     ).toEqualTypeOf<Worker>();
   });
 
+  it('takes the command that overrides the CMD a prebuilt image carries', () => {
+    expectTypeOf(
+      worker('jobs', {
+        runtime: 'image',
+        image: { url: 'docker.io/acme/jobs:1.4.2' },
+        dockerCommand: 'node jobs.js',
+      }),
+    ).toEqualTypeOf<Worker>();
+  });
+
   it('requires the url of a prebuilt image', () => {
     // @ts-expect-error spec §4.3: image.url is required once image is present.
     worker('jobs', { runtime: 'image', image: {} });

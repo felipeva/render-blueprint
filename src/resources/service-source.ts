@@ -40,10 +40,12 @@ export interface DockerSource {
 }
 
 // spec §4.3: image and repo are the two alternative sources, so a prebuilt image names no
-// repository, no branch and no directory inside one.
+// repository, no branch and no directory inside one. dockerCommand overrides the CMD the image
+// carries, which is the one command there is to give it.
 export interface ImageSource {
   readonly runtime: 'image';
   readonly image: ServiceImage;
+  readonly dockerCommand?: string;
 }
 
 export type ServiceSource = NativeSource | DockerSource | ImageSource;
@@ -94,12 +96,28 @@ export const dockerSourceFields: DockerSourceFields = {
 export interface ImageSourceFields {
   readonly runtime: z.ZodLiteral<'image'>;
   readonly image: z.ZodType<ServiceImage>;
+  readonly dockerCommand: z.ZodExactOptional<z.ZodString>;
 }
 
 export const imageSourceFields: ImageSourceFields = {
   runtime: z.literal('image'),
   image: imageSchema,
+  dockerCommand: z.string().exactOptional(),
 };
+
+// Every key the three branches own between them. A key here on a config whose runtime picked
+// another branch names the wrong source rather than a field the library does not model, and
+// service-source.test.ts holds this tuple to the field maps above.
+export const SOURCE_FIELDS = [
+  'repo',
+  'branch',
+  'rootDir',
+  'buildCommand',
+  'dockerfilePath',
+  'dockerContext',
+  'dockerCommand',
+  'image',
+] as const;
 
 // The discriminator carries its own message, which names every runtime the three branches accept;
 // a branch of its own would say less than that list does.

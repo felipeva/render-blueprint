@@ -166,6 +166,24 @@ export const resourceEnvGroups = (
   }
 };
 
+// The runtime a config picked its source with, read as the author wrote it: the config tier reads
+// this before its schema has parsed, so the value is whatever is there. A kind that chooses no
+// source answers with nothing.
+export const sourceRuntime = (resource: BlueprintResource): string | undefined => {
+  switch (resource.kind) {
+    case 'web':
+    case 'privateService':
+    case 'worker':
+    case 'cron':
+      return resource.config?.runtime;
+    case 'staticSite':
+    case 'keyValue':
+    case 'postgres':
+    case 'envGroup':
+      return undefined;
+  }
+};
+
 // spec §6.2: a fromService reference names a service; a database answers fromDatabase instead, and
 // a group is no reference target at all.
 export const serviceReferenceType = (

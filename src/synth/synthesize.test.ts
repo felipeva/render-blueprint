@@ -219,6 +219,25 @@ services:
     );
   });
 
+  it('emits the command that overrides the CMD a prebuilt image carries', () => {
+    const jobs = worker('jobs', {
+      runtime: 'image',
+      image: { url: 'docker.io/acme/jobs:1.4.2' },
+      dockerCommand: 'node jobs.js',
+    });
+
+    expect(emit(blueprint({ resources: [jobs] }))).toContain(
+      `services:
+  - type: worker
+    name: jobs
+    runtime: image
+    image:
+      url: docker.io/acme/jobs:1.4.2
+    dockerCommand: node jobs.js
+`,
+    );
+  });
+
   it('writes no creds key for a public prebuilt image', () => {
     const jobs = worker('jobs', { runtime: 'image', image: { url: 'docker.io/acme/jobs:1.4.2' } });
 
