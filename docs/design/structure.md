@@ -53,19 +53,26 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   ├── json.ts                      JsonValue / JsonObject — the escape-hatch types (design B §7)
 │   ├── enums/                       `as const` tuples + derived unions, one family per file: region,
 │   │                                runtime, plan, disk-size, auto-deploy-trigger, maxmemory-policy,
-│   │                                preview-generation, service-type, render-provided-key (spec §6.6)
+│   │                                preview-generation, service-type, render-provided-key,
+│   │                                service-property, referenceable-service-type,
+│   │                                key-value-persistence-mode (spec §6.6)
 │   ├── references/                  what a resource exposes; the core of design B
 │   │   ├── reference-value.ts       DatabaseReferenceValue, ServiceReferenceValue (the XOR union)
+│   │   ├── reference-origin.ts      ReferenceOrigin — 'blueprint' | 'external', a target's origin
+│   │   ├── service-target.ts        ServiceTarget; serviceProperty and serviceEnvVar build a
+│   │   │                            ServiceReferenceValue from it
 │   │   ├── postgres-reference.ts  key-value-reference.ts  http-service-reference.ts   the four
 │   │   ├── opaque-service-reference.ts   handles: host/port/hostport vs envVar/renderVar only
 │   │   └── external.ts              the `external` object — handles with no `kind`, so unlistable
 │   ├── env/                         env values and the map→list problem
 │   │   ├── env-value.ts             EnvValue, EnvGroupValue, EnvironmentMap, EnvGroupEnvironment
 │   │   ├── literal.ts  secret.ts  generated.ts   the three "value lives elsewhere" sentinels
-│   │   └── resolve-env.ts           map | (self)=>map + envGroups → ordered entries, one per env
+│   │   ├── resolve-env.ts           map | (self)=>map + envGroups → ordered entries, one per env
 │                                    var form. The group/direct collision and the duplicate key are
 │                                    validation/env-key-origins.ts (ADR-0001, from D), which
 │                                    resolves an imported group by name the way Render does
+│   │   └── self-environment.ts      SelfEnvironment<H> = (self: H) => EnvironmentMap; selfEnvironment
+│                                    resolves it against the resource's own handle
 │   ├── resources/                   one factory per kind; each returns an inert value
 │   │   ├── service-fields.ts        the shared maps of common repo-sourced service fields, required and
 │   │   │                            exact-optional forms; factories spread them (ADR-0003, issue #20)
@@ -92,7 +99,8 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   └── rules/                   one pure Blueprint → issues[] file per family: duplicate-name,
 │                                     dangling-reference, multiple-locations, env-collision, scaling,
 │                                     service-env-var-key, numeric-range, high-availability,
-│                                     extra-field-conflict, warnings
+│                                     extra-field-conflict, warnings, env-key-collision,
+│                                     unknown-service-env-var-key, secret-skips-previews
 │   ├── synth/                       the ONLY module that knows YAML exists
 │   │   ├── synthesize.ts  document.ts   validate → document → emit; ValidatedBlueprint → a Document
 │   │   ├── mapping.ts  key-order.ts   the ordered builder that never writes an undefined value (§5),
@@ -100,6 +108,7 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   ├── services.ts              the four disjoint service branches + (type, runtime) discrimination
 │   │   ├── databases.ts             postgres → `databases:`, read-replica registration
 │   │   ├── env-vars.ts              map → `envVars:` list, `fromGroup` entries, the five value forms
+│   │   ├── env-var-groups.ts        envVarGroups() — envGroup resources → an `envVarGroups:` list (root, environment, ungrouped)
 │   │   ├── projects.ts  banner.ts   projects[].environments[] and `ungrouped`; the banner
 │   │   └── parse-text.ts  canonical-text.ts   the read direction, for drift/ only: text → JsonValue
 │   │                                under the 1.2 core schema, and JsonValue → key-sorted YAML.
@@ -238,7 +247,9 @@ better-result's own `TemplateNotFound` / `RenderTemplateFailed`: `BlueprintInval
 `BlueprintWriteFailed`, `BlueprintFileUnreadable`; `_tag` equals the class name. `ValidationCode`
 literals use the same convention one level down — `DanglingReference`, `DuplicateResourceName`,
 `ResourceInMultipleLocations`, `ScalingRangeInverted`, `HighAvailabilityUnsupported`,
-`ExtraFieldConflict` — one literal per rule, named after the rule file that produces it.
+`ExtraFieldConflict`, `EnvKeyCollision` — one literal per rule, named after the rule file that
+produces it. `WarningCode` follows the same convention one tier down, for a rule that never blocks
+synthesis — `SecretSkipsPreviews` and `UnknownServiceEnvVarKey` among them.
 
 **Enums.** `erasableSyntaxOnly` bans `enum`. Every closed set is a SCREAMING_SNAKE `as const`
 tuple plus its derived union, in one file; the tuple is exported because validation and tests
