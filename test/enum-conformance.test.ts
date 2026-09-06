@@ -8,6 +8,7 @@ import { AUTO_DEPLOY_TRIGGERS } from '../src/enums/auto-deploy-trigger.js';
 import { DATABASE_PROPERTIES } from '../src/enums/database-property.js';
 import { DISK_SIZES_GB } from '../src/enums/disk-size.js';
 import { ENVIRONMENT_PROTECTIONS } from '../src/enums/environment-protection.js';
+import { KEY_VALUE_PERSISTENCE_MODES } from '../src/enums/key-value-persistence-mode.js';
 import { MAXMEMORY_POLICIES } from '../src/enums/maxmemory-policy.js';
 import { NETWORK_ISOLATIONS } from '../src/enums/network-isolation.js';
 import { KEY_VALUE_PLANS, POSTGRES_PLANS, SERVER_PLANS } from '../src/enums/plan.js';
@@ -167,6 +168,14 @@ describe('KEY_VALUE_PLANS', () => {
 describe('MAXMEMORY_POLICIES', () => {
   it('holds the maxmemoryPolicy enum Render publishes on a Key Value instance', () => {
     expect(converted(MAXMEMORY_POLICIES)).toEqual(publishedField('redisServer', 'maxmemoryPolicy'));
+  });
+});
+
+describe('KEY_VALUE_PERSISTENCE_MODES', () => {
+  it('holds the persistenceMode enum Render publishes on a Key Value instance', () => {
+    expect(converted(KEY_VALUE_PERSISTENCE_MODES)).toEqual(
+      publishedField('redisServer', 'persistenceMode'),
+    );
   });
 });
 

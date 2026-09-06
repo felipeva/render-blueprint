@@ -4,6 +4,7 @@ export type { AutoDeployTrigger } from './enums/auto-deploy-trigger.js';
 export type { DatabaseProperty } from './enums/database-property.js';
 export type { DiskSizeGB } from './enums/disk-size.js';
 export type { EnvironmentProtection } from './enums/environment-protection.js';
+export type { KeyValuePersistenceMode } from './enums/key-value-persistence-mode.js';
 export type { MaxmemoryPolicy } from './enums/maxmemory-policy.js';
 export type { NetworkIsolation } from './enums/network-isolation.js';
 export type { KeyValuePlan, PostgresPlan, ServerPlan } from './enums/plan.js';

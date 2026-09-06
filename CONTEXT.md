@@ -17,6 +17,7 @@ Use these words. Definitions come from `docs/design/structure.md`,
 
 - **Reference handle** — the interface a resource exposes so others can reach for a reference as a property: `PostgresReference`, `KeyValueReference`, `HttpServiceReference`, `OpaqueServiceReference`. `src/references/`.
 - **Reference value** — the inert node a handle produces, mapping 1:1 onto a YAML reference form: `DatabaseReferenceValue` (`fromDatabase`) and `ServiceReferenceValue` (`fromService`, `property` XOR `envVarKey`). `src/references/reference-value.ts`.
+- **Reference origin** — the literal every reference value carries saying whether its target is declared here or reached through an external handle: `ReferenceOrigin`, `blueprint` or `external`. It never reaches YAML; the dangling-reference rule reads it to know which references it can resolve at all. `src/references/reference-origin.ts`.
 - **External handle** — `external.web(name)`, `external.postgres(name)` and the rest: a handle for a resource outside this blueprint. It carries no `kind`, so it cannot be listed as a resource. `src/references/external.ts`.
 - **Self-reference** — the `env: (self) => ({ ... })` callback form, where `self` is the enclosing resource's own handle. No mutation and no cycle.
 

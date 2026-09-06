@@ -1,5 +1,9 @@
 import * as z from 'zod';
 
+import {
+  keyValuePersistenceModeSchema,
+  type KeyValuePersistenceMode,
+} from '../enums/key-value-persistence-mode.js';
 import { maxmemoryPolicySchema, type MaxmemoryPolicy } from '../enums/maxmemory-policy.js';
 import { keyValuePlanSchema, type KeyValuePlan } from '../enums/plan.js';
 import { regionSchema, type Region } from '../enums/region.js';
@@ -13,6 +17,7 @@ export interface KeyValueConfig {
   readonly region?: Region;
   readonly plan?: KeyValuePlan;
   readonly maxmemoryPolicy?: MaxmemoryPolicy;
+  readonly persistenceMode?: KeyValuePersistenceMode;
   readonly extraFields?: JsonObject;
 }
 
@@ -30,6 +35,7 @@ export const KEY_VALUE_STORE_FIELDS = [
   'ipAllowList',
   'plan',
   'maxmemoryPolicy',
+  'persistenceMode',
 ] as const;
 
 const keyValueConfigSchema = z
@@ -43,6 +49,7 @@ const keyValueConfigSchema = z
     region: regionSchema.exactOptional(),
     plan: keyValuePlanSchema.exactOptional(),
     maxmemoryPolicy: maxmemoryPolicySchema.exactOptional(),
+    persistenceMode: keyValuePersistenceModeSchema.exactOptional(),
     extraFields: jsonObjectSchema.exactOptional(),
   })
   .readonly();

@@ -33,6 +33,11 @@ describe('keyValue', () => {
     keyValue('cache', { ipAllowList: [], maxmemoryPolicy: 'allkeys-mru' });
   });
 
+  it('rejects a persistence mode Render does not publish', () => {
+    // @ts-expect-error `journal` is not a member of KeyValuePersistenceMode.
+    keyValue('cache', { ipAllowList: [], persistenceMode: 'journal' });
+  });
+
   it('rejects an environment map, because Render gives a Key Value instance none', () => {
     // @ts-expect-error spec §5: a Key Value instance carries no envVars.
     keyValue('cache', { ipAllowList: [], env: { NODE_ENV: 'production' } });

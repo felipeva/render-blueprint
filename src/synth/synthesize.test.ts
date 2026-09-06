@@ -453,6 +453,46 @@ databases:
     );
   });
 
+  it('emits the keys of a Key Value instance in one fixed order', () => {
+    const cache = keyValue('cache', {
+      persistenceMode: 'snapshot',
+      plan: '1g',
+      maxmemoryPolicy: 'volatile-ttl',
+      region: 'frankfurt',
+      ipAllowList: [{ source: '203.0.113.4/30', description: 'office' }],
+    });
+
+    expect(emit(blueprint({ resources: [cache] }))).toContain(
+      `services:
+  - type: keyvalue
+    name: cache
+    region: frankfurt
+    ipAllowList:
+      - source: 203.0.113.4/30
+        description: office
+    plan: 1g
+    maxmemoryPolicy: volatile-ttl
+    persistenceMode: snapshot
+`,
+    );
+  });
+
+  it('emits a Key Value instance under services, never under databases', () => {
+    const emitted = emit(blueprint({ resources: [keyValue('cache', { ipAllowList: [] })] }));
+
+    expect(emitted).toContain('services:');
+    expect(emitted).not.toContain('databases:');
+  });
+
+  it('emits an empty ipAllowList on a Key Value instance, which allows no connection', () => {
+    expect(emit(blueprint({ resources: [keyValue('cache', { ipAllowList: [] })] }))).toContain(
+      `  - type: keyvalue
+    name: cache
+    ipAllowList: []
+`,
+    );
+  });
+
   it('emits services before databases', () => {
     const elephant = postgres('elephant');
     const emitted = emit(blueprint({ resources: [elephant, web('api', { runtime: 'node' })] }));

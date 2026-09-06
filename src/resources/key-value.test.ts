@@ -45,7 +45,8 @@ describe('parseKeyValueConfig', () => {
         region: 'frankfurt',
         plan: 'starter',
         maxmemoryPolicy: 'volatile-ttl',
-        extraFields: { persistenceMode: 'snapshot' },
+        persistenceMode: 'snapshot',
+        extraFields: { previewPlan: 'starter' },
       }),
     ).toEqual([]);
   });
@@ -59,7 +60,7 @@ describe('parseKeyValueConfig', () => {
   });
 
   it('rejects a field the library does not model', () => {
-    expect(issueCodes(unchecked('{"ipAllowList":[],"persistenceMode":"off"}'))).toEqual([
+    expect(issueCodes(unchecked('{"ipAllowList":[],"previewPlan":"starter"}'))).toEqual([
       'unrecognized_keys',
     ]);
   });
@@ -72,6 +73,12 @@ describe('parseKeyValueConfig', () => {
 
   it('rejects a plan from another resource kind', () => {
     expect(issueCodes(unchecked('{"ipAllowList":[],"plan":"pro-8gb"}'))).toEqual(['invalid_value']);
+  });
+
+  it('rejects a persistence mode Render does not publish', () => {
+    expect(issueCodes(unchecked('{"ipAllowList":[],"persistenceMode":"journal"}'))).toEqual([
+      'invalid_value',
+    ]);
   });
 
   it('rejects a max memory policy Render does not publish', () => {
