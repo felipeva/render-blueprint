@@ -32,20 +32,26 @@ const published = (name: string): readonly string[] | undefined =>
 const converted = (values: readonly string[]): JsonSchemaEnum =>
   z.toJSONSchema(z.enum(values)).enum;
 
-describe('z.toJSONSchema', () => {
-  it('converts REGIONS to the region enum Render publishes', () => {
+describe('REGIONS', () => {
+  it('holds the region enum Render publishes', () => {
     expect(converted(REGIONS)).toEqual(published('region'));
   });
+});
 
-  it('converts SERVER_PLANS to the serverPlan enum Render publishes', () => {
+describe('SERVER_PLANS', () => {
+  it('holds the serverPlan enum Render publishes', () => {
     expect(converted(SERVER_PLANS)).toEqual(published('serverPlan'));
   });
+});
 
-  it('converts AUTO_DEPLOY_TRIGGERS to the autoDeployTrigger enum Render publishes', () => {
+describe('AUTO_DEPLOY_TRIGGERS', () => {
+  it('holds the autoDeployTrigger enum Render publishes', () => {
     expect(converted(AUTO_DEPLOY_TRIGGERS)).toEqual(published('autoDeployTrigger'));
   });
+});
 
-  it('converts NATIVE_RUNTIMES to a subset of the runtime enum Render publishes', () => {
+describe('NATIVE_RUNTIMES', () => {
+  it('holds a subset of the runtime enum Render publishes', () => {
     const runtimes = published('runtime');
 
     expect(runtimes).toBeDefined();

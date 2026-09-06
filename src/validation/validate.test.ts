@@ -10,6 +10,7 @@ import { validate } from './validate.js';
 // through Node type stripping, which erases types without checking them, so the annotation is
 // deliberately stronger than the value — the gap ADR-0003 gives the schemas to close.
 const unchecked: (json: string) => WebConfig = JSON.parse;
+const uncheckedName: (json: string) => string = JSON.parse;
 
 describe('validate', () => {
   it('accepts a blueprint that trips no rule', () => {
@@ -242,6 +243,44 @@ describe('validate', () => {
     expect(Result.isError(result)).toBe(true);
     if (!Result.isError(result)) return;
     expect(result.error.issues.map((issue) => issue.at.field)).toEqual(['env']);
+  });
+
+  it('reports a resource name that is not a string', () => {
+    const result = validate(
+      blueprint({ resources: [web(uncheckedName('42'), { runtime: 'node' })] }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['InvalidConfig']);
+    expect(result.error.issues[0].at.field).toBe('name');
+  });
+
+  it('reports an empty resource name', () => {
+    const result = validate(blueprint({ resources: [web('', { runtime: 'node' })] }));
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues[0].at.field).toBe('name');
+    expect(result.error.issues[0].message).toContain('non-empty');
+  });
+
+  it('reports a duplicate name shared by a valid and a schema-invalid resource', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', { runtime: 'node' }),
+          web('api', unchecked('{"runtime":"node","replicas":3}')),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual([
+      'UnknownField',
+      'DuplicateResourceName',
+    ]);
   });
 
   it('accepts a blueprint with no resources', () => {

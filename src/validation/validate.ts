@@ -17,12 +17,11 @@ export interface ValidatedBlueprint {
   readonly warnings: readonly ValidationWarning[];
 }
 
-const ISSUE_RULES = [
-  duplicateResourceName,
-  duplicateEnvKey,
-  extraFieldConflict,
-  deprecatedField,
-] as const;
+// Name rules read a resource's name; config rules read its config. Each list is fed only the
+// resources whose half of the parse succeeded, so no rule reads a value its schema rejected.
+const NAME_RULES = [duplicateResourceName] as const;
+
+const CONFIG_RULES = [duplicateEnvKey, extraFieldConflict, deprecatedField] as const;
 
 const WARNING_RULES = [missingBuildCommand, missingStartCommand] as const;
 
@@ -30,7 +29,8 @@ export const validate = (value: Blueprint): ResultType<ValidatedBlueprint, Bluep
   const parsed = parseConfigs(value.resources);
   const [first, ...rest] = [
     ...parsed.issues,
-    ...ISSUE_RULES.flatMap((rule) => rule(parsed.accepted)),
+    ...NAME_RULES.flatMap((rule) => rule(parsed.named)),
+    ...CONFIG_RULES.flatMap((rule) => rule(parsed.accepted)),
   ];
 
   return first === undefined
