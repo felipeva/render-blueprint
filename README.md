@@ -219,11 +219,11 @@ render-blueprint check    # compare the committed YAML file against the blueprin
 - `--help`, `-h` — print the help.
 - `--version`, `-v` — print the installed version.
 
-| Exit code | Meaning                                                                                                                                                  |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0         | The file was written, or the committed file is clean.                                                                                                    |
-| 1         | The blueprint is invalid, a file could not be found, loaded, read or written, the command line was wrong, or `--strict` turned a warning into a failure. |
-| 2         | The committed file has drifted from the blueprint.                                                                                                       |
+| Exit code | Meaning                                                                                                                       |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 0         | `synth` wrote the file, or `check` found the committed file clean.                                                            |
+| 1         | The blueprint is invalid, a file operation failed, the command line was wrong, or `--strict` turned a warning into a failure. |
+| 2         | The committed file drifted from the blueprint.                                                                                |
 
 `check` is the CI command. The two failure codes are different numbers, so CI can tell a stale
 file from a broken one. `check` normalizes both sides before it compares them, so a reformatted
