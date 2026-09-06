@@ -159,6 +159,17 @@ describe('validate', () => {
     expect(result.error.issues[0].at).toEqual({ resource: 'marketing', field: 'plan' });
   });
 
+  it('reports an absolute rootDir on a static site', () => {
+    const result = validate(
+      blueprint({ resources: [staticSite('marketing', { rootDir: '/apps/marketing' })] }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['RootDirNotRelative']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'marketing', field: 'rootDir' });
+  });
+
   it('reports a route type outside the published pair', () => {
     const result = validate(
       blueprint({

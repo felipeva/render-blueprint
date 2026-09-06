@@ -1,11 +1,11 @@
 import * as z from 'zod';
 
-import { AUTO_DEPLOY_TRIGGERS, type AutoDeployTrigger } from '../enums/auto-deploy-trigger.js';
+import type { AutoDeployTrigger } from '../enums/auto-deploy-trigger.js';
 import { routeTypeSchema, type RouteType } from '../enums/route-type.js';
 import type { EnvironmentMap } from '../env/env-value.js';
 import type { Equal, Expect } from '../equal.js';
-import { jsonObjectSchema, type JsonObject } from '../json.js';
-import { raise } from '../raise.js';
+import type { JsonObject } from '../json.js';
+import { optionalCommonServiceFields } from './service-fields.js';
 
 export interface Route {
   readonly type: RouteType;
@@ -62,10 +62,6 @@ export const HEADER_FIELDS = ['path', 'name', 'value'] as const;
 
 export const ROUTE_FIELDS = ['type', 'source', 'destination'] as const;
 
-const envValueSchema = z.union([z.string(), z.number()], {
-  error: 'An environment variable value is a string or a number.',
-});
-
 const routeSchema = z
   .strictObject({
     type: routeTypeSchema,
@@ -84,31 +80,11 @@ const headerSchema = z
 
 const staticSiteConfigSchema = z
   .strictObject({
-    repo: z.string().exactOptional(),
-    branch: z.string().exactOptional(),
-    rootDir: z
-      .string()
-      .superRefine((value, ctx) => {
-        // spec §4.1 makes rootDir relative to the repository root. INFERRED: the schema does not.
-        if (value.startsWith('/')) {
-          raise(
-            ctx,
-            'RootDirNotRelative',
-            'A rootDir is relative to the repository root, so it does not start with "/".',
-            [],
-          );
-        }
-      })
-      .exactOptional(),
-    buildCommand: z.string().exactOptional(),
-    preDeployCommand: z.string().exactOptional(),
+    ...optionalCommonServiceFields,
     staticPublishPath: z.string().exactOptional(),
     routes: z.array(routeSchema).readonly().exactOptional(),
     headers: z.array(headerSchema).readonly().exactOptional(),
     domains: z.array(z.string()).readonly().exactOptional(),
-    autoDeployTrigger: z.enum(AUTO_DEPLOY_TRIGGERS).exactOptional(),
-    env: z.record(z.string(), envValueSchema).readonly().exactOptional(),
-    extraFields: jsonObjectSchema.exactOptional(),
   })
   .readonly();
 
