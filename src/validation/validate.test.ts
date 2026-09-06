@@ -6,6 +6,7 @@ import type { EnvValue } from '../env/env-value.js';
 import { secret } from '../env/secret.js';
 import type { JsonObject } from '../json.js';
 import { envGroup, type EnvGroupConfig } from '../resources/env-group.js';
+import { keyValue, type KeyValueConfig } from '../resources/key-value.js';
 import { postgres, type PostgresConfig } from '../resources/postgres.js';
 import { readReplica } from '../resources/read-replica.js';
 import type { BlueprintResource } from '../resources/resource.js';
@@ -20,6 +21,7 @@ import { validate } from './validate.js';
 const unchecked: (json: string) => WebConfig = JSON.parse;
 const uncheckedStatic: (json: string) => StaticSiteConfig = JSON.parse;
 const uncheckedDatabase: (json: string) => PostgresConfig = JSON.parse;
+const uncheckedKeyValue: (json: string) => KeyValueConfig = JSON.parse;
 const uncheckedEnvValue: (json: string) => EnvValue = JSON.parse;
 const uncheckedGroup: (json: string) => EnvGroupConfig = JSON.parse;
 const uncheckedName: (json: string) => string = JSON.parse;
@@ -165,6 +167,84 @@ describe('validate', () => {
     if (!Result.isError(result)) return;
     expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
     expect(result.error.issues[0].at).toEqual({ resource: 'marketing', field: 'plan' });
+  });
+
+  it('reports a field the library does not model on a Key Value instance', () => {
+    const result = validate(
+      blueprint({
+        resources: [keyValue('cache', uncheckedKeyValue('{"ipAllowList":[],"runtime":"node"}'))],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'cache', field: 'runtime' });
+  });
+
+  it('reports a key the referenced service does not declare', () => {
+    const auth = web('auth', { runtime: 'node', buildCommand: 'x', startCommand: 'y' });
+    const api = web('api', {
+      runtime: 'node',
+      buildCommand: 'x',
+      startCommand: 'y',
+      env: { PASSWORD: auth.envVar('ROOT_PASSWORD') },
+    });
+    const result = validate(blueprint({ resources: [api, auth] }));
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownServiceEnvVarKey']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'env.PASSWORD' });
+  });
+
+  it('accepts a blueprint whose services reference each other and themselves', () => {
+    const cache = keyValue('cache', { ipAllowList: [] });
+    const auth = web('auth', {
+      runtime: 'node',
+      buildCommand: 'x',
+      startCommand: 'y',
+      env: { ROOT_PASSWORD: 'set-in-dashboard' },
+    });
+    const api = web('api', {
+      runtime: 'node',
+      buildCommand: 'x',
+      startCommand: 'y',
+      env: (self) => ({
+        APP_HOST: self.renderVar('RENDER_EXTERNAL_HOSTNAME'),
+        AUTH_HOSTPORT: auth.hostport,
+        AUTH_PASSWORD: auth.envVar('ROOT_PASSWORD'),
+        CACHE_URL: cache.connectionString,
+      }),
+    });
+
+    expect(Result.isOk(validate(blueprint({ resources: [api, auth, cache] })))).toBe(true);
+  });
+
+  it('reports the failing key inside an env a callback returned', () => {
+    const api = web('api', {
+      runtime: 'node',
+      buildCommand: 'x',
+      startCommand: 'y',
+      env: () => ({ CACHE_URL: uncheckedEnvValue('{"reference":"fromService"}') }),
+    });
+    const result = validate(blueprint({ resources: [api] }));
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'env.CACHE_URL' });
+  });
+
+  it('reports an env that is neither a map nor a callback', () => {
+    const result = validate(
+      blueprint({ resources: [web('api', unchecked('{"runtime":"node","env":42}'))] }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.at)).toEqual([
+      { resource: 'api', field: 'env' },
+    ]);
   });
 
   it('reports an absolute rootDir on a static site', () => {
@@ -541,7 +621,7 @@ describe('validate', () => {
       runtime: 'node',
       env: {
         DATABASE_URL: uncheckedEnvValue(
-          '{"reference":"fromDatabase","name":"elephant","property":"host","oops":1}',
+          '{"reference":"fromDatabase","name":"elephant","origin":"blueprint","property":"host","oops":1}',
         ),
       },
     });

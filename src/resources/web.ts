@@ -4,9 +4,13 @@ import type { AutoDeployTrigger } from '../enums/auto-deploy-trigger.js';
 import { serverPlanSchema, type ServerPlan } from '../enums/plan.js';
 import { regionSchema, type Region } from '../enums/region.js';
 import { nativeRuntimeSchema, type NativeRuntime } from '../enums/runtime.js';
-import type { EnvironmentMap } from '../env/env-value.js';
+import { serviceEnvironmentSchema, type ServiceEnvironment } from '../env/self-environment.js';
 import type { Equal, Expect } from '../equal.js';
 import type { JsonObject } from '../json.js';
+import {
+  httpServiceReference,
+  type HttpServiceReference,
+} from '../references/http-service-reference.js';
 import type { EnvironmentGroup } from './env-group.js';
 import { optionalCommonServiceFields } from './service-fields.js';
 
@@ -24,12 +28,12 @@ export interface WebConfig {
   readonly startCommand?: string;
   readonly preDeployCommand?: string;
   readonly autoDeployTrigger?: AutoDeployTrigger;
-  readonly env?: EnvironmentMap;
+  readonly env?: ServiceEnvironment<HttpServiceReference>;
   readonly envGroups?: readonly EnvironmentGroup[];
   readonly extraFields?: JsonObject;
 }
 
-export interface WebService {
+export interface WebService extends HttpServiceReference {
   readonly kind: 'web';
   readonly name: string;
   readonly config: WebConfig;
@@ -65,6 +69,7 @@ const webConfigSchema = z
       })
       .exactOptional(),
     startCommand: z.string().exactOptional(),
+    env: serviceEnvironmentSchema<HttpServiceReference>().exactOptional(),
   })
   .readonly();
 
@@ -80,4 +85,5 @@ export const web = (name: string, config: WebConfig): WebService => ({
   kind: 'web',
   name,
   config,
+  ...httpServiceReference({ name, type: 'web', origin: 'blueprint' }),
 });

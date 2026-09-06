@@ -29,6 +29,11 @@ export const ENV_VAR_GENERATED_KEY_ORDER = ['key', 'generateValue'] as const;
 
 export const ENV_VAR_FROM_DATABASE_KEY_ORDER = ['key', 'fromDatabase'] as const;
 
+export const ENV_VAR_FROM_SERVICE_KEY_ORDER = ['key', 'fromService'] as const;
+
 export const ENV_VAR_FROM_GROUP_KEY_ORDER = ['fromGroup'] as const;
 
 export const FROM_DATABASE_KEY_ORDER = ['name', 'property'] as const;
+
+// Emission order follows the schema's envVarFromService fromService property order.
+export const FROM_SERVICE_KEY_ORDER = ['type', 'name', 'property', 'envVarKey'] as const;

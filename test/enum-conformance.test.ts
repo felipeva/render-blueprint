@@ -8,13 +8,16 @@ import { AUTO_DEPLOY_TRIGGERS } from '../src/enums/auto-deploy-trigger.js';
 import { DATABASE_PROPERTIES } from '../src/enums/database-property.js';
 import { DISK_SIZES_GB } from '../src/enums/disk-size.js';
 import { ENVIRONMENT_PROTECTIONS } from '../src/enums/environment-protection.js';
+import { MAXMEMORY_POLICIES } from '../src/enums/maxmemory-policy.js';
 import { NETWORK_ISOLATIONS } from '../src/enums/network-isolation.js';
-import { POSTGRES_PLANS, SERVER_PLANS } from '../src/enums/plan.js';
+import { KEY_VALUE_PLANS, POSTGRES_PLANS, SERVER_PLANS } from '../src/enums/plan.js';
 import { POSTGRES_MAJOR_VERSIONS } from '../src/enums/postgres-major-version.js';
 import { PREVIEW_GENERATIONS } from '../src/enums/preview-generation.js';
+import { REFERENCEABLE_SERVICE_TYPES } from '../src/enums/referenceable-service-type.js';
 import { REGIONS } from '../src/enums/region.js';
 import { ROUTE_TYPES } from '../src/enums/route-type.js';
 import { NATIVE_RUNTIMES } from '../src/enums/runtime.js';
+import { SERVICE_PROPERTIES } from '../src/enums/service-property.js';
 
 type JsonSchemaEnum = readonly (string | number | boolean | null)[] | undefined;
 
@@ -152,5 +155,34 @@ describe('DISK_SIZES_GB', () => {
 
     expect(first).toBe(1);
     expect(rest.filter((size, index) => size !== (index + 1) * 5)).toEqual([]);
+  });
+});
+
+describe('KEY_VALUE_PLANS', () => {
+  it('holds the keyValuePlan enum Render publishes', () => {
+    expect(converted(KEY_VALUE_PLANS)).toEqual(published('keyValuePlan'));
+  });
+});
+
+describe('MAXMEMORY_POLICIES', () => {
+  it('holds the maxmemoryPolicy enum Render publishes on a Key Value instance', () => {
+    expect(converted(MAXMEMORY_POLICIES)).toEqual(publishedField('redisServer', 'maxmemoryPolicy'));
+  });
+});
+
+describe('SERVICE_PROPERTIES', () => {
+  it('holds the serviceEnvVarProperty enum Render publishes', () => {
+    expect(converted(SERVICE_PROPERTIES)).toEqual(published('serviceEnvVarProperty'));
+  });
+});
+
+describe('REFERENCEABLE_SERVICE_TYPES', () => {
+  it('holds a subset of the serviceType enum Render publishes', () => {
+    const types = published('serviceType');
+
+    expect(types).toBeDefined();
+    expect(converted(REFERENCEABLE_SERVICE_TYPES)).toEqual(
+      REFERENCEABLE_SERVICE_TYPES.filter((type) => (types ?? []).includes(type)),
+    );
   });
 });

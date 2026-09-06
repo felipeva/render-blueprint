@@ -8,6 +8,8 @@ import { generated } from '../env/generated.js';
 import { literal } from '../env/literal.js';
 import { secret } from '../env/secret.js';
 import { envGroup } from '../resources/env-group.js';
+import { external } from '../references/external.js';
+import { keyValue } from '../resources/key-value.js';
 import { postgres } from '../resources/postgres.js';
 import { readReplica } from '../resources/read-replica.js';
 import { staticSite } from '../resources/static-site.js';
@@ -371,6 +373,81 @@ databases:
       `      - key: REPLICA_URL
         fromDatabase:
           name: elephant-replica
+          property: connectionString
+`,
+    );
+  });
+
+  it('emits a service property reference as a fromService entry', () => {
+    const auth = web('auth', { runtime: 'node' });
+    const api = web('api', { runtime: 'node', env: { AUTH_HOSTPORT: auth.hostport } });
+
+    expect(emit(blueprint({ resources: [api, auth] }))).toContain(
+      `    envVars:
+      - key: AUTH_HOSTPORT
+        fromService:
+          type: web
+          name: auth
+          property: hostport
+`,
+    );
+  });
+
+  it('emits an aliased variable as a fromService entry naming the key', () => {
+    const auth = web('auth', { runtime: 'node', env: { ROOT_PASSWORD: 'set-in-dashboard' } });
+    const api = web('api', { runtime: 'node', env: { PASSWORD: auth.envVar('ROOT_PASSWORD') } });
+
+    expect(emit(blueprint({ resources: [api, auth] }))).toContain(
+      `      - key: PASSWORD
+        fromService:
+          type: web
+          name: auth
+          envVarKey: ROOT_PASSWORD
+`,
+    );
+  });
+
+  it('emits a self-reference through the callback form of env', () => {
+    const api = web('api', {
+      runtime: 'node',
+      env: (self) => ({ APP_HOST: self.renderVar('RENDER_EXTERNAL_HOSTNAME') }),
+    });
+
+    expect(emit(blueprint({ resources: [api] }))).toContain(
+      `      - key: APP_HOST
+        fromService:
+          type: web
+          name: api
+          envVarKey: RENDER_EXTERNAL_HOSTNAME
+`,
+    );
+  });
+
+  it('emits a reference to a resource outside this blueprint like any other', () => {
+    const api = web('api', {
+      runtime: 'node',
+      env: { AUTH_HOSTPORT: external.privateService('legacy-auth').hostport },
+    });
+
+    expect(emit(blueprint({ resources: [api] }))).toContain(
+      `      - key: AUTH_HOSTPORT
+        fromService:
+          type: pserv
+          name: legacy-auth
+          property: hostport
+`,
+    );
+  });
+
+  it('emits a Key Value connection string with the type Render reserves for it', () => {
+    const cache = keyValue('cache', { ipAllowList: [] });
+    const api = web('api', { runtime: 'node', env: { CACHE_URL: cache.connectionString } });
+
+    expect(emit(blueprint({ resources: [api, cache] }))).toContain(
+      `      - key: CACHE_URL
+        fromService:
+          type: keyvalue
+          name: cache
           property: connectionString
 `,
     );

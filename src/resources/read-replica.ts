@@ -39,5 +39,5 @@ export const readReplicaSchema: z.ZodType<ReadReplica> = replicaSchema;
 export const readReplica = (name: string): ReadReplica => ({
   kind: 'readReplica',
   name,
-  ...postgresReference(name),
+  ...postgresReference(name, 'blueprint'),
 });

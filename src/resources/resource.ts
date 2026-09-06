@@ -1,12 +1,15 @@
 import * as z from 'zod';
 
-import type { EnvironmentMap } from '../env/env-value.js';
+import type { ReferenceableServiceType } from '../enums/referenceable-service-type.js';
+import { environmentMapSchema, type EnvironmentMap } from '../env/env-value.js';
+import { selfEnvironment } from '../env/self-environment.js';
 import type { Equal, Expect } from '../equal.js';
 import {
   ENVIRONMENT_GROUP_FIELDS,
   parseEnvGroupConfig,
   type EnvironmentGroup,
 } from './env-group.js';
+import { KEY_VALUE_STORE_FIELDS, parseKeyValueConfig, type KeyValueStore } from './key-value.js';
 import {
   parsePostgresConfig,
   POSTGRES_DATABASE_FIELDS,
@@ -15,9 +18,14 @@ import {
 import { parseStaticSiteConfig, STATIC_SITE_FIELDS, type StaticSite } from './static-site.js';
 import { parseWebConfig, WEB_SERVICE_FIELDS, type WebService } from './web.js';
 
-export type BlueprintResource = WebService | StaticSite | PostgresDatabase | EnvironmentGroup;
+export type BlueprintResource =
+  | WebService
+  | StaticSite
+  | KeyValueStore
+  | PostgresDatabase
+  | EnvironmentGroup;
 
-export const RESOURCE_KINDS = ['web', 'staticSite', 'postgres', 'envGroup'] as const;
+export const RESOURCE_KINDS = ['web', 'staticSite', 'keyValue', 'postgres', 'envGroup'] as const;
 
 type ResourceKind = (typeof RESOURCE_KINDS)[number];
 
@@ -31,6 +39,8 @@ export const modeledFields = (resource: BlueprintResource): readonly string[] =>
       return WEB_SERVICE_FIELDS;
     case 'staticSite':
       return STATIC_SITE_FIELDS;
+    case 'keyValue':
+      return KEY_VALUE_STORE_FIELDS;
     case 'postgres':
       return POSTGRES_DATABASE_FIELDS;
     case 'envGroup':
@@ -38,18 +48,31 @@ export const modeledFields = (resource: BlueprintResource): readonly string[] =>
   }
 };
 
-// spec §9: a database carries no envVars, so it is the one kind with no environment map.
+// spec §9 and §5: neither a database nor a Key Value instance carries envVars, so they are the two
+// kinds with no environment map. A callback resolves against the resource's own handle.
 export const resourceEnv = (resource: BlueprintResource): EnvironmentMap | undefined => {
   switch (resource.kind) {
     case 'web':
-      return resource.config.env;
+      return selfEnvironment(resource.config.env, resource);
     case 'staticSite':
-      return resource.config.env;
+      return selfEnvironment(resource.config.env, resource);
+    case 'keyValue':
+      return undefined;
     case 'postgres':
       return undefined;
     case 'envGroup':
       return resource.config.env;
   }
+};
+
+// The config schema takes env as it is written, because a callback hides the map behind a call.
+// Resolving it first is what puts the failing key, not the whole field, on the issue.
+export const resourceEnvIssues = (resource: BlueprintResource): readonly z.core.$ZodIssue[] => {
+  const env = resourceEnv(resource);
+  if (env === undefined) return [];
+
+  const result = environmentMapSchema.safeParse(env);
+  return result.success ? [] : result.error.issues;
 };
 
 // spec §6.1: only a service imports a group, and a group never imports another one.
@@ -61,6 +84,25 @@ export const resourceEnvGroups = (
       return resource.config.envGroups;
     case 'staticSite':
       return resource.config.envGroups;
+    case 'keyValue':
+    case 'postgres':
+    case 'envGroup':
+      return undefined;
+  }
+};
+
+// spec §6.2: a fromService reference names a service; a database answers fromDatabase instead, and
+// a group is no reference target at all.
+export const serviceReferenceType = (
+  resource: BlueprintResource,
+): ReferenceableServiceType | undefined => {
+  switch (resource.kind) {
+    case 'web':
+      return 'web';
+    case 'staticSite':
+      return 'static';
+    case 'keyValue':
+      return 'keyvalue';
     case 'postgres':
     case 'envGroup':
       return undefined;
@@ -95,6 +137,10 @@ export const resourceConfigIssues = (resource: BlueprintResource): readonly z.co
     }
     case 'staticSite': {
       const result = parseStaticSiteConfig(resource.config);
+      return result.success ? [] : result.error.issues;
+    }
+    case 'keyValue': {
+      const result = parseKeyValueConfig(resource.config);
       return result.success ? [] : result.error.issues;
     }
     case 'postgres': {

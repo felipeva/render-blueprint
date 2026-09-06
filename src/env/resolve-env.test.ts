@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { httpServiceReference } from '../references/http-service-reference.js';
 import { postgresReference } from '../references/postgres-reference.js';
 import type { DatabaseReferenceValue } from '../references/reference-value.js';
 import type { EnvValue } from './env-value.js';
@@ -30,7 +31,7 @@ describe('resolveEnv', () => {
   });
 
   it('marks a database reference with its own form', () => {
-    const reference = postgresReference('elephant').connectionString;
+    const reference = postgresReference('elephant', 'blueprint').connectionString;
 
     expect(resolveEnv({ DATABASE_URL: reference }, undefined)).toEqual([
       { form: 'fromDatabase', key: 'DATABASE_URL', reference },
@@ -41,11 +42,36 @@ describe('resolveEnv', () => {
     const reference = withoutPrototype({
       reference: 'fromDatabase',
       name: 'elephant',
+      origin: 'blueprint',
       property: 'connectionString',
     });
 
     expect(resolveEnv({ DATABASE_URL: reference }, undefined)).toEqual([
       { form: 'fromDatabase', key: 'DATABASE_URL', reference },
+    ]);
+  });
+
+  it('marks a service reference with its own form', () => {
+    const reference = httpServiceReference({
+      name: 'api',
+      type: 'web',
+      origin: 'blueprint',
+    }).hostport;
+
+    expect(resolveEnv({ API_HOSTPORT: reference })).toEqual([
+      { form: 'fromService', key: 'API_HOSTPORT', reference },
+    ]);
+  });
+
+  it('marks an aliased environment variable with the service form', () => {
+    const reference = httpServiceReference({
+      name: 'api',
+      type: 'web',
+      origin: 'blueprint',
+    }).envVar('MINIO_ROOT_PASSWORD');
+
+    expect(resolveEnv({ MINIO_PASSWORD: reference })).toEqual([
+      { form: 'fromService', key: 'MINIO_PASSWORD', reference },
     ]);
   });
 

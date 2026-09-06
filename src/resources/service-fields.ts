@@ -1,7 +1,6 @@
 import * as z from 'zod';
 
 import { autoDeployTriggerSchema, type AutoDeployTrigger } from '../enums/auto-deploy-trigger.js';
-import { environmentMapSchema, type EnvironmentMap } from '../env/env-value.js';
 import { jsonObjectSchema, type JsonObject } from '../json.js';
 import { raise } from '../raise.js';
 import { environmentGroupSchema, type EnvironmentGroup } from './env-group.js';
@@ -18,6 +17,8 @@ const rootDirSchema: z.ZodString = z.string().superRefine((value, ctx) => {
   }
 });
 
+// env is missing on purpose: its callback form is typed to the enclosing kind's own handle, so
+// each factory declares its own.
 export interface CommonServiceFields {
   readonly repo: z.ZodString;
   readonly branch: z.ZodString;
@@ -25,7 +26,6 @@ export interface CommonServiceFields {
   readonly buildCommand: z.ZodString;
   readonly preDeployCommand: z.ZodString;
   readonly autoDeployTrigger: z.ZodEnum<z.core.util.ToEnum<AutoDeployTrigger>>;
-  readonly env: z.ZodType<EnvironmentMap>;
   readonly envGroups: z.ZodReadonly<z.ZodArray<z.ZodType<EnvironmentGroup>>>;
   readonly extraFields: z.ZodType<JsonObject>;
 }
@@ -37,7 +37,6 @@ export const commonServiceFields: CommonServiceFields = {
   buildCommand: z.string(),
   preDeployCommand: z.string(),
   autoDeployTrigger: autoDeployTriggerSchema,
-  env: environmentMapSchema,
   envGroups: z.array(environmentGroupSchema).readonly(),
   extraFields: jsonObjectSchema,
 };
@@ -53,7 +52,6 @@ export const optionalCommonServiceFields: OptionalCommonServiceFields = {
   buildCommand: commonServiceFields.buildCommand.exactOptional(),
   preDeployCommand: commonServiceFields.preDeployCommand.exactOptional(),
   autoDeployTrigger: commonServiceFields.autoDeployTrigger.exactOptional(),
-  env: commonServiceFields.env.exactOptional(),
   envGroups: commonServiceFields.envGroups.exactOptional(),
   extraFields: commonServiceFields.extraFields.exactOptional(),
 };

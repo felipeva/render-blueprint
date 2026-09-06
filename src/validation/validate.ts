@@ -23,6 +23,7 @@ import { resourceInMultipleLocations } from './rules/resource-in-multiple-locati
 import { rootDeprecatedField } from './rules/root-deprecated-field.js';
 import { rootExtraFieldConflict } from './rules/root-extra-field-conflict.js';
 import { secretSkipsPreviews } from './rules/secret-skips-previews.js';
+import { unknownServiceEnvVarKey } from './rules/unknown-service-env-var-key.js';
 
 export interface ValidatedBlueprint {
   readonly previews: RootPreviews | undefined;
@@ -44,6 +45,7 @@ const CONFIG_RULES = [
   envKeyCollision,
   extraFieldConflict,
   deprecatedField,
+  unknownServiceEnvVarKey,
 ] as const;
 
 const WARNING_RULES = [missingBuildCommand, missingStartCommand, missingStaticPublishPath] as const;

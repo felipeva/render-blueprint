@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { external } from '../../references/external.js';
+import { keyValue } from '../../resources/key-value.js';
 import { postgres } from '../../resources/postgres.js';
 import { readReplica } from '../../resources/read-replica.js';
 import type { BlueprintResource } from '../../resources/resource.js';
@@ -72,6 +74,62 @@ describe('danglingReference', () => {
     const api = web('api', { runtime: 'node', env: { DATABASE_URL: elephant.connectionString } });
 
     expect(danglingReference(parsed([api], [api, elephant]))).toEqual([]);
+  });
+
+  it('reports nothing when the referenced service is listed', () => {
+    const cache = keyValue('cache', { ipAllowList: [] });
+    const auth = web('auth', { runtime: 'node' });
+    const api = web('api', {
+      runtime: 'node',
+      env: { CACHE_URL: cache.connectionString, AUTH_HOSTPORT: auth.hostport },
+    });
+
+    expect(danglingReference(parsed([api, auth, cache]))).toEqual([]);
+  });
+
+  it('names the source resource, the env key, and the missing service', () => {
+    const auth = web('auth', { runtime: 'node' });
+    const api = web('api', { runtime: 'node', env: { AUTH_HOSTPORT: auth.hostport } });
+
+    expect(danglingReference(parsed([api]))).toEqual([
+      {
+        code: 'DanglingReference',
+        at: { resource: 'api', field: 'env.AUTH_HOSTPORT' },
+        message:
+          '"api" reads "AUTH_HOSTPORT" from the service "auth", which this blueprint does not list. Add it to resources, or reach for it through an external handle.',
+      },
+    ]);
+  });
+
+  it('reports nothing for a reference an external handle produced', () => {
+    const api = web('api', {
+      runtime: 'node',
+      env: {
+        AUTH_HOSTPORT: external.privateService('legacy-auth').hostport,
+        LEGACY_URL: external.postgres('legacy-db').connectionString,
+        SHARED_CACHE: external.keyValue('shared-cache').connectionString,
+      },
+    });
+
+    expect(danglingReference(parsed([api]))).toEqual([]);
+  });
+
+  it('reports nothing for a service referencing itself', () => {
+    const api = web('api', {
+      runtime: 'node',
+      env: (self) => ({ APP_HOST: self.renderVar('RENDER_EXTERNAL_HOSTNAME') }),
+    });
+
+    expect(danglingReference(parsed([api]))).toEqual([]);
+  });
+
+  it('reports a service reference whose target is a database, which answers fromDatabase', () => {
+    const api = web('api', { runtime: 'node' });
+    const billing = web('billing', { runtime: 'node', env: { API_HOST: api.host } });
+
+    expect(
+      danglingReference(parsed([billing, postgres('api')])).map((issue) => issue.at.field),
+    ).toEqual(['env.API_HOST']);
   });
 
   it('reaches the environment map of every kind that carries one, a static site included', () => {

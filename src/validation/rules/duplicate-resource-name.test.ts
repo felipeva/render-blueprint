@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { keyValue } from '../../resources/key-value.js';
 import { postgres } from '../../resources/postgres.js';
 import { readReplica } from '../../resources/read-replica.js';
 import { web } from '../../resources/web.js';
@@ -69,5 +70,14 @@ describe('duplicateResourceName', () => {
     const elephant = postgres('elephant', { readReplicas: [readReplica('elephant-replica')] });
 
     expect(duplicateResourceName([elephant, postgres('mammoth')])).toEqual([]);
+  });
+
+  it('holds a Key Value instance in the one namespace every kind shares', () => {
+    const issues = duplicateResourceName([
+      web('cache', { runtime: 'node' }),
+      keyValue('cache', { ipAllowList: [] }),
+    ]);
+
+    expect(issues.map((issue) => issue.at)).toEqual([{ resource: 'cache', field: 'name' }]);
   });
 });

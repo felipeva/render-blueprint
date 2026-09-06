@@ -10,6 +10,7 @@ export const VALIDATION_CODES = [
   'DeprecatedField',
   'ResourceInMultipleLocations',
   'DanglingReference',
+  'UnknownServiceEnvVarKey',
   'HighAvailabilityUnsupported',
   'TooManyReadReplicas',
 ] as const;

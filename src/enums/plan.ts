@@ -85,3 +85,24 @@ export type PostgresPlan = (typeof POSTGRES_PLANS)[number];
 
 export const postgresPlanSchema: z.ZodEnum<z.core.util.ToEnum<PostgresPlan>> =
   z.enum(POSTGRES_PLANS);
+
+export const KEY_VALUE_PLANS = [
+  'free',
+  'starter',
+  'standard',
+  'pro',
+  'pro plus',
+  'pro max',
+  'pro ultra',
+  '256mb',
+  '1g',
+  '5g',
+  '10g',
+  '20g',
+  '40g',
+] as const;
+
+export type KeyValuePlan = (typeof KEY_VALUE_PLANS)[number];
+
+export const keyValuePlanSchema: z.ZodEnum<z.core.util.ToEnum<KeyValuePlan>> =
+  z.enum(KEY_VALUE_PLANS);
