@@ -1,16 +1,22 @@
 import { YAMLMap, YAMLSeq } from 'yaml';
 
+import { BUILD_FILTER_FIELDS, type BuildFilter } from '../resources/build-filter.js';
 import { CRON_JOB_FIELDS, type CronJob } from '../resources/cron.js';
+import { DISK_FIELDS, type Disk } from '../resources/disk.js';
 import { KEY_VALUE_STORE_FIELDS, type KeyValueStore } from '../resources/key-value.js';
+import { SERVICE_PREVIEWS_FIELDS, type ServicePreviews } from '../resources/previews.js';
 import { PRIVATE_SERVICE_FIELDS, type PrivateService } from '../resources/private-service.js';
 import { resourceEnv, type BlueprintResource } from '../resources/resource.js';
+import { SCALING_FIELDS, type Scaling } from '../resources/scaling.js';
 import {
   HEADER_FIELDS,
   ROUTE_FIELDS,
   STATIC_SITE_FIELDS,
+  STATIC_SITE_PREVIEWS_FIELDS,
   type Header,
   type Route,
   type StaticSite,
+  type StaticSitePreviews,
 } from '../resources/static-site.js';
 import { WEB_SERVICE_FIELDS, type WebService } from '../resources/web.js';
 import { WORKER_FIELDS, type Worker } from '../resources/worker.js';
@@ -18,6 +24,53 @@ import { envVars } from './env-vars.js';
 import { ipAllowList } from './ip-allow-list.js';
 import { mapping } from './mapping.js';
 import { sourceValues } from './service-source.js';
+
+const disk = (value: Disk | undefined): YAMLMap | undefined =>
+  value === undefined
+    ? undefined
+    : mapping(
+        DISK_FIELDS,
+        { name: value.name, mountPath: value.mountPath, sizeGB: value.sizeGB },
+        undefined,
+      );
+
+const scaling = (value: Scaling | undefined): YAMLMap | undefined =>
+  value === undefined
+    ? undefined
+    : mapping(
+        SCALING_FIELDS,
+        {
+          minInstances: value.minInstances,
+          maxInstances: value.maxInstances,
+          targetMemoryPercent: value.targetMemoryPercent,
+          targetCPUPercent: value.targetCPUPercent,
+        },
+        undefined,
+      );
+
+const buildFilter = (value: BuildFilter | undefined): YAMLMap | undefined =>
+  value === undefined
+    ? undefined
+    : mapping(
+        BUILD_FILTER_FIELDS,
+        { paths: value.paths, ignoredPaths: value.ignoredPaths },
+        undefined,
+      );
+
+// design B §2.6: the instance count is `instances` in TypeScript wherever it appears.
+const servicePreviews = (value: ServicePreviews | undefined): YAMLMap | undefined =>
+  value === undefined
+    ? undefined
+    : mapping(
+        SERVICE_PREVIEWS_FIELDS,
+        { generation: value.generation, plan: value.plan, numInstances: value.instances },
+        undefined,
+      );
+
+const staticSitePreviews = (value: StaticSitePreviews | undefined): YAMLMap | undefined =>
+  value === undefined
+    ? undefined
+    : mapping(STATIC_SITE_PREVIEWS_FIELDS, { generation: value.generation }, undefined);
 
 const webService = (resource: WebService): YAMLMap => {
   const config = resource.config;
@@ -38,12 +91,19 @@ const webService = (resource: WebService): YAMLMap => {
       dockerCommand: source.dockerCommand,
       dockerContext: source.dockerContext,
       dockerfilePath: source.dockerfilePath,
+      numInstances: config.instances,
       healthCheckPath: config.healthCheckPath,
+      scaling: scaling(config.scaling),
       buildCommand: source.buildCommand,
       startCommand: config.startCommand,
       preDeployCommand: config.preDeployCommand,
+      domains: config.domains,
       envVars: envVars(resourceEnv(resource), config.envGroups),
       autoDeployTrigger: config.autoDeployTrigger,
+      disk: disk(config.disk),
+      buildFilter: buildFilter(config.buildFilter),
+      previews: servicePreviews(config.previews),
+      maxShutdownDelaySeconds: config.maxShutdownDelaySeconds,
     },
     config.extraFields,
   );
@@ -69,11 +129,17 @@ const privateServiceService = (resource: PrivateService): YAMLMap => {
       dockerCommand: source.dockerCommand,
       dockerContext: source.dockerContext,
       dockerfilePath: source.dockerfilePath,
+      numInstances: config.instances,
+      scaling: scaling(config.scaling),
       buildCommand: source.buildCommand,
       startCommand: config.startCommand,
       preDeployCommand: config.preDeployCommand,
       envVars: envVars(resourceEnv(resource), config.envGroups),
       autoDeployTrigger: config.autoDeployTrigger,
+      disk: disk(config.disk),
+      buildFilter: buildFilter(config.buildFilter),
+      previews: servicePreviews(config.previews),
+      maxShutdownDelaySeconds: config.maxShutdownDelaySeconds,
     },
     config.extraFields,
   );
@@ -98,11 +164,17 @@ const workerService = (resource: Worker): YAMLMap => {
       dockerCommand: source.dockerCommand,
       dockerContext: source.dockerContext,
       dockerfilePath: source.dockerfilePath,
+      numInstances: config.instances,
+      scaling: scaling(config.scaling),
       buildCommand: source.buildCommand,
       startCommand: config.startCommand,
       preDeployCommand: config.preDeployCommand,
       envVars: envVars(resourceEnv(resource), config.envGroups),
       autoDeployTrigger: config.autoDeployTrigger,
+      disk: disk(config.disk),
+      buildFilter: buildFilter(config.buildFilter),
+      previews: servicePreviews(config.previews),
+      maxShutdownDelaySeconds: config.maxShutdownDelaySeconds,
     },
     config.extraFields,
   );
@@ -131,6 +203,7 @@ const cronService = (resource: CronJob): YAMLMap => {
       branch: source.branch,
       image: source.image,
       envVars: envVars(resourceEnv(resource), config.envGroups),
+      buildFilter: buildFilter(config.buildFilter),
       rootDir: source.rootDir,
       autoDeployTrigger: config.autoDeployTrigger,
       preDeployCommand: config.preDeployCommand,
@@ -183,6 +256,8 @@ const staticSiteService = (resource: StaticSite): YAMLMap => {
       runtime: 'static',
       buildCommand: config.buildCommand,
       staticPublishPath: config.staticPublishPath,
+      previews: staticSitePreviews(config.previews),
+      buildFilter: buildFilter(config.buildFilter),
       headers: config.headers === undefined ? undefined : headers(config.headers),
       routes: config.routes === undefined ? undefined : routes(config.routes),
       envVars: envVars(resourceEnv(resource), config.envGroups),
@@ -209,6 +284,7 @@ const keyValueService = (resource: KeyValueStore): YAMLMap => {
       region: config.region,
       ipAllowList: ipAllowList(config.ipAllowList),
       plan: config.plan,
+      previewPlan: config.previews?.plan,
       maxmemoryPolicy: config.maxmemoryPolicy,
       persistenceMode: config.persistenceMode,
     },

@@ -37,6 +37,8 @@ const database = (resource: PostgresDatabase): YAMLMap => {
       region: config.region,
       plan: config.plan,
       diskSizeGB: config.diskSizeGB,
+      previewPlan: config.previews?.plan,
+      previewDiskSizeGB: config.previews?.diskSizeGB,
       postgresMajorVersion: config.postgresMajorVersion,
       highAvailability:
         config.highAvailability === undefined

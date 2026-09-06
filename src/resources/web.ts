@@ -10,8 +10,12 @@ import {
   httpServiceReference,
   type HttpServiceReference,
 } from '../references/http-service-reference.js';
+import type { BuildFilter } from './build-filter.js';
+import { raiseDiskPreventsScaling, type Disk } from './disk.js';
 import type { EnvironmentGroup } from './env-group.js';
-import { optionalSourcedServiceFields } from './service-fields.js';
+import { servicePreviewsSchema, type ServicePreviews } from './previews.js';
+import type { Scaling } from './scaling.js';
+import { optionalServerServiceFields, optionalSourcedServiceFields } from './service-fields.js';
 import {
   dockerSourceFields,
   imageSourceFields,
@@ -23,13 +27,22 @@ import {
 
 export type HealthCheckPath = `/${string}`;
 
+// spec §4.1: domains and healthCheckPath sit on the serverService branch, and the prose gives both
+// to web services alone, so a worker and a private service model neither.
 interface WebFields {
   readonly region?: Region;
   readonly plan?: ServerPlan;
+  readonly instances?: number;
   readonly healthCheckPath?: HealthCheckPath;
+  readonly scaling?: Scaling;
   readonly startCommand?: string;
   readonly preDeployCommand?: string;
+  readonly domains?: readonly string[];
   readonly autoDeployTrigger?: AutoDeployTrigger;
+  readonly disk?: Disk;
+  readonly buildFilter?: BuildFilter;
+  readonly previews?: ServicePreviews;
+  readonly maxShutdownDelaySeconds?: number;
   readonly env?: ServiceEnvironment<HttpServiceReference>;
   readonly envGroups?: readonly EnvironmentGroup[];
   readonly extraFields?: JsonObject;
@@ -63,17 +76,27 @@ export const WEB_SERVICE_FIELDS = [
   'dockerCommand',
   'dockerContext',
   'dockerfilePath',
+  'numInstances',
   'healthCheckPath',
+  'scaling',
   'buildCommand',
   'startCommand',
   'preDeployCommand',
+  'domains',
   'envVars',
   'autoDeployTrigger',
+  'disk',
+  'buildFilter',
+  'previews',
+  'maxShutdownDelaySeconds',
 ] as const;
 
 const webFields = {
   ...optionalSourcedServiceFields,
+  ...optionalServerServiceFields,
   plan: serverPlanSchema.exactOptional(),
+  domains: z.array(z.string()).readonly().exactOptional(),
+  previews: servicePreviewsSchema(serverPlanSchema).exactOptional(),
   healthCheckPath: z
     .templateLiteral(['/', z.string()], {
       error: 'A healthCheckPath is a string starting with "/"; Render requests it from the root.',
@@ -82,11 +105,13 @@ const webFields = {
   env: serviceEnvironmentSchema<HttpServiceReference>().exactOptional(),
 };
 
-const webConfigSchema = z.discriminatedUnion('runtime', [
-  z.strictObject({ ...webFields, ...nativeSourceFields }).readonly(),
-  z.strictObject({ ...webFields, ...dockerSourceFields }).readonly(),
-  z.strictObject({ ...webFields, ...imageSourceFields }).readonly(),
-]);
+const webConfigSchema = z
+  .discriminatedUnion('runtime', [
+    z.strictObject({ ...webFields, ...nativeSourceFields }).readonly(),
+    z.strictObject({ ...webFields, ...dockerSourceFields }).readonly(),
+    z.strictObject({ ...webFields, ...imageSourceFields }).readonly(),
+  ])
+  .superRefine(raiseDiskPreventsScaling);
 
 type WebConfigSchemaMatchesInterface = Expect<Equal<z.infer<typeof webConfigSchema>, WebConfig>>;
 

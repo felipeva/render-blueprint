@@ -10,8 +10,12 @@ import {
   opaqueServiceReference,
   type OpaqueServiceReference,
 } from '../references/opaque-service-reference.js';
+import type { BuildFilter } from './build-filter.js';
+import { raiseDiskPreventsScaling, type Disk } from './disk.js';
 import type { EnvironmentGroup } from './env-group.js';
-import { optionalSourcedServiceFields } from './service-fields.js';
+import { servicePreviewsSchema, type ServicePreviews } from './previews.js';
+import type { Scaling } from './scaling.js';
+import { optionalServerServiceFields, optionalSourcedServiceFields } from './service-fields.js';
 import {
   dockerSourceFields,
   imageSourceFields,
@@ -26,9 +30,15 @@ import {
 interface WorkerFields {
   readonly region?: Region;
   readonly plan?: PaidServerPlan;
+  readonly instances?: number;
+  readonly scaling?: Scaling;
   readonly startCommand?: string;
   readonly preDeployCommand?: string;
   readonly autoDeployTrigger?: AutoDeployTrigger;
+  readonly disk?: Disk;
+  readonly buildFilter?: BuildFilter;
+  readonly previews?: ServicePreviews<PaidServerPlan>;
+  readonly maxShutdownDelaySeconds?: number;
   readonly env?: ServiceEnvironment<OpaqueServiceReference>;
   readonly envGroups?: readonly EnvironmentGroup[];
   readonly extraFields?: JsonObject;
@@ -62,24 +72,34 @@ export const WORKER_FIELDS = [
   'dockerCommand',
   'dockerContext',
   'dockerfilePath',
+  'numInstances',
+  'scaling',
   'buildCommand',
   'startCommand',
   'preDeployCommand',
   'envVars',
   'autoDeployTrigger',
+  'disk',
+  'buildFilter',
+  'previews',
+  'maxShutdownDelaySeconds',
 ] as const;
 
 const workerFields = {
   ...optionalSourcedServiceFields,
+  ...optionalServerServiceFields,
   plan: paidServerPlanSchema.exactOptional(),
+  previews: servicePreviewsSchema(paidServerPlanSchema).exactOptional(),
   env: serviceEnvironmentSchema<OpaqueServiceReference>().exactOptional(),
 };
 
-const workerConfigSchema = z.discriminatedUnion('runtime', [
-  z.strictObject({ ...workerFields, ...nativeSourceFields }).readonly(),
-  z.strictObject({ ...workerFields, ...dockerSourceFields }).readonly(),
-  z.strictObject({ ...workerFields, ...imageSourceFields }).readonly(),
-]);
+const workerConfigSchema = z
+  .discriminatedUnion('runtime', [
+    z.strictObject({ ...workerFields, ...nativeSourceFields }).readonly(),
+    z.strictObject({ ...workerFields, ...dockerSourceFields }).readonly(),
+    z.strictObject({ ...workerFields, ...imageSourceFields }).readonly(),
+  ])
+  .superRefine(raiseDiskPreventsScaling);
 
 type WorkerConfigSchemaMatchesInterface = Expect<
   Equal<z.infer<typeof workerConfigSchema>, WorkerConfig>

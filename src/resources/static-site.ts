@@ -1,6 +1,7 @@
 import * as z from 'zod';
 
 import type { AutoDeployTrigger } from '../enums/auto-deploy-trigger.js';
+import { previewGenerationSchema, type PreviewGeneration } from '../enums/preview-generation.js';
 import { routeTypeSchema, type RouteType } from '../enums/route-type.js';
 import { serviceEnvironmentSchema, type ServiceEnvironment } from '../env/self-environment.js';
 import type { Equal, Expect } from '../equal.js';
@@ -9,6 +10,7 @@ import {
   opaqueServiceReference,
   type OpaqueServiceReference,
 } from '../references/opaque-service-reference.js';
+import type { BuildFilter } from './build-filter.js';
 import type { EnvironmentGroup } from './env-group.js';
 import { optionalCommonServiceFields } from './service-fields.js';
 
@@ -24,6 +26,12 @@ export interface Header {
   readonly value: string;
 }
 
+// spec §4.6: staticServicePreviews carries generation alone — a static site runs on no plan and on
+// no instance count, so neither reaches its previews either.
+export interface StaticSitePreviews {
+  readonly generation?: PreviewGeneration;
+}
+
 export interface StaticSiteConfig {
   readonly repo?: string;
   readonly branch?: string;
@@ -31,6 +39,8 @@ export interface StaticSiteConfig {
   readonly buildCommand?: string;
   readonly preDeployCommand?: string;
   readonly staticPublishPath?: string;
+  readonly previews?: StaticSitePreviews;
+  readonly buildFilter?: BuildFilter;
   readonly routes?: readonly Route[];
   readonly headers?: readonly Header[];
   readonly domains?: readonly string[];
@@ -53,6 +63,8 @@ export const STATIC_SITE_FIELDS = [
   'runtime',
   'buildCommand',
   'staticPublishPath',
+  'previews',
+  'buildFilter',
   'headers',
   'routes',
   'envVars',
@@ -65,6 +77,9 @@ export const STATIC_SITE_FIELDS = [
 ] as const;
 
 export const HEADER_FIELDS = ['path', 'name', 'value'] as const;
+
+// Emission order follows the schema's staticServicePreviews property order.
+export const STATIC_SITE_PREVIEWS_FIELDS = ['generation'] as const;
 
 export const ROUTE_FIELDS = ['type', 'source', 'destination'] as const;
 
@@ -88,6 +103,10 @@ const staticSiteConfigSchema = z
   .strictObject({
     ...optionalCommonServiceFields,
     staticPublishPath: z.string().exactOptional(),
+    previews: z
+      .strictObject({ generation: previewGenerationSchema.exactOptional() })
+      .readonly()
+      .exactOptional(),
     routes: z.array(routeSchema).readonly().exactOptional(),
     headers: z.array(headerSchema).readonly().exactOptional(),
     domains: z.array(z.string()).readonly().exactOptional(),

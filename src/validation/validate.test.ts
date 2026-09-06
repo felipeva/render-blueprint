@@ -35,6 +35,9 @@ const uncheckedWorker: (json: string) => WorkerConfig = JSON.parse;
 const uncheckedPrivateService: (json: string) => PrivateServiceConfig = JSON.parse;
 const uncheckedCron: (json: string) => CronConfig = JSON.parse;
 
+const CRON_WITH_UNKNOWN_BUILD_FILTER_FIELD =
+  '{"runtime":"node","schedule":"0 2 * * *","buildFilter":{"globs":["a"]}}';
+
 const reportedCodes = (result: ReturnType<typeof validate>): readonly ValidationCode[] =>
   Result.isError(result) ? result.error.issues.map((issue) => issue.code) : [];
 
@@ -922,6 +925,188 @@ describe('validate', () => {
     expect(result.error.issues[0].at).toEqual({ resource: 'elephant', field: 'readReplicas' });
   });
 
+  it('reports an inverted scaling range under its own code', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', {
+            runtime: 'node',
+            buildCommand: 'pnpm build',
+            startCommand: 'pnpm start',
+            scaling: { minInstances: 4, maxInstances: 2, targetCPUPercent: 70 },
+          }),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['ScalingRangeInverted']);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'scaling.maxInstances' });
+  });
+
+  it('reports autoscaling with no target metric under its own code', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          worker('jobs', {
+            runtime: 'node',
+            buildCommand: 'pnpm build',
+            startCommand: 'pnpm work',
+            scaling: { minInstances: 1, maxInstances: 4 },
+          }),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['ScalingTargetMissing']);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues[0].at).toEqual({ resource: 'jobs', field: 'scaling' });
+  });
+
+  it('reports a disk beside autoscaling under its own code', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          privateService('auth', {
+            runtime: 'node',
+            buildCommand: 'pnpm build',
+            startCommand: 'pnpm serve',
+            disk: { name: 'keys', mountPath: '/var/keys' },
+            scaling: { minInstances: 1, maxInstances: 3, targetCPUPercent: 70 },
+          }),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['DiskPreventsScaling']);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues[0].at).toEqual({ resource: 'auth', field: 'scaling' });
+  });
+
+  it('reports a disk on a path Render reserves under its own code', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', {
+            runtime: 'node',
+            buildCommand: 'pnpm build',
+            startCommand: 'pnpm start',
+            disk: { name: 'uploads', mountPath: '/etc' },
+          }),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['MountPathDisallowed']);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'disk.mountPath' });
+  });
+
+  it('reports a scaling target above 90 as out of range', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', {
+            runtime: 'node',
+            buildCommand: 'pnpm build',
+            startCommand: 'pnpm start',
+            scaling: { minInstances: 1, maxInstances: 3, targetCPUPercent: 95 },
+          }),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['OutOfRange']);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues[0].at).toEqual({
+      resource: 'api',
+      field: 'scaling.targetCPUPercent',
+    });
+  });
+
+  it('warns that autoscaling makes Render ignore the instance count', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', {
+            runtime: 'node',
+            buildCommand: 'pnpm build',
+            startCommand: 'pnpm start',
+            instances: 3,
+            scaling: { minInstances: 1, maxInstances: 3, targetCPUPercent: 70 },
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isOk(result)).toBe(true);
+    if (!Result.isOk(result)) return;
+    expect(result.value.warnings.map((warning) => warning.code)).toEqual([
+      'InstancesIgnoredByScaling',
+    ]);
+  });
+
+  it('reports a field the library does not model inside a disk', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', unchecked('{"runtime":"node","disk":{"name":"d","mountPath":"/d","size":1}}')),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['UnknownField']);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'disk.size' });
+  });
+
+  it('reports a field the library does not model inside a build filter', () => {
+    const result = validate(
+      blueprint({
+        resources: [cron('nightly', uncheckedCron(CRON_WITH_UNKNOWN_BUILD_FILTER_FIELD))],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['UnknownField']);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues[0].at).toEqual({ resource: 'nightly', field: 'buildFilter.globs' });
+  });
+
+  it('reports a field the library does not model inside a static site\u2019s previews', () => {
+    const result = validate(
+      blueprint({
+        resources: [staticSite('marketing', uncheckedStatic('{"previews":{"plan":"starter"}}'))],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['UnknownField']);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues[0].at).toEqual({ resource: 'marketing', field: 'previews.plan' });
+  });
+
+  it('reports a field the library does not model inside a Key Value preview override', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          keyValue('cache', uncheckedKeyValue('{"ipAllowList":[],"previews":{"diskSizeGB":5}}')),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['UnknownField']);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues[0].at).toEqual({ resource: 'cache', field: 'previews.diskSizeGB' });
+  });
+
   it('reports a reference to a database the blueprint does not list', () => {
     const elephant = postgres('elephant');
     const result = validate(
@@ -962,14 +1147,14 @@ describe('validate', () => {
     ).toBe(true);
   });
 
-  it('keeps previewPlan in a database\u2019s extraFields, where it is the current form', () => {
+  it('reports previewPlan in a database\u2019s extraFields as a conflict, not a retired form', () => {
     const result = validate(
       blueprint({
         resources: [postgres('elephant', { extraFields: { previewPlan: 'basic-1gb' } })],
       }),
     );
 
-    expect(Result.isOk(result)).toBe(true);
+    expect(reportedCodes(result)).toEqual(['ExtraFieldConflict']);
   });
 
   it('still reports previewPlan in a service\u2019s extraFields, where previews.plan replaced it', () => {

@@ -98,3 +98,48 @@ describe('WEB_CONFIG_SCHEMA_MATCHES_INTERFACE', () => {
     expectTypeOf(WEB_CONFIG_SCHEMA_MATCHES_INTERFACE).toEqualTypeOf<true>();
   });
 });
+
+describe('web disks, scaling and previews', () => {
+  it('takes a disk, a fixed instance count, domains, a build filter and previews', () => {
+    expectTypeOf(
+      web('api', {
+        runtime: 'node',
+        instances: 1,
+        disk: { name: 'uploads', mountPath: '/var/data', sizeGB: 20 },
+        domains: ['acme.dev'],
+        buildFilter: { paths: ['apps/api/**'], ignoredPaths: ['**/*.md'] },
+        previews: { generation: 'automatic', plan: 'starter', instances: 1 },
+        maxShutdownDelaySeconds: 60,
+      }),
+    ).toEqualTypeOf<WebService>();
+  });
+
+  it('takes autoscaling with a target metric', () => {
+    expectTypeOf(
+      web('api', {
+        runtime: 'node',
+        scaling: { minInstances: 1, maxInstances: 3, targetCPUPercent: 70 },
+      }),
+    ).toEqualTypeOf<WebService>();
+  });
+
+  it('requires both bounds on scaling, which the prose calls required', () => {
+    // @ts-expect-error spec §4.5: minInstances and maxInstances are both required.
+    web('api', { runtime: 'node', scaling: { minInstances: 1 } });
+  });
+
+  it('rejects a disk with no mount path', () => {
+    // @ts-expect-error spec §4.4: a disk carries a name and a mountPath.
+    web('api', { runtime: 'node', disk: { name: 'uploads' } });
+  });
+
+  it('rejects a preview generation Render does not define', () => {
+    // @ts-expect-error spec §4.6: generation is automatic, manual or off.
+    web('api', { runtime: 'node', previews: { generation: 'sometimes' } });
+  });
+
+  it('rejects a field the schema does not give servicePreviews', () => {
+    // @ts-expect-error spec §4.6: servicePreviews carries generation, plan and instances.
+    web('api', { runtime: 'node', previews: { expireAfterDays: 7 } });
+  });
+});
