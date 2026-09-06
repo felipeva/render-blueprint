@@ -1,7 +1,7 @@
 import * as z from 'zod';
 
 import type { AutoDeployTrigger } from '../enums/auto-deploy-trigger.js';
-import { workerPlanSchema, type WorkerPlan } from '../enums/plan.js';
+import { paidServerPlanSchema, type PaidServerPlan } from '../enums/plan.js';
 import type { Region } from '../enums/region.js';
 import { serviceEnvironmentSchema, type ServiceEnvironment } from '../env/self-environment.js';
 import type { Equal, Expect } from '../equal.js';
@@ -25,7 +25,7 @@ import {
 // private service shares with a web service, and the prose restricts all four to web services.
 interface PrivateServiceFields {
   readonly region?: Region;
-  readonly plan?: WorkerPlan;
+  readonly plan?: PaidServerPlan;
   readonly startCommand?: string;
   readonly preDeployCommand?: string;
   readonly autoDeployTrigger?: AutoDeployTrigger;
@@ -74,7 +74,7 @@ export const PRIVATE_SERVICE_FIELDS = [
 
 const privateServiceFields = {
   ...optionalSourcedServiceFields,
-  plan: workerPlanSchema.exactOptional(),
+  plan: paidServerPlanSchema.exactOptional(),
   env: serviceEnvironmentSchema<HttpServiceReference>().exactOptional(),
 };
 

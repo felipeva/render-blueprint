@@ -14,9 +14,9 @@ import { NETWORK_ISOLATIONS } from '../src/enums/network-isolation.js';
 import {
   CRON_PLANS,
   KEY_VALUE_PLANS,
+  PAID_SERVER_PLANS,
   POSTGRES_PLANS,
   SERVER_PLANS,
-  WORKER_PLANS,
 } from '../src/enums/plan.js';
 import { POSTGRES_MAJOR_VERSIONS } from '../src/enums/postgres-major-version.js';
 import { PREVIEW_GENERATIONS } from '../src/enums/preview-generation.js';
@@ -80,14 +80,14 @@ describe('SERVER_PLANS', () => {
   });
 });
 
-describe('WORKER_PLANS', () => {
+describe('PAID_SERVER_PLANS', () => {
   it('holds the serverPlan enum Render publishes without the free tier', () => {
-    // spec §8.1: the [SPEC] table for private services and background workers omits `free`; the
+    // spec §8.1: the [SPEC] tables for private services and background workers omit `free`; the
     // schema does not distinguish, so the published enum is the only oracle for the rest.
-    expect(converted(WORKER_PLANS)).toEqual(
+    expect(converted(PAID_SERVER_PLANS)).toEqual(
       (published('serverPlan') ?? []).filter((plan) => plan !== 'free'),
     );
-    expect(WORKER_PLANS).toEqual(SERVER_PLANS.filter((plan) => plan !== 'free'));
+    expect(PAID_SERVER_PLANS).toEqual(SERVER_PLANS.filter((plan) => plan !== 'free'));
   });
 });
 

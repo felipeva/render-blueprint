@@ -7,7 +7,13 @@ export type { EnvironmentProtection } from './enums/environment-protection.js';
 export type { KeyValuePersistenceMode } from './enums/key-value-persistence-mode.js';
 export type { MaxmemoryPolicy } from './enums/maxmemory-policy.js';
 export type { NetworkIsolation } from './enums/network-isolation.js';
-export type { CronPlan, KeyValuePlan, PostgresPlan, ServerPlan, WorkerPlan } from './enums/plan.js';
+export type {
+  CronPlan,
+  KeyValuePlan,
+  PaidServerPlan,
+  PostgresPlan,
+  ServerPlan,
+} from './enums/plan.js';
 export type { PostgresMajorVersion } from './enums/postgres-major-version.js';
 export type { PreviewGeneration } from './enums/preview-generation.js';
 export type { ReferenceableServiceType } from './enums/referenceable-service-type.js';

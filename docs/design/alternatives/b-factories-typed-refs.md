@@ -104,7 +104,7 @@ export interface ResourceDefaults {
   readonly buildFilter?: BuildFilter;  readonly plan?: PlanDefaults;
 }
 export interface PlanDefaults {   // one key per factory: the four plan enums differ, so they cannot share a slot
-  readonly web?: ServerPlan;  readonly worker?: WorkerPlan;  readonly privateService?: WorkerPlan;
+  readonly web?: ServerPlan;  readonly worker?: PaidServerPlan;  readonly privateService?: PaidServerPlan;
   readonly cron?: CronPlan;   readonly keyValue?: KeyValuePlan;  readonly postgres?: PostgresPlan;
 }
 
@@ -344,7 +344,7 @@ resources.
 | 8 | `fromService` with both `property` and `envVarKey` | **Synth** | unrepresentable through the API: a handle yields one or the other, and nothing builds the pair. An object literal annotated `ServiceReferenceValue` is *not* rejected, because TypeScript admits any property a union member declares, so the two strict branches of the value schema are what reject it (ADR-0001) |
 | 9 | Typo `RENDER_EXTERNAL_HOSTNAM` | **Compile** | `renderVar` takes the closed `RenderProvidedKey` union |
 | 10 | `healthCheckPath: "healthz"` | **Compile** | typed `` `/${string}` `` |
-| 11 | `runtime: "static"` on a worker; `plan: "free"` on worker/pserv | **Compile** | `WorkerRuntime` excludes `static`; `WorkerPlan = Exclude<ServerPlan, "free">` — both stricter than the schema, per prose |
+| 11 | `runtime: "static"` on a worker; `plan: "free"` on worker/pserv | **Compile** | `WorkerRuntime` excludes `static`; the plan set is the server plans minus `free`, named `PaidServerPlan` because a worker and a private service share it (issue #10) — both stricter than the schema, per prose |
 | 12 | `repo` alongside `runtime: "image"` | **Compile\*** | `runtime` discriminates the source union + excess-property check. *\*escapes if the config is a pre-built variable → synth `ConflictingSource`* |
 | 13 | Listing a `readReplica`, or `external.privateService("x")`, in `resources` | **Compile** | outside `BlueprintResource`; external handles carry no `kind` |
 | 14 | Dangling ref: `db.connectionString` used, `db` never listed | **Synth** | `DanglingReference` — names the source resource, the env key, the missing target |

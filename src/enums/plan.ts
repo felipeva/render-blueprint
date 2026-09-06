@@ -28,9 +28,10 @@ export type ServerPlan = (typeof SERVER_PLANS)[number];
 
 export const serverPlanSchema: z.ZodEnum<z.core.util.ToEnum<ServerPlan>> = z.enum(SERVER_PLANS);
 
-// spec §8.1: the free instance type is offered to web services and static sites; the [SPEC] table
-// for private services and background workers is the serverPlan list without it.
-export const WORKER_PLANS = [
+// spec §8.1: the free instance type is offered to web services and static sites; the [SPEC] tables
+// for private services and background workers are the serverPlan list without it, and both kinds
+// take the same set, so it is named for what it holds rather than for one of the two.
+export const PAID_SERVER_PLANS = [
   'starter',
   'standard',
   'pro',
@@ -53,9 +54,10 @@ export const WORKER_PLANS = [
   '12c-96g',
 ] as const;
 
-export type WorkerPlan = (typeof WORKER_PLANS)[number];
+export type PaidServerPlan = (typeof PAID_SERVER_PLANS)[number];
 
-export const workerPlanSchema: z.ZodEnum<z.core.util.ToEnum<WorkerPlan>> = z.enum(WORKER_PLANS);
+export const paidServerPlanSchema: z.ZodEnum<z.core.util.ToEnum<PaidServerPlan>> =
+  z.enum(PAID_SERVER_PLANS);
 
 export const CRON_PLANS = [
   'starter',
