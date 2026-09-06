@@ -7,8 +7,16 @@ import type {
 
 const indent = (line: string): string => `  ${line}`;
 
+export interface FailureWithCause {
+  readonly message: string;
+  readonly cause: unknown;
+}
+
 export const formatCause = (cause: unknown): string =>
   cause instanceof Error ? cause.message : String(cause);
+
+export const formatFailure = (failure: FailureWithCause): string =>
+  `${failure.message}\n${indent(formatCause(failure.cause))}`;
 
 export const formatIssues = (issues: readonly ValidationIssue[]): string =>
   [

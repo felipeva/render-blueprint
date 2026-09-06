@@ -3,16 +3,18 @@ import { dirname, join, resolve } from 'node:path';
 
 import { isPanic, Result, type Result as ResultType } from 'better-result';
 
-import type {
-  BlueprintFileUnreadable,
-  BlueprintInvalid,
-  BlueprintWriteFailed,
-  DriftReport,
-  ValidationWarning,
+import {
+  checkBlueprint,
+  nodeFilePort,
+  writeBlueprint,
+  type BlueprintFileUnreadable,
+  type BlueprintInvalid,
+  type BlueprintWriteFailed,
+  type DriftReport,
+  type ValidationWarning,
 } from '../index.js';
-import { checkBlueprint, nodeFilePort, writeBlueprint } from '../index.js';
 import { discover, type BlueprintFileNotFound } from './discover.js';
-import { formatCause, formatDrift, formatIssues, formatWarnings } from './format.js';
+import { formatDrift, formatFailure, formatIssues, formatWarnings } from './format.js';
 import {
   load,
   type BlueprintExportInvalid,
@@ -78,38 +80,33 @@ const execute = (argv: readonly string[], from: string): Promise<ResultType<Outc
         ? join(dirname(blueprintPath), 'render.yaml')
         : resolve(from, args.out);
 
-    if (args.command === 'check') {
-      const report = yield* Result.await(checkBlueprint(value, { path: target }));
-      const checked: Outcome = {
-        action: 'checked',
-        path: target,
-        report,
+    if (args.command === 'synth') {
+      const written = yield* Result.await(writeBlueprint(value, { path: target }));
+      const wrote: Outcome = {
+        action: 'wrote',
+        path: written.path,
+        warnings: written.warnings,
         strict: args.strict,
       };
 
-      return Result.ok(checked);
+      return Result.ok(wrote);
     }
 
-    const written = yield* Result.await(writeBlueprint(value, { path: target }));
-    const wrote: Outcome = {
-      action: 'wrote',
-      path: written.path,
-      warnings: written.warnings,
-      strict: args.strict,
-    };
+    const report = yield* Result.await(checkBlueprint(value, { path: target }));
+    const checked: Outcome = { action: 'checked', path: target, report, strict: args.strict };
 
-    return Result.ok(wrote);
+    return Result.ok(checked);
   });
 
-const strictlyFailed = (strict: boolean, warnings: readonly ValidationWarning[]): boolean => {
-  if (!strict || warnings.length === 0) return false;
+const strictExit = (strict: boolean, warnings: readonly ValidationWarning[]): number => {
+  if (!strict || warnings.length === 0) return EXIT_OK;
 
   complain(
     `--strict is on, so ${String(warnings.length)} ${
       warnings.length === 1 ? 'warning fails' : 'warnings fail'
     } this run.`,
   );
-  return true;
+  return EXIT_FAILED;
 };
 
 const completeCheck = (path: string, report: DriftReport, strict: boolean): number => {
@@ -121,7 +118,7 @@ const completeCheck = (path: string, report: DriftReport, strict: boolean): numb
   }
 
   say(`${path} is up to date.`);
-  return strictlyFailed(strict, report.warnings) ? EXIT_FAILED : EXIT_OK;
+  return strictExit(strict, report.warnings);
 };
 
 const complete = (outcome: Outcome): number => {
@@ -133,7 +130,7 @@ const complete = (outcome: Outcome): number => {
     case 'wrote':
       complain(formatWarnings(outcome.warnings));
       say(`Wrote ${outcome.path}`);
-      return strictlyFailed(outcome.strict, outcome.warnings) ? EXIT_FAILED : EXIT_OK;
+      return strictExit(outcome.strict, outcome.warnings);
 
     case 'checked':
       return completeCheck(outcome.path, outcome.report, outcome.strict);
@@ -146,10 +143,10 @@ const failed = (error: CliError): number => {
       BlueprintExportInvalid: (invalid) => invalid.message,
       BlueprintExportMissing: (missing) => missing.message,
       BlueprintFileNotFound: (absent) => absent.message,
-      BlueprintFileUnreadable: (failure) => `${failure.message}\n  ${formatCause(failure.cause)}`,
+      BlueprintFileUnreadable: formatFailure,
       BlueprintInvalid: (invalid) => formatIssues(invalid.issues),
-      BlueprintLoadFailed: (failure) => `${failure.message}\n  ${formatCause(failure.cause)}`,
-      BlueprintWriteFailed: (failure) => `${failure.message}\n  ${formatCause(failure.cause)}`,
+      BlueprintLoadFailed: formatFailure,
+      BlueprintWriteFailed: formatFailure,
       CommandLineInvalid: (invalid) => `${invalid.message}\n\n${USAGE}`,
     }),
   );

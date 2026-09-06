@@ -11,8 +11,6 @@ import type { FilePort } from '../index.js';
 
 export const BLUEPRINT_FILE_NAMES = ['render.ts', 'render.mts', 'render.js', 'render.mjs'] as const;
 
-export type BlueprintFileName = (typeof BLUEPRINT_FILE_NAMES)[number];
-
 const BlueprintFileNotFoundBase: TaggedErrorClass<'BlueprintFileNotFound'> =
   TaggedError('BlueprintFileNotFound');
 

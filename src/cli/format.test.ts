@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { DriftReport, ValidationIssue, ValidationWarning } from '../index.js';
-import { formatCause, formatDrift, formatIssues, formatWarnings } from './format.js';
+import { formatCause, formatDrift, formatFailure, formatIssues, formatWarnings } from './format.js';
 
 const issue: ValidationIssue = {
   code: 'DuplicateResourceName',
@@ -38,6 +38,14 @@ describe('formatWarnings', () => {
 
   it('renders no warnings as the empty string', () => {
     expect(formatWarnings([])).toBe('');
+  });
+});
+
+describe('formatFailure', () => {
+  it('puts the cause on an indented line under the message', () => {
+    expect(
+      formatFailure({ message: 'Could not read render.yaml.', cause: new Error('ENOENT') }),
+    ).toBe('Could not read render.yaml.\n  ENOENT');
   });
 });
 
