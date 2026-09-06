@@ -19,6 +19,9 @@ const groupNode = (resource: BlueprintResource): YAMLMap | undefined => {
     case 'envGroup':
       return envVarGroup(resource);
     case 'web':
+    case 'privateService':
+    case 'worker':
+    case 'cron':
     case 'staticSite':
     case 'keyValue':
     case 'postgres':

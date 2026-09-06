@@ -37,3 +37,8 @@ export const FROM_DATABASE_KEY_ORDER = ['name', 'property'] as const;
 
 // Emission order follows the schema's envVarFromService fromService property order.
 export const FROM_SERVICE_KEY_ORDER = ['type', 'name', 'property', 'envVarKey'] as const;
+
+// Emission order follows the schema's registryCredential property order.
+export const REGISTRY_CREDENTIAL_KEY_ORDER = ['fromRegistryCreds'] as const;
+
+export const FROM_REGISTRY_CREDS_KEY_ORDER = ['name'] as const;

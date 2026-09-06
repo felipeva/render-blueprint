@@ -6,13 +6,16 @@ import type { EnvValue } from '../env/env-value.js';
 import { secret } from '../env/secret.js';
 import type { JsonObject } from '../json.js';
 import { external } from '../references/external.js';
+import { cron, type CronConfig } from '../resources/cron.js';
 import { envGroup, type EnvGroupConfig } from '../resources/env-group.js';
 import { keyValue, type KeyValueConfig } from '../resources/key-value.js';
 import { postgres, type PostgresConfig } from '../resources/postgres.js';
+import { privateService, type PrivateServiceConfig } from '../resources/private-service.js';
 import { readReplica } from '../resources/read-replica.js';
 import type { BlueprintResource } from '../resources/resource.js';
 import { staticSite, type StaticSiteConfig } from '../resources/static-site.js';
 import { web, type WebConfig } from '../resources/web.js';
+import { worker, type WorkerConfig } from '../resources/worker.js';
 import { BlueprintInvalid } from './blueprint-invalid.js';
 import { validate } from './validate.js';
 
@@ -27,6 +30,9 @@ const uncheckedEnvValue: (json: string) => EnvValue = JSON.parse;
 const uncheckedGroup: (json: string) => EnvGroupConfig = JSON.parse;
 const uncheckedName: (json: string) => string = JSON.parse;
 const uncheckedResource: (json: string) => BlueprintResource = JSON.parse;
+const uncheckedWorker: (json: string) => WorkerConfig = JSON.parse;
+const uncheckedPrivateService: (json: string) => PrivateServiceConfig = JSON.parse;
+const uncheckedCron: (json: string) => CronConfig = JSON.parse;
 
 describe('validate', () => {
   it('accepts a blueprint that trips no rule', () => {
@@ -168,6 +174,159 @@ describe('validate', () => {
     if (!Result.isError(result)) return;
     expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
     expect(result.error.issues[0].at).toEqual({ resource: 'marketing', field: 'plan' });
+  });
+
+  it('reports a field the library does not model on a worker', () => {
+    const result = validate(
+      blueprint({
+        resources: [worker('jobs', uncheckedWorker('{"runtime":"node","healthCheckPath":"/x"}'))],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'jobs', field: 'healthCheckPath' });
+  });
+
+  it('reports a field the library does not model on a private service', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          privateService('auth', uncheckedPrivateService('{"runtime":"node","domains":["a"]}')),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'auth', field: 'domains' });
+  });
+
+  it('reports a field the library does not model on a cron job', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          cron('nightly', uncheckedCron('{"runtime":"node","schedule":"0 2 * * *","disk":{}}')),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'nightly', field: 'disk' });
+  });
+
+  it('reports a field the library does not model on a Docker source', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          worker('jobs', uncheckedWorker('{"runtime":"docker","buildCommand":"pnpm build"}')),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'jobs', field: 'buildCommand' });
+  });
+
+  // spec §4.3: image and repo are the two alternative sources, and the published schema enforces
+  // no exclusivity between them; the source union is what rejects the pair.
+  it('reports a repository beside a prebuilt image', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          worker(
+            'jobs',
+            uncheckedWorker('{"runtime":"image","image":{"url":"docker.io/a/b:1"},"repo":"r"}'),
+          ),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'jobs', field: 'repo' });
+  });
+
+  it('reports a field the library does not model on a prebuilt image', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          worker('jobs', uncheckedWorker('{"runtime":"image","image":{"url":"u","sha":"abc"}}')),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+    expect(result.error.issues[0].at.field).toBe('image.sha');
+  });
+
+  it('reports a field the library does not model on a registry credential', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          worker(
+            'jobs',
+            uncheckedWorker(
+              '{"runtime":"image","image":{"url":"u","creds":{"fromRegistryCreds":{"name":"n","id":1}}}}',
+            ),
+          ),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+    expect(result.error.issues[0].at.field).toBe('image.creds.fromRegistryCreds.id');
+  });
+
+  it('reports a runtime that picks no source the library models', () => {
+    const result = validate(
+      blueprint({ resources: [worker('jobs', uncheckedWorker('{"runtime":"static"}'))] }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['InvalidConfig']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'jobs', field: 'runtime' });
+  });
+
+  it('reports a cron job with no schedule', () => {
+    const result = validate(
+      blueprint({ resources: [cron('nightly', uncheckedCron('{"runtime":"node"}'))] }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['InvalidConfig']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'nightly', field: 'schedule' });
+  });
+
+  it('warns about a web-only field a worker sets through extraFields', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          worker('jobs', {
+            runtime: 'docker',
+            dockerCommand: 'node jobs.js',
+            extraFields: { healthCheckPath: '/healthz' },
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isOk(result)).toBe(true);
+    if (!Result.isOk(result)) return;
+    expect(result.value.warnings.map((warning) => warning.code)).toEqual(['WebOnlyField']);
   });
 
   it('reports a field the library does not model on a Key Value instance', () => {
@@ -410,7 +569,7 @@ describe('validate', () => {
     const result = validate(
       blueprint({
         resources: [
-          web('api', unchecked('{"runtime":"deno","healthCheckPath":"healthz","replicas":3}')),
+          web('api', unchecked('{"runtime":"node","healthCheckPath":"healthz","replicas":3}')),
         ],
       }),
     );
@@ -418,10 +577,25 @@ describe('validate', () => {
     expect(Result.isError(result)).toBe(true);
     if (!Result.isError(result)) return;
     expect(result.error.issues.map((issue) => issue.at.field)).toEqual([
-      'runtime',
       'healthCheckPath',
       'replicas',
     ]);
+  });
+
+  // spec §3.2: runtime picks the source, and a value outside the three forms matches no branch of
+  // the config, so there is no branch left to check the other fields against.
+  it('reports the runtime alone when it matches no source the library models', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', unchecked('{"runtime":"deno","healthCheckPath":"healthz","replicas":3}')),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.at.field)).toEqual(['runtime']);
   });
 
   it('reports schema issues before rule issues', () => {

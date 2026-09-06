@@ -1,6 +1,7 @@
 import * as z from 'zod';
 
 import { autoDeployTriggerSchema, type AutoDeployTrigger } from '../enums/auto-deploy-trigger.js';
+import { regionSchema, type Region } from '../enums/region.js';
 import { jsonObjectSchema, type JsonObject } from '../json.js';
 import { raise } from '../raise.js';
 import { environmentGroupSchema, type EnvironmentGroup } from './env-group.js';
@@ -54,4 +55,24 @@ export const optionalCommonServiceFields: OptionalCommonServiceFields = {
   autoDeployTrigger: commonServiceFields.autoDeployTrigger.exactOptional(),
   envGroups: commonServiceFields.envGroups.exactOptional(),
   extraFields: commonServiceFields.extraFields.exactOptional(),
+};
+
+// The fields the four kinds that choose a source share whatever source they choose. A static site
+// chooses none and runs no start command, so it spreads the common map above instead.
+export interface OptionalSourcedServiceFields {
+  readonly region: z.ZodExactOptional<z.ZodEnum<z.core.util.ToEnum<Region>>>;
+  readonly startCommand: z.ZodExactOptional<z.ZodString>;
+  readonly preDeployCommand: z.ZodExactOptional<CommonServiceFields['preDeployCommand']>;
+  readonly autoDeployTrigger: z.ZodExactOptional<CommonServiceFields['autoDeployTrigger']>;
+  readonly envGroups: z.ZodExactOptional<CommonServiceFields['envGroups']>;
+  readonly extraFields: z.ZodExactOptional<CommonServiceFields['extraFields']>;
+}
+
+export const optionalSourcedServiceFields: OptionalSourcedServiceFields = {
+  region: regionSchema.exactOptional(),
+  startCommand: z.string().exactOptional(),
+  preDeployCommand: optionalCommonServiceFields.preDeployCommand,
+  autoDeployTrigger: optionalCommonServiceFields.autoDeployTrigger,
+  envGroups: optionalCommonServiceFields.envGroups,
+  extraFields: optionalCommonServiceFields.extraFields,
 };

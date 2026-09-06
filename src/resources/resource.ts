@@ -4,6 +4,7 @@ import type { ReferenceableServiceType } from '../enums/referenceable-service-ty
 import { environmentMapSchema, type EnvironmentMap } from '../env/env-value.js';
 import { isSelfEnvironment, selfEnvironment } from '../env/self-environment.js';
 import type { Equal, Expect } from '../equal.js';
+import { CRON_JOB_FIELDS, parseCronConfig, type CronJob } from './cron.js';
 import {
   ENVIRONMENT_GROUP_FIELDS,
   parseEnvGroupConfig,
@@ -15,17 +16,35 @@ import {
   POSTGRES_DATABASE_FIELDS,
   type PostgresDatabase,
 } from './postgres.js';
+import {
+  parsePrivateServiceConfig,
+  PRIVATE_SERVICE_FIELDS,
+  type PrivateService,
+} from './private-service.js';
 import { parseStaticSiteConfig, STATIC_SITE_FIELDS, type StaticSite } from './static-site.js';
 import { parseWebConfig, WEB_SERVICE_FIELDS, type WebService } from './web.js';
+import { parseWorkerConfig, WORKER_FIELDS, type Worker } from './worker.js';
 
 export type BlueprintResource =
   | WebService
+  | PrivateService
+  | Worker
+  | CronJob
   | StaticSite
   | KeyValueStore
   | PostgresDatabase
   | EnvironmentGroup;
 
-export const RESOURCE_KINDS = ['web', 'staticSite', 'keyValue', 'postgres', 'envGroup'] as const;
+export const RESOURCE_KINDS = [
+  'web',
+  'privateService',
+  'worker',
+  'cron',
+  'staticSite',
+  'keyValue',
+  'postgres',
+  'envGroup',
+] as const;
 
 type ResourceKind = (typeof RESOURCE_KINDS)[number];
 
@@ -37,6 +56,12 @@ export const modeledFields = (resource: BlueprintResource): readonly string[] =>
   switch (resource.kind) {
     case 'web':
       return WEB_SERVICE_FIELDS;
+    case 'privateService':
+      return PRIVATE_SERVICE_FIELDS;
+    case 'worker':
+      return WORKER_FIELDS;
+    case 'cron':
+      return CRON_JOB_FIELDS;
     case 'staticSite':
       return STATIC_SITE_FIELDS;
     case 'keyValue':
@@ -53,6 +78,12 @@ export const modeledFields = (resource: BlueprintResource): readonly string[] =>
 export const resourceEnv = (resource: BlueprintResource): EnvironmentMap | undefined => {
   switch (resource.kind) {
     case 'web':
+      return selfEnvironment(resource.config?.env, resource);
+    case 'privateService':
+      return selfEnvironment(resource.config?.env, resource);
+    case 'worker':
+      return selfEnvironment(resource.config?.env, resource);
+    case 'cron':
       return selfEnvironment(resource.config?.env, resource);
     case 'staticSite':
       return selfEnvironment(resource.config?.env, resource);
@@ -71,6 +102,12 @@ export const resourceEnvIsCallback = (resource: BlueprintResource): boolean => {
   switch (resource.kind) {
     case 'web':
       return isSelfEnvironment(resource.config?.env);
+    case 'privateService':
+      return isSelfEnvironment(resource.config?.env);
+    case 'worker':
+      return isSelfEnvironment(resource.config?.env);
+    case 'cron':
+      return isSelfEnvironment(resource.config?.env);
     case 'staticSite':
       return isSelfEnvironment(resource.config?.env);
     case 'keyValue':
@@ -86,6 +123,9 @@ export const resourceEnvIsCallback = (resource: BlueprintResource): boolean => {
 const unparsedEnv = (resource: BlueprintResource): EnvironmentMap | undefined => {
   switch (resource.kind) {
     case 'web':
+    case 'privateService':
+    case 'worker':
+    case 'cron':
     case 'staticSite':
       return resourceEnv(resource);
     case 'keyValue':
@@ -111,6 +151,12 @@ export const resourceEnvGroups = (
   switch (resource.kind) {
     case 'web':
       return resource.config.envGroups;
+    case 'privateService':
+      return resource.config.envGroups;
+    case 'worker':
+      return resource.config.envGroups;
+    case 'cron':
+      return resource.config.envGroups;
     case 'staticSite':
       return resource.config.envGroups;
     case 'keyValue':
@@ -128,6 +174,12 @@ export const serviceReferenceType = (
   switch (resource.kind) {
     case 'web':
       return 'web';
+    case 'privateService':
+      return 'pserv';
+    case 'worker':
+      return 'worker';
+    case 'cron':
+      return 'cron';
     case 'staticSite':
       return 'static';
     case 'keyValue':
@@ -162,6 +214,18 @@ export const resourceConfigIssues = (resource: BlueprintResource): readonly z.co
   switch (resource.kind) {
     case 'web': {
       const result = parseWebConfig(resource.config);
+      return result.success ? [] : result.error.issues;
+    }
+    case 'privateService': {
+      const result = parsePrivateServiceConfig(resource.config);
+      return result.success ? [] : result.error.issues;
+    }
+    case 'worker': {
+      const result = parseWorkerConfig(resource.config);
+      return result.success ? [] : result.error.issues;
+    }
+    case 'cron': {
+      const result = parseCronConfig(resource.config);
       return result.success ? [] : result.error.issues;
     }
     case 'staticSite': {

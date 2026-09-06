@@ -55,6 +55,9 @@ const databaseNode = (resource: BlueprintResource): YAMLMap | undefined => {
     case 'postgres':
       return database(resource);
     case 'web':
+    case 'privateService':
+    case 'worker':
+    case 'cron':
     case 'staticSite':
     case 'keyValue':
     case 'envGroup':

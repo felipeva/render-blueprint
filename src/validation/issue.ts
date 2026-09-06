@@ -23,6 +23,7 @@ export const WARNING_CODES = [
   'BranchDisablesPreviews',
   'SecretSkipsPreviews',
   'UnknownServiceEnvVarKey',
+  'WebOnlyField',
 ] as const;
 
 export type WarningCode = (typeof WARNING_CODES)[number];

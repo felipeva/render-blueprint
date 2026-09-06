@@ -41,6 +41,9 @@ export const deprecation = (
 export const deprecationScope = (kind: BlueprintResource['kind']): DeprecationScope => {
   switch (kind) {
     case 'web':
+    case 'privateService':
+    case 'worker':
+    case 'cron':
     case 'staticSite':
       return 'service';
     case 'keyValue':
