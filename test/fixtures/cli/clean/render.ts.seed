@@ -1,0 +1,13 @@
+import { blueprint, web, type Blueprint } from '__RENDER_BLUEPRINT__';
+
+const api = web('api', {
+  runtime: 'node',
+  region: 'oregon',
+  plan: 'starter',
+  buildCommand: 'pnpm install --frozen-lockfile && pnpm build',
+  startCommand: 'pnpm start',
+});
+
+const value: Blueprint = blueprint({ resources: [api] });
+
+export default value;

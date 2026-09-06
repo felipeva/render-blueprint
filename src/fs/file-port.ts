@@ -14,4 +14,6 @@ export interface FileWriter {
   ) => Promise<ResultType<void, BlueprintWriteFailed>>;
 }
 
-export interface FilePort extends FileReader, FileWriter {}
+export interface FilePort extends FileReader, FileWriter {
+  readonly exists: (path: string) => Promise<boolean>;
+}
