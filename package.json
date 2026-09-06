@@ -34,7 +34,8 @@
   },
   "dependencies": {
     "better-result": "3.0.1",
-    "yaml": "2.9.0"
+    "yaml": "2.9.0",
+    "zod": "4.5.4"
   },
   "devDependencies": {
     "@oxlint/plugins": "1.81.0",
