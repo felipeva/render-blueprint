@@ -74,8 +74,7 @@ const fieldChanges = (
     return [change];
   });
 
-// A resource is paired by name; what is left over on both sides pairs by position, which is the
-// only evidence a blueprint gives that a resource was renamed rather than replaced.
+// Leftovers pair by position: the only evidence a blueprint gives that a resource was renamed.
 const renames = (
   section: DriftSection,
   committed: readonly JsonObject[],
