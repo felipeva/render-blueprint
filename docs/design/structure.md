@@ -88,7 +88,7 @@ Revisit only if the CLI grows a real dependency. `render-blueprint` is the npm n
 │   │   ├── services.ts              the four disjoint service branches + (type, runtime) discrimination
 │   │   ├── databases.ts             postgres → `databases:`, read-replica registration
 │   │   ├── env-vars.ts              map → `envVars:` list, `fromGroup` entries, the five value forms
-│   │   └── projects.ts  header.ts   projects[].environments[] and `ungrouped`; the banner
+│   │   └── projects.ts  banner.ts   projects[].environments[] and `ungrouped`; the banner
 │   ├── drift/  check-blueprint.ts   synthesize + read + compare → DriftReport
 │   │   ├── normalize.ts  diff.ts    makes the committed file comparable; the diff DriftReport carries
 │   │   └── immutable-field.ts       classifies changes Render cannot apply in place (spec §9/§12)
@@ -111,7 +111,7 @@ Revisit only if the CLI grows a real dependency. `render-blueprint` is the npm n
 │   └── schema/render.yaml.schema.json the conformance oracle, refreshed by script only (§6.3)
 ├── tools/oxlint/anti-slop/          written by the install skill; committed; never linted or edited
 └── .gitignore  .oxfmtrc.json  .oxlintrc.json  CLAUDE.md  package.json  pnpm-lock.yaml
-    skills-lock.json  tsconfig.json  tsdown.config.ts  vitest.config.ts
+    skills-lock.json  tsconfig.check.json  tsconfig.json  tsdown.config.ts  vitest.config.ts
 ```
 
 Colocated tests are not listed: `src/**/x.ts` may have `src/**/x.test.ts` (runtime) and
@@ -352,7 +352,7 @@ invalid blueprint (exit 1). It asserts exit codes and that stderr names the reso
 formatting. ADR-0002 fixes the CLI's contract at exactly this.
 
 **6.6 `pnpm check`** is the one command CI and agents run:
-`oxfmt --check && oxlint && tsc --noEmit && vitest run && vitest run --typecheck`. Format first,
+`oxfmt --check && oxlint && tsc -p tsconfig.check.json && vitest run && vitest run --typecheck`. Format first,
 because it is instant and its failures are noise in every later diff.
 
 ## 7. Tooling files
@@ -386,7 +386,7 @@ row says otherwise.
     "oxfmt": "0.66.0", "oxlint": "1.81.0", "tsdown": "0.23.0", "typescript": "7.0.2",
     "vitest": "5.0.0" },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -p tsconfig.check.json",
     "lint": "oxlint",
     "format": "oxfmt",
     "format:check": "oxfmt --check",

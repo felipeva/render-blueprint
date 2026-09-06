@@ -118,6 +118,14 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `main` is
 - Tagged error classes name the failed condition with no `Error` suffix: `BlueprintInvalid`,
   `BlueprintWriteFailed`, `BlueprintFileUnreadable`. `ValidationCode` literals follow the same
   rule, one per rule file.
+- Declare a tagged error as a class extending a hoisted, typed base constant:
+  `const XBase: TaggedErrorClass<"X"> = TaggedError("X");` then `class X extends XBase<Props>`.
+  TypeScript 7's `isolatedDeclarations` rejects `extends TaggedError("X")<Props>` with TS9021.
+- The ordered list of YAML keys a resource can emit lives beside its factory (`WEB_SERVICE_FIELDS`
+  in the web factory file); `src/synth/key-order.ts` reads it and validation reads it, because
+  validation may not import synth.
+- Capture exit codes, never summaries. The `tsc` wrapper in this environment printed "No errors
+  found" on a run whose raw log held a TS6059 error. Judge a gate by `$?` and the tool's own output.
 - Declare a tagged error in the file that produces it, never in a shared errors directory:
   `BlueprintInvalid` in `src/validation/blueprint-invalid.ts`, `BlueprintWriteFailed` in
   `src/fs/write-text-file.ts`, `BlueprintFileUnreadable` in `src/fs/read-text-file.ts`. All three
