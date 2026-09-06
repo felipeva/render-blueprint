@@ -116,6 +116,18 @@ describe('withDefaults', () => {
     scope.staticSite('site', { plan: 'free' });
   });
 
+  it('rejects a config field Render does not define', () => {
+    // @ts-expect-error `nope` is not a WebConfig field, through a scope as without one.
+    scope.web('api', { runtime: 'node', nope: true });
+  });
+
+  it('rejects a config that mixes two source branches', () => {
+    // @ts-expect-error a native source builds a repository and names no prebuilt image.
+    scope.web('api', { runtime: 'node', image: { url: 'acme/api:1.4.0' } });
+    // @ts-expect-error an image source names no repository, whatever the scope defaults to.
+    scope.worker('jobs', { runtime: 'image', image: { url: 'acme/jobs:1' }, repo: 'r' });
+  });
+
   it('keeps every field the bare factory requires required', () => {
     // @ts-expect-error a service config picks its source with `runtime`.
     scope.web('api', {});
