@@ -1,15 +1,13 @@
 import { Result } from 'better-result';
 import { describe, expect, it } from 'vitest';
 
-import { blueprint } from '../blueprint/blueprint.js';
+import { blueprint, type Blueprint } from '../blueprint/blueprint.js';
 import { web } from '../resources/web.js';
 import { BlueprintInvalid } from '../validation/blueprint-invalid.js';
 import { synthesize } from './synthesize.js';
 
-const emit = (value: ReturnType<typeof blueprint>): string => {
-  const result = synthesize(value);
-  return Result.isOk(result) ? result.value.yaml : `unexpected error: ${result.error.message}`;
-};
+const emit = (value: Blueprint): string =>
+  synthesize(value).unwrap('The blueprint under test must synthesize').yaml;
 
 describe('synthesize', () => {
   it('opens the file with the generated-file banner', () => {

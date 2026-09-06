@@ -1,9 +1,6 @@
-import type { BlueprintResource } from '../../resources/resource.js';
-import { WEB_SERVICE_FIELDS } from '../../resources/web.js';
+import { modeledFields, type BlueprintResource } from '../../resources/resource.js';
 import { deprecation } from '../deprecation.js';
 import type { ValidationIssue } from '../issue.js';
-
-const MODELED_FIELDS: ReadonlySet<string> = new Set<string>(WEB_SERVICE_FIELDS);
 
 export const extraFieldConflict = (
   resources: readonly BlueprintResource[],
@@ -14,13 +11,15 @@ export const extraFieldConflict = (
     const extraFields = resource.config.extraFields;
     if (extraFields === undefined) continue;
 
+    const modeled = new Set<string>(modeledFields(resource));
+
     for (const [key, value] of Object.entries(extraFields)) {
-      if (!MODELED_FIELDS.has(key) || deprecation(key, value) !== undefined) continue;
+      if (!modeled.has(key) || deprecation(key, value) !== undefined) continue;
 
       issues.push({
         code: 'ExtraFieldConflict',
         at: { resource: resource.name, field: `extraFields.${key}` },
-        message: `"${key}" is already modeled on a web service, so extraFields would overwrite what the library emits. Set it through the config instead.`,
+        message: `The library already emits "${key}" for "${resource.name}", so extraFields would overwrite it. Set it through the config instead.`,
       });
     }
   }

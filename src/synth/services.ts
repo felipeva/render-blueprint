@@ -1,15 +1,15 @@
-import type { JsonObject } from '../json.js';
+import { YAMLMap, YAMLSeq } from 'yaml';
+
 import type { BlueprintResource } from '../resources/resource.js';
-import type { WebService } from '../resources/web.js';
+import { WEB_SERVICE_FIELDS, type WebService } from '../resources/web.js';
 import { envVars } from './env-vars.js';
-import { WEB_SERVICE_KEY_ORDER } from './key-order.js';
 import { mapping } from './mapping.js';
 
-const webService = (resource: WebService): JsonObject => {
+const webService = (resource: WebService): YAMLMap => {
   const config = resource.config;
 
   return mapping(
-    WEB_SERVICE_KEY_ORDER,
+    WEB_SERVICE_FIELDS,
     {
       type: 'web',
       name: resource.name,
@@ -30,10 +30,17 @@ const webService = (resource: WebService): JsonObject => {
   );
 };
 
-export const services = (resources: readonly BlueprintResource[]): readonly JsonObject[] =>
-  resources.map((resource) => {
-    switch (resource.kind) {
-      case 'web':
-        return webService(resource);
-    }
-  });
+const serviceNode = (resource: BlueprintResource): YAMLMap => {
+  switch (resource.kind) {
+    case 'web':
+      return webService(resource);
+  }
+};
+
+export const services = (resources: readonly BlueprintResource[]): YAMLSeq | undefined => {
+  if (resources.length === 0) return undefined;
+
+  const node = new YAMLSeq();
+  for (const resource of resources) node.add(serviceNode(resource));
+  return node;
+};

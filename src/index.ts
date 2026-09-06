@@ -23,8 +23,6 @@ export type {
   ValidationWarning,
   WarningCode,
 } from './validation/issue.js';
-export { validate } from './validation/validate.js';
-export type { ValidatedBlueprint } from './validation/validate.js';
 
 export { synthesize } from './synth/synthesize.js';
 export type { SynthesisReport } from './synth/synthesize.js';

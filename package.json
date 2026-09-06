@@ -25,7 +25,8 @@
     "test:types": "vitest run --typecheck.only",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:types",
     "build": "tsdown",
-    "schema:refresh": "node scripts/refresh-render-schema.mjs"
+    "schema:refresh": "node scripts/refresh-render-schema.mjs",
+    "fixtures:update": "UPDATE_FIXTURES=1 vitest run test/fixtures.test.ts"
   },
   "dependencies": {
     "better-result": "3.0.1",

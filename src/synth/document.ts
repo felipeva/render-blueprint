@@ -7,13 +7,10 @@ import { mapping } from './mapping.js';
 import { services } from './services.js';
 
 export const document = (value: ValidatedBlueprint): Document => {
-  const root = mapping(
-    ROOT_KEY_ORDER,
-    { services: value.resources.length === 0 ? undefined : services(value.resources) },
-    undefined,
+  const doc = new Document(
+    mapping(ROOT_KEY_ORDER, { services: services(value.resources) }, undefined),
   );
 
-  const doc = new Document(root);
   doc.commentBefore = BANNER;
   return doc;
 };
