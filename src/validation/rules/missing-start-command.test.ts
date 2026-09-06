@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { staticSite } from '../../resources/static-site.js';
 import { web } from '../../resources/web.js';
 import { missingStartCommand } from './missing-start-command.js';
 
@@ -14,6 +15,10 @@ describe('missingStartCommand', () => {
         message: expect.stringContaining('node'),
       },
     ]);
+  });
+
+  it('warns about nothing for a kind Render never starts', () => {
+    expect(missingStartCommand([staticSite('marketing', {})])).toEqual([]);
   });
 
   it('warns about nothing when the start command is set', () => {

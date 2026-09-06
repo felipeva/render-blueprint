@@ -1,11 +1,12 @@
 import * as z from 'zod';
 
 import type { Equal, Expect } from '../equal.js';
+import { parseStaticSiteConfig, STATIC_SITE_FIELDS, type StaticSite } from './static-site.js';
 import { parseWebConfig, WEB_SERVICE_FIELDS, type WebService } from './web.js';
 
-export type BlueprintResource = WebService;
+export type BlueprintResource = WebService | StaticSite;
 
-export const RESOURCE_KINDS = ['web'] as const;
+export const RESOURCE_KINDS = ['web', 'staticSite'] as const;
 
 type ResourceKind = (typeof RESOURCE_KINDS)[number];
 
@@ -17,6 +18,8 @@ export const modeledFields = (resource: BlueprintResource): readonly string[] =>
   switch (resource.kind) {
     case 'web':
       return WEB_SERVICE_FIELDS;
+    case 'staticSite':
+      return STATIC_SITE_FIELDS;
   }
 };
 
@@ -44,6 +47,10 @@ export const resourceConfigIssues = (resource: BlueprintResource): readonly z.co
   switch (resource.kind) {
     case 'web': {
       const result = parseWebConfig(resource.config);
+      return result.success ? [] : result.error.issues;
+    }
+    case 'staticSite': {
+      const result = parseStaticSiteConfig(resource.config);
       return result.success ? [] : result.error.issues;
     }
   }

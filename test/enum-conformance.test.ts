@@ -7,12 +7,14 @@ import * as z from 'zod';
 import { AUTO_DEPLOY_TRIGGERS } from '../src/enums/auto-deploy-trigger.js';
 import { SERVER_PLANS } from '../src/enums/plan.js';
 import { REGIONS } from '../src/enums/region.js';
+import { ROUTE_TYPES } from '../src/enums/route-type.js';
 import { NATIVE_RUNTIMES } from '../src/enums/runtime.js';
 
 type JsonSchemaEnum = readonly (string | number | boolean | null)[] | undefined;
 
 interface RenderSchemaDefinition {
   readonly enum?: readonly string[];
+  readonly properties?: { readonly [name: string]: { readonly enum?: readonly string[] } };
 }
 
 interface RenderSchema {
@@ -22,12 +24,16 @@ interface RenderSchema {
 const schemaPath = fileURLToPath(new URL('schema/render.yaml.schema.json', import.meta.url));
 
 // SAFETY: JSON.parse returns any. The file is the committed Render schema, refreshed only by
-// pnpm schema:refresh; this test reads its `definitions` map and each definition's `enum` array,
-// and a definition that is missing or carries no enum fails an assertion below rather than here.
+// pnpm schema:refresh; this test reads its `definitions` map, each definition's `enum` array, and
+// the `enum` a definition's property carries, and a definition that is missing or carries no enum
+// fails an assertion below rather than here.
 const renderSchema: RenderSchema = JSON.parse(readFileSync(schemaPath, 'utf8'));
 
 const published = (name: string): readonly string[] | undefined =>
   renderSchema.definitions[name]?.enum;
+
+const publishedField = (name: string, field: string): readonly string[] | undefined =>
+  renderSchema.definitions[name]?.properties?.[field]?.enum;
 
 const converted = (values: readonly string[]): JsonSchemaEnum =>
   z.toJSONSchema(z.enum(values)).enum;
@@ -58,5 +64,11 @@ describe('NATIVE_RUNTIMES', () => {
     expect(converted(NATIVE_RUNTIMES)).toEqual(
       NATIVE_RUNTIMES.filter((runtime) => (runtimes ?? []).includes(runtime)),
     );
+  });
+});
+
+describe('ROUTE_TYPES', () => {
+  it('holds the route type enum Render publishes', () => {
+    expect(converted(ROUTE_TYPES)).toEqual(publishedField('route', 'type'));
   });
 });

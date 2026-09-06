@@ -5,6 +5,7 @@ export const missingStartCommand = (
   resources: readonly BlueprintResource[],
 ): readonly ValidationWarning[] =>
   resources
+    .filter((resource) => resource.kind === 'web')
     .filter((resource) => resource.config.startCommand === undefined)
     .map((resource) => ({
       code: 'MissingStartCommand',

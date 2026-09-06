@@ -2,6 +2,7 @@ import { Result } from 'better-result';
 import { describe, expect, it } from 'vitest';
 
 import { blueprint, type Blueprint } from '../blueprint/blueprint.js';
+import { staticSite } from '../resources/static-site.js';
 import { web } from '../resources/web.js';
 import { BlueprintInvalid } from '../validation/blueprint-invalid.js';
 import { synthesize } from './synthesize.js';
@@ -68,6 +69,55 @@ services:
     autoDeployTrigger: commit
 `,
     );
+  });
+
+  it('emits the keys of a static site in one fixed order', () => {
+    const site = staticSite('marketing', {
+      preDeployCommand: 'pnpm sitemap',
+      autoDeployTrigger: 'commit',
+      domains: ['acme.com'],
+      branch: 'main',
+      repo: 'https://github.com/acme/marketing',
+      rootDir: 'apps/marketing',
+      routes: [{ type: 'rewrite', source: '/*', destination: '/index.html' }],
+      headers: [{ path: '/*', name: 'X-Frame-Options', value: 'DENY' }],
+      staticPublishPath: './dist',
+      buildCommand: 'pnpm build',
+    });
+
+    expect(emit(blueprint({ resources: [site] }))).toContain(
+      `services:
+  - type: web
+    name: marketing
+    runtime: static
+    buildCommand: pnpm build
+    staticPublishPath: ./dist
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    rootDir: apps/marketing
+    repo: https://github.com/acme/marketing
+    branch: main
+    domains:
+      - acme.com
+    autoDeployTrigger: commit
+    preDeployCommand: pnpm sitemap
+`,
+    );
+  });
+
+  it('writes no compute plan and no region for a static site', () => {
+    const yaml = emit(
+      blueprint({ resources: [staticSite('marketing', { staticPublishPath: './dist' })] }),
+    );
+
+    expect(yaml).not.toContain('plan:');
+    expect(yaml).not.toContain('region:');
   });
 
   it('converts the environment map to an envVars list in declaration order', () => {

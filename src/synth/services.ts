@@ -1,6 +1,14 @@
 import { YAMLMap, YAMLSeq } from 'yaml';
 
 import type { BlueprintResource } from '../resources/resource.js';
+import {
+  HEADER_FIELDS,
+  ROUTE_FIELDS,
+  STATIC_SITE_FIELDS,
+  type Header,
+  type Route,
+  type StaticSite,
+} from '../resources/static-site.js';
 import { WEB_SERVICE_FIELDS, type WebService } from '../resources/web.js';
 import { envVars } from './env-vars.js';
 import { mapping } from './mapping.js';
@@ -30,10 +38,70 @@ const webService = (resource: WebService): YAMLMap => {
   );
 };
 
+const headers = (values: readonly Header[]): YAMLSeq => {
+  const node = new YAMLSeq();
+
+  for (const header of values) {
+    node.add(
+      mapping(
+        HEADER_FIELDS,
+        { path: header.path, name: header.name, value: header.value },
+        undefined,
+      ),
+    );
+  }
+
+  return node;
+};
+
+const routes = (values: readonly Route[]): YAMLSeq => {
+  const node = new YAMLSeq();
+
+  for (const route of values) {
+    node.add(
+      mapping(
+        ROUTE_FIELDS,
+        { type: route.type, source: route.source, destination: route.destination },
+        undefined,
+      ),
+    );
+  }
+
+  return node;
+};
+
+// spec §0.2: type: web is overloaded; runtime: static is what narrows it to a static site.
+const staticSiteService = (resource: StaticSite): YAMLMap => {
+  const config = resource.config;
+
+  return mapping(
+    STATIC_SITE_FIELDS,
+    {
+      type: 'web',
+      name: resource.name,
+      runtime: 'static',
+      buildCommand: config.buildCommand,
+      staticPublishPath: config.staticPublishPath,
+      headers: config.headers === undefined ? undefined : headers(config.headers),
+      routes: config.routes === undefined ? undefined : routes(config.routes),
+      envVars: config.env === undefined ? undefined : envVars(config.env),
+      rootDir: config.rootDir,
+      repo: config.repo,
+      branch: config.branch,
+      domains: config.domains,
+      autoDeployTrigger: config.autoDeployTrigger,
+      preDeployCommand: config.preDeployCommand,
+    },
+    config.extraFields,
+  );
+};
+
 const serviceNode = (resource: BlueprintResource): YAMLMap => {
   switch (resource.kind) {
     case 'web':
       return webService(resource);
+    case 'staticSite':
+      return staticSiteService(resource);
   }
 };
 
