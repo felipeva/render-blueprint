@@ -42,7 +42,7 @@ Use these words. Definitions come from `docs/design/structure.md`,
 - **BlueprintInvalid** — the tagged error `validate` produces, carrying a non-empty list of every issue found, never the first one only. Declared in `src/validation/blueprint-invalid.ts` and re-exported from `src/index.ts`.
 - **Synthesize** — `synthesize(blueprint)`: validate, build the YAML document, emit. The only code path that knows YAML exists. `src/synth/`.
 - **Synthesis report** — the success payload of `synthesize`: the `yaml` string plus the warnings.
-- **Emission order** — the fixed key order per node kind that makes output byte-stable. One source of truth: `src/synth/key-order.ts`.
+- **Emission order** — the fixed key order per node kind that makes output byte-stable. Each resource declares its ordered field tuple beside its factory; `src/synth/key-order.ts` holds only the root and env entry orders.
 - **Golden file** — `test/fixtures/canonical/render.yaml`, the byte-equal expectation for the canonical scenario and the only file a test may rewrite (`vitest -u`).
 
 ## Drift

@@ -297,7 +297,7 @@ From `docs/research/better-result.md` §5 and the anti-slop rules, restated for 
   and `anti-slop/no-conditional-empty-object-spread` bans `...(cond ? { plan } : {})`. So the
   emitter never builds a mapping by object spread. `src/synth/mapping.ts` owns the one approved
   way: an ordered builder over `yaml`'s document model that appends a pair only when the value is
-  not `undefined`, driven by `key-order.ts`. Every mapping goes through it — no ad-hoc `doc.set`.
+  not `undefined`, driven by the resource's field tuple and `key-order.ts`. Every mapping goes through it — no ad-hoc `doc.set`.
 
 **Comments.** Few — the types and names carry the meaning. Only `SAFETY:` justifications and a
 one-line spec citation where a rule looks arbitrary (`// spec §16 B`).
