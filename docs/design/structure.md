@@ -67,8 +67,10 @@ Revisit only if the CLI grows a real dependency. `render-blueprint` is the npm n
 
 │   │   ├── resource.ts  source.ts   the BlueprintResource union and `kind` discriminator; the
 │   │   │                            repo+branch | dockerfilePath | image source union
-│   │   ├── disk.ts  scaling.ts  build-filter.ts  ip-allow-list.ts  routes.ts  headers.ts
-│   │   │   previews.ts              the sub-configs shared across service kinds
+│   │   ├── disk.ts  scaling.ts  build-filter.ts  ip-allow-list.ts  previews.ts
+│   │   │                            the sub-configs shared across service kinds. Route and Header
+│   │   │                            are not shared — only a static site takes them (spec §4.8), so
+│   │   │                            they live in static-site.ts with the factory (issue #6)
 │   │   ├── web.ts  private-service.ts  worker.ts  cron.ts  static-site.ts  key-value.ts
 │   │   │   postgres.ts  env-group.ts   each: the factory, its Config, and its output type
 │   │   └── read-replica.ts          referenceable, deliberately outside BlueprintResource
