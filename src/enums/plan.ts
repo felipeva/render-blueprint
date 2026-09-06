@@ -1,3 +1,5 @@
+import * as z from 'zod';
+
 export const SERVER_PLANS = [
   'free',
   'starter',
@@ -23,3 +25,5 @@ export const SERVER_PLANS = [
 ] as const;
 
 export type ServerPlan = (typeof SERVER_PLANS)[number];
+
+export const serverPlanSchema: z.ZodEnum<z.core.util.ToEnum<ServerPlan>> = z.enum(SERVER_PLANS);

@@ -1,8 +1,8 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import * as z from 'zod';
 
-import { SERVER_PLANS, type ServerPlan } from './enums/plan.js';
-import { NATIVE_RUNTIMES, type NativeRuntime } from './enums/runtime.js';
+import { serverPlanSchema, type ServerPlan } from './enums/plan.js';
+import { nativeRuntimeSchema, type NativeRuntime } from './enums/runtime.js';
 import type { Equal, Expect } from './equal.js';
 
 interface DriftReference {
@@ -10,19 +10,16 @@ interface DriftReference {
   readonly plan?: ServerPlan;
 }
 
-const matchingSchema = z
-  .strictObject({ runtime: z.enum(NATIVE_RUNTIMES), plan: z.enum(SERVER_PLANS).exactOptional() })
-  .readonly();
+const baseSchema = z.strictObject({
+  runtime: nativeRuntimeSchema,
+  plan: serverPlanSchema.exactOptional(),
+});
 
-const gainedSchema = z
-  .strictObject({
-    runtime: z.enum(NATIVE_RUNTIMES),
-    plan: z.enum(SERVER_PLANS).exactOptional(),
-    replicas: z.number().exactOptional(),
-  })
-  .readonly();
+const matchingSchema = baseSchema.readonly();
 
-const lostSchema = z.strictObject({ runtime: z.enum(NATIVE_RUNTIMES) }).readonly();
+const gainedSchema = baseSchema.extend({ replicas: z.number().exactOptional() }).readonly();
+
+const lostSchema = baseSchema.omit({ plan: true }).readonly();
 
 type Matching = z.infer<typeof matchingSchema>;
 type Gained = z.infer<typeof gainedSchema>;
