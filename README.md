@@ -16,18 +16,22 @@ render-blueprint synth    # write the YAML file
 render-blueprint check    # compare the committed YAML file against the blueprint
 ```
 
-| Flag            | What it does                                                                                                    |
-| --------------- | --------------------------------------------------------------------------------------------------------------- |
-| `--file <path>` | The blueprint file, instead of the one the walk finds.                                                          |
-| `--out <path>`  | The YAML file to write or compare. Defaults to `render.yaml` beside the blueprint file.                         |
-| `--strict`      | Treat validation warnings as a failure. It applies to both commands: `synth` still writes the file, then fails. |
-| `--help`, `-h`  | Print the usage.                                                                                                |
+| Flag              | What it does                                                                                                    |
+| ----------------- | --------------------------------------------------------------------------------------------------------------- |
+| `--file <path>`   | The blueprint file, instead of the one the walk finds.                                                          |
+| `--out <path>`    | The YAML file to write or compare. Defaults to `render.yaml` beside the blueprint file.                         |
+| `--strict`        | Treat validation warnings as a failure. It applies to both commands: `synth` still writes the file, then fails. |
+| `--help`, `-h`    | Print the help. `render-blueprint --help` lists the commands; `render-blueprint synth --help` describes one.    |
+| `--version`, `-v` | Print the installed version.                                                                                    |
 
 | Exit code | Meaning                                                                                                                                                  |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0         | The file was written, or the committed file is clean.                                                                                                    |
 | 1         | The blueprint is invalid, a file could not be found, loaded, read or written, the command line was wrong, or `--strict` turned a warning into a failure. |
 | 2         | The committed file has drifted from the blueprint.                                                                                                       |
+
+Naming no command at all prints the help and exits 1, because a command line that asks for nothing
+is a command line that got something wrong.
 
 `check` is the CI command: exit 2 says the committed file is stale, and exit 1 says something is
 broken, which is why they are different numbers. Drift is judged after normalizing both sides, so
