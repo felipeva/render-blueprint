@@ -37,12 +37,7 @@ const PLACEMENT_RULES = [resourceInMultipleLocations] as const;
 
 const NAME_RULES = [duplicateResourceName] as const;
 
-const CONFIG_RULES = [
-  duplicateEnvKey,
-  extraFieldConflict,
-  deprecatedField,
-  danglingReference,
-] as const;
+const CONFIG_RULES = [duplicateEnvKey, extraFieldConflict, deprecatedField] as const;
 
 const WARNING_RULES = [missingBuildCommand, missingStartCommand, missingStaticPublishPath] as const;
 
@@ -59,6 +54,7 @@ export const validate = (value: Blueprint): ResultType<ValidatedBlueprint, Bluep
     ...PLACEMENT_RULES.flatMap((rule) => rule(placed)),
     ...NAME_RULES.flatMap((rule) => rule(parsed.named)),
     ...CONFIG_RULES.flatMap((rule) => rule(parsed.accepted)),
+    ...danglingReference(parsed),
   ];
 
   return first === undefined

@@ -10,7 +10,7 @@ export const rootExtraFieldConflict = (value: Blueprint): readonly ValidationIss
   const issues: ValidationIssue[] = [];
 
   for (const [key, entry] of Object.entries(extraFields)) {
-    if (!modeled.has(key) || deprecation(key, entry) !== undefined) continue;
+    if (!modeled.has(key) || deprecation(key, entry, 'root') !== undefined) continue;
 
     issues.push({
       code: 'ExtraFieldConflict',

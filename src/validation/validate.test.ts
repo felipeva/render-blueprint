@@ -2,6 +2,7 @@ import { Result } from 'better-result';
 import { describe, expect, it } from 'vitest';
 
 import { blueprint } from '../blueprint/blueprint.js';
+import type { EnvValue } from '../env/env-value.js';
 import type { JsonObject } from '../json.js';
 import { postgres, type PostgresConfig } from '../resources/postgres.js';
 import { readReplica } from '../resources/read-replica.js';
@@ -17,6 +18,7 @@ import { validate } from './validate.js';
 const unchecked: (json: string) => WebConfig = JSON.parse;
 const uncheckedStatic: (json: string) => StaticSiteConfig = JSON.parse;
 const uncheckedDatabase: (json: string) => PostgresConfig = JSON.parse;
+const uncheckedEnvValue: (json: string) => EnvValue = JSON.parse;
 const uncheckedName: (json: string) => string = JSON.parse;
 const uncheckedResource: (json: string) => BlueprintResource = JSON.parse;
 
@@ -489,5 +491,91 @@ describe('validate', () => {
         ),
       ),
     ).toBe(true);
+  });
+
+  it('keeps previewPlan in a database\u2019s extraFields, where it is the current form', () => {
+    const result = validate(
+      blueprint({
+        resources: [postgres('elephant', { extraFields: { previewPlan: 'basic-1gb' } })],
+      }),
+    );
+
+    expect(Result.isOk(result)).toBe(true);
+  });
+
+  it('still reports previewPlan in a service\u2019s extraFields, where previews.plan replaced it', () => {
+    const result = validate(
+      blueprint({
+        resources: [web('api', { runtime: 'node', extraFields: { previewPlan: 'starter' } })],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['DeprecatedField']);
+  });
+
+  it('reports a field the library does not model on a read replica', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          postgres(
+            'elephant',
+            uncheckedDatabase('{"readReplicas":[{"kind":"readReplica","name":"r","oops":1}]}'),
+          ),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toContain('UnknownField');
+    expect(result.error.issues.map((issue) => issue.at.field)).toContain('readReplicas.0.oops');
+  });
+
+  it('reports a field the library does not model on a database reference value', () => {
+    const api = web('api', {
+      runtime: 'node',
+      env: {
+        DATABASE_URL: uncheckedEnvValue(
+          '{"reference":"fromDatabase","name":"elephant","property":"host","oops":1}',
+        ),
+      },
+    });
+    const result = validate(blueprint({ resources: [api, postgres('elephant')] }));
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.at.field)).toContain('env.DATABASE_URL.oops');
+  });
+
+  it('reports a field the library does not model on highAvailability', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          postgres('elephant', uncheckedDatabase('{"highAvailability":{"enabled":true,"oops":1}}')),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+    expect(result.error.issues[0].at.field).toBe('highAvailability.oops');
+  });
+
+  it('reports a field the library does not model on an ipAllowList entry', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          postgres('elephant', uncheckedDatabase('{"ipAllowList":[{"source":"::1","oops":1}]}')),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+    expect(result.error.issues[0].at.field).toBe('ipAllowList.0.oops');
   });
 });

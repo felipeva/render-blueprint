@@ -15,11 +15,18 @@ export interface DatabaseEnvEntry {
 
 export type EnvEntry = PlainEnvEntry | DatabaseEnvEntry;
 
-// A reference value is the only branch of EnvValue that is not a primitive.
-const isReference = (value: EnvValue): value is DatabaseReferenceValue => value instanceof Object;
+// The literal `reference` field is what selects an env value's form. The sentinels of #5 and the
+// service references of #9 each answer with their own literal, so neither can be read as a
+// database reference, and a string or a number answers with none.
+const isDatabaseReference = (value: EnvValue): value is DatabaseReferenceValue =>
+  // SAFETY: Object(x) === x holds for every object and for no primitive, so the assertion reads a
+  // field only where one exists, and it claims nothing about the branch — the literal does. The
+  // test admits a null-prototype object, which the plain-object predicate in json.ts rejects; here
+  // that would drop a reference into the primitive branch and emit its fields as a nested mapping.
+  Object(value) === value && (value as DatabaseReferenceValue).reference === 'fromDatabase';
 
 const entry = (key: string, value: EnvValue): EnvEntry =>
-  isReference(value)
+  isDatabaseReference(value)
     ? { form: 'fromDatabase', key, reference: value }
     : { form: 'plain', key, value };
 

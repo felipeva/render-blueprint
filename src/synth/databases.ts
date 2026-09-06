@@ -14,7 +14,7 @@ import { mapping } from './mapping.js';
 const highAvailability = (value: HighAvailability): YAMLMap =>
   mapping(HIGH_AVAILABILITY_FIELDS, { enabled: value.enabled }, undefined);
 
-// An empty list is not an omitted one: spec §9 reads it as "allow no external connection".
+// An empty list is not an omitted one: spec §7 reads it as "block all external connections".
 const ipAllowList = (entries: IpAllowList): YAMLSeq => {
   const node = new YAMLSeq();
 
@@ -72,6 +72,7 @@ const databaseNode = (resource: BlueprintResource): YAMLMap | undefined => {
     case 'postgres':
       return database(resource);
     case 'web':
+    case 'staticSite':
       return undefined;
   }
 };

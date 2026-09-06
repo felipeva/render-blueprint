@@ -1,13 +1,18 @@
 import type { BlueprintResource } from '../../resources/resource.js';
 import type { ValidationWarning } from '../issue.js';
 
+interface BuiltFromSource {
+  readonly runtime: string;
+  readonly buildCommand: string | undefined;
+}
+
 // spec §9: a database is not built from source, so no build command applies to one.
-const runtime = (resource: BlueprintResource): string | undefined => {
+const builtFromSource = (resource: BlueprintResource): BuiltFromSource | undefined => {
   switch (resource.kind) {
     case 'web':
-      return resource.config.runtime;
+      return { runtime: resource.config.runtime, buildCommand: resource.config.buildCommand };
     case 'staticSite':
-      return 'static';
+      return { runtime: 'static', buildCommand: resource.config.buildCommand };
     case 'postgres':
       return undefined;
   }
@@ -17,15 +22,15 @@ export const missingBuildCommand = (
   resources: readonly BlueprintResource[],
 ): readonly ValidationWarning[] =>
   resources.flatMap((resource): readonly ValidationWarning[] => {
-    const on = runtime(resource);
+    const built = builtFromSource(resource);
 
-    return on === undefined || resource.config.buildCommand !== undefined
+    return built === undefined || built.buildCommand !== undefined
       ? []
       : [
           {
             code: 'MissingBuildCommand',
             at: { resource: resource.name, field: 'buildCommand' },
-            message: `"${resource.name}" runs on the "${on}" runtime with no buildCommand. Render's documentation calls it required for every service it builds from source.`,
+            message: `"${resource.name}" runs on the "${built.runtime}" runtime with no buildCommand. Render's documentation calls it required for every service it builds from source.`,
           },
         ];
   });

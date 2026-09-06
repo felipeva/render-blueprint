@@ -439,4 +439,40 @@ version: "1"
       'BranchDisablesPreviews',
     ]);
   });
+
+  it('emits a database placed in an environment under that environment', () => {
+    const value = blueprint({
+      projects: [
+        project('acme', {
+          environments: [
+            environment('production', {
+              resources: [web('api', { runtime: 'node' }), postgres('elephant')],
+            }),
+          ],
+        }),
+      ],
+    });
+
+    expect(emit(value)).toContain(
+      `      - name: production
+        services:
+          - type: web
+            name: api
+            runtime: node
+        databases:
+          - name: elephant
+`,
+    );
+  });
+
+  it('emits a database placed in the ungrouped list under ungrouped', () => {
+    const value = blueprint({ ungrouped: [postgres('elephant')] });
+
+    expect(emit(value)).toContain(
+      `ungrouped:
+  databases:
+    - name: elephant
+`,
+    );
+  });
 });

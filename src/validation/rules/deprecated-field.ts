@@ -1,5 +1,5 @@
 import type { BlueprintResource } from '../../resources/resource.js';
-import { deprecation } from '../deprecation.js';
+import { deprecation, deprecationScope } from '../deprecation.js';
 import type { ValidationIssue } from '../issue.js';
 
 export const deprecatedField = (
@@ -12,7 +12,7 @@ export const deprecatedField = (
     if (extraFields === undefined) continue;
 
     for (const [key, value] of Object.entries(extraFields)) {
-      const retired = deprecation(key, value);
+      const retired = deprecation(key, value, deprecationScope(resource.kind));
       if (retired === undefined) continue;
 
       issues.push({

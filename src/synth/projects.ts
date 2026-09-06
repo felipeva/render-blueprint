@@ -7,6 +7,7 @@ import type {
 } from '../blueprint/environment.js';
 import type { Project } from '../blueprint/project.js';
 import type { BlueprintResource } from '../resources/resource.js';
+import { databases } from './databases.js';
 import {
   ENVIRONMENT_KEY_ORDER,
   ENVIRONMENT_NETWORKING_KEY_ORDER,
@@ -14,7 +15,6 @@ import {
   PROJECT_KEY_ORDER,
   UNGROUPED_KEY_ORDER,
 } from './key-order.js';
-import { databases } from './databases.js';
 import { mapping } from './mapping.js';
 import { services } from './services.js';
 

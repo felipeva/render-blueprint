@@ -1,8 +1,10 @@
 import { resolveEnv } from '../../env/resolve-env.js';
-import { resourceEnv, type BlueprintResource } from '../../resources/resource.js';
+import type { BlueprintResource } from '../../resources/resource.js';
+import { resourceEnv } from '../../resources/resource.js';
 import type { ValidationIssue } from '../issue.js';
+import type { ParsedConfigs } from '../parse-configs.js';
 
-// spec §11: readReplicas[].name declares a replica, which becomes a fromDatabase target too.
+// spec §12: readReplicas[].name declares a replica, which spec §9 makes a fromDatabase target too.
 const referenceTargets = (resources: readonly BlueprintResource[]): ReadonlySet<string> => {
   const names = new Set<string>();
 
@@ -10,19 +12,21 @@ const referenceTargets = (resources: readonly BlueprintResource[]): ReadonlySet<
     if (resource.kind !== 'postgres') continue;
 
     names.add(resource.name);
-    for (const replica of resource.config.readReplicas ?? []) names.add(replica.name);
+    // The name tier runs ahead of config parsing (ADR-0003), so this list may not be one yet.
+    const declared = resource.config?.readReplicas;
+    if (Array.isArray(declared)) for (const replica of declared) names.add(replica.name);
   }
 
   return names;
 };
 
-export const danglingReference = (
-  resources: readonly BlueprintResource[],
-): readonly ValidationIssue[] => {
-  const targets = referenceTargets(resources);
+// Targets come from the name tier, not the accepted one: a database whose config failed to parse
+// is still declared, and reporting its dependants as dangling would blame the wrong resource.
+export const danglingReference = (parsed: ParsedConfigs): readonly ValidationIssue[] => {
+  const targets = referenceTargets(parsed.named);
   const issues: ValidationIssue[] = [];
 
-  for (const resource of resources) {
+  for (const resource of parsed.accepted) {
     const env = resourceEnv(resource);
     if (env === undefined) continue;
 
