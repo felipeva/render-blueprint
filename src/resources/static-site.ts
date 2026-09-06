@@ -1,7 +1,7 @@
 import * as z from 'zod';
 
 import { AUTO_DEPLOY_TRIGGERS, type AutoDeployTrigger } from '../enums/auto-deploy-trigger.js';
-import { ROUTE_TYPES, type RouteType } from '../enums/route-type.js';
+import { routeTypeSchema, type RouteType } from '../enums/route-type.js';
 import type { EnvironmentMap } from '../env/env-value.js';
 import type { Equal, Expect } from '../equal.js';
 import { jsonObjectSchema, type JsonObject } from '../json.js';
@@ -68,7 +68,7 @@ const envValueSchema = z.union([z.string(), z.number()], {
 
 const routeSchema = z
   .strictObject({
-    type: z.enum(ROUTE_TYPES),
+    type: routeTypeSchema,
     source: z.string(),
     destination: z.string(),
   })
