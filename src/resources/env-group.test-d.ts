@@ -42,6 +42,13 @@ describe('envGroup', () => {
     envGroup('shared-settings', { env: { DATABASE_URL: url } });
   });
 
+  it('rejects a group importing a group, which Render gives no nesting', () => {
+    const other = envGroup('regional', { env: { REGION_NAME: 'oregon' } });
+
+    // @ts-expect-error only a service imports a group; EnvGroupConfig has no envGroups field.
+    envGroup('shared-settings', { env: {}, envGroups: [other] });
+  });
+
   it('requires an env', () => {
     // @ts-expect-error `env` is the one required EnvGroupConfig field.
     envGroup('shared-settings', {});
