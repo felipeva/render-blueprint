@@ -64,6 +64,16 @@ describe('unknownServiceEnvVarKey', () => {
     expect(unknownServiceEnvVarKey([api, auth])).toEqual([]);
   });
 
+  it('reports nothing for an external reference whose name a listed resource also takes', () => {
+    const auth = web('auth', { runtime: 'node' });
+    const api = web('api', {
+      runtime: 'node',
+      env: { PASSWORD: external.web('auth').envVar('DASHBOARD_ONLY_SECRET') },
+    });
+
+    expect(unknownServiceEnvVarKey([api, auth])).toEqual([]);
+  });
+
   it('reports nothing for a target outside this blueprint, which danglingReference owns', () => {
     const api = web('api', {
       runtime: 'node',

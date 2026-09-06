@@ -38,6 +38,9 @@ export const unknownServiceEnvVarKey = (
 
     for (const entry of resolveEnv(env, undefined)) {
       if (entry.form !== 'fromService' || !('envVarKey' in entry.reference)) continue;
+      // An external handle names a resource this blueprint does not manage, so its keys are not
+      // written down here, whatever a listed resource of the same name happens to declare.
+      if (entry.reference.origin === 'external') continue;
 
       const target = declared.get(entry.reference.name);
       const key = entry.reference.envVarKey;
