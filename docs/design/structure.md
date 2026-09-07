@@ -307,12 +307,13 @@ produces it. The config tier mints the few no rule file produces, from the issue
 branch owns on a config whose runtime picked another (issue #10), `OutOfRange` for every numeric
 bound the spec sets, `ScalingTargetMissing` and `DiskPreventsScaling` for the two pairs a
 serverService config may not hold at once (issue #12), `MaintenanceUriNotAbsolute` for a
-maintenance page the config points at with something other than an absolute URL, and
+maintenance page the config points at with something other than an absolute URL,
 `SubdomainPolicyNeedsDomain` for a `renderSubdomainPolicy` of `disabled` on a resource that lists
-no custom domain (issue #43). `WarningCode` follows the same
-convention one tier down, for a rule that never blocks synthesis — `SecretSkipsPreviews`,
-`UnknownServiceEnvVarKey`, `WebOnlyField`, `InstancesIgnoredByScaling`, `UnusedDefault`,
-`BuildFilterOnImageSource` and `MaintenanceModeNeedsPaidPlan` among them.
+no custom domain (issue #43), and `ProjectWithoutEnvironment` for a project whose environment list
+is empty, which the spec forbids and the JSON Schema cannot catch (issue #58). `WarningCode`
+follows the same convention one tier down, for a rule that never blocks synthesis —
+`SecretSkipsPreviews`, `UnknownServiceEnvVarKey`, `WebOnlyField`, `InstancesIgnoredByScaling`,
+`UnusedDefault`, `BuildFilterOnImageSource` and `MaintenanceModeNeedsPaidPlan` among them.
 
 **Enums.** `erasableSyntaxOnly` bans `enum`. Every closed set is a SCREAMING_SNAKE `as const`
 tuple plus its derived union, in one file; the tuple is exported because validation and tests
