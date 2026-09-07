@@ -120,7 +120,8 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │                                     service-env-var-key, extra-field-conflict, warnings,
 │                                     env-key-collision, unknown-service-env-var-key,
 │                                     secret-skips-previews, web-only-field,
-│                                     instances-ignored-by-scaling, unused-default. The scaling,
+│                                     instances-ignored-by-scaling, unused-default,
+│                                     build-filter-on-image-source. The scaling,
 │                                     numeric-range and high-availability families are refinements
 │                                     beside their own config instead, because each reads one config
 │                                     and no other
