@@ -35,7 +35,7 @@ Use these words. Definitions come from `docs/design/structure.md`,
 
 ## Placement and defaults
 
-- **Defaults scope** — `withDefaults(defaults)`, a nestable set of factories preloaded with `region`, `repo`, `branch`, `rootDir` and per-kind `plan`. Defaults are matrix-filtered per kind, and a per-resource value always wins. `src/defaults/`.
+- **Defaults scope** — `withDefaults(defaults)`, a nestable set of factories preloaded with the fields `ResourceDefaults` declares: `region`, `repo`, `branch`, `rootDir`, `autoDeployTrigger`, `buildFilter`, `ipAllowList` and one `plan` per kind. Defaults are matrix-filtered per kind and source branch, a per-resource value always wins, and an object or an array default is replaced whole. `src/defaults/resource-defaults.ts`, `src/defaults/`.
 - **Placement** — where a resource is declared: **root** (`resources`), **project** / **environment** (`projects[].environments[]`), or **ungrouped**. A resource belongs to exactly one placement; two is a validation issue. `src/blueprint/placement.ts`.
 
 ## Validation and synthesis
