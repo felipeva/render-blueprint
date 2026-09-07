@@ -4,7 +4,10 @@
 synthesize them to `render.yaml`. Generator only: it never calls the Render API. The npm package
 and the CLI binary are both named `render-blueprint`. Phases 1 to 4 are done: the spec is issue #1; the tickets #2 to #14 plus #17, #20, #22, and the
 bug #31 all landed as squash-merged PRs on `main` (last: #35 on 2026-09-06). v1.1 (spec #39, tickets
-#40 to #45, bugs #36 to #38) landed the same way, last #54 on 2026-09-07. New work starts with
+#40 to #45, bugs #36 to #38) landed the same way, last #54 on 2026-09-07. An adversarial review against the raw spec and schema on 2026-09-07 produced
+bugs #57 to #62, landed as PRs #63 to #68 the same day; its two medium findings (cross-field rules
+suppressed by a type failure, `extraFields` against the schema's per-kind allow-lists) await a v1.2
+spec. New work starts with
 `/to-spec` for a feature or a plain `ready-for-agent` issue for a bug, then a Herdr dispatch.
 
 - `CONTEXT.md` — the glossary. Read it before exploring.
@@ -105,6 +108,10 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `main` is
   as one prompt with a decision per finding; do not fix them yourself.
 - Integrate with `probe-merge.sh` before promising anything about conflicts. Rebase stacked
   slices bottom-up and delegate each resolve to the agent that owns the upper branch.
+  A child stacked on a sibling's branch conflicts the moment that sibling squash-merges, because
+  the child still carries the parent's original commits: after the parent lands, have the child
+  rebase its own commits onto `main` (`git rebase --onto origin/main <parent-tip>`) and re-verify
+  before its merge.
 - Merge only on an instruction from the user that names the merge. A green CI is permission to
   ask, never to merge.
 - Clean up with `cleanup.sh <repo> --match <substr>`; always pass `--match`; it matches the worktree
