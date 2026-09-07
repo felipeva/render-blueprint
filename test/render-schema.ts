@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
+import addFormats from 'ajv-formats';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 
 import type { JsonObject, JsonValue } from '../src/index.js';
@@ -18,7 +19,12 @@ const compileRenderSchema = (): SchemaValidator => {
   // SAFETY: JSON.parse returns any. The file is the committed Render schema, whose root is a JSON
   // object; if it ever were not, ajv.compile below would reject it and every caller would fail.
   const schema: JsonObject = JSON.parse(readFileSync(schemaPath, 'utf8'));
-  const compiled = new Ajv2020({ strict: false, allErrors: true }).compile(schema);
+  const ajv = new Ajv2020({ strict: false, allErrors: true });
+
+  // ajv-formats is CommonJS: nodenext types the import as the namespace, .default as the plugin.
+  addFormats.default(ajv);
+
+  const compiled = ajv.compile(schema);
 
   return (value) =>
     compiled(value)

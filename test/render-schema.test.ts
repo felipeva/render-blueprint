@@ -20,4 +20,21 @@ describe('renderSchema', () => {
 
     expect(violations).not.toEqual([]);
   });
+
+  it('rejects a maintenance mode uri that is not a URI', () => {
+    const violations = renderSchema({
+      services: [
+        {
+          type: 'web',
+          name: 'api',
+          runtime: 'node',
+          maintenanceMode: { enabled: true, uri: 'not a url at all' },
+        },
+      ],
+    });
+
+    expect(violations.map((violation) => violation.at)).toContain(
+      '/services/0/maintenanceMode/uri',
+    );
+  });
 });
