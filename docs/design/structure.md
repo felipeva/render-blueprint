@@ -57,7 +57,8 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │                                runtime, plan, disk-size, auto-deploy-trigger, maxmemory-policy,
 │   │                                preview-generation, service-type, render-provided-key,
 │   │                                service-property, referenceable-service-type,
-│   │                                key-value-persistence-mode, connection-pool (spec §6.6)
+│   │                                key-value-persistence-mode, connection-pool,
+│   │                                render-subdomain-policy (spec §6.6)
 │   ├── references/                  what a resource exposes; the core of design B
 │   │   ├── reference-value.ts       DatabaseReferenceValue, ServiceReferenceValue (the XOR union)
 │   │   ├── reference-origin.ts      ReferenceOrigin — 'blueprint' | 'external', a target's origin
@@ -85,6 +86,7 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   │                            the repo+branch | dockerfilePath | image source union the four
 │   │   │                            sourced kinds share, and the tuple of keys its branches own
 │   │   ├── disk.ts  scaling.ts  build-filter.ts  ip-allow-list.ts  previews.ts
+│   │   │   subdomain-policy.ts
 │   │   │                            the sub-configs shared across service kinds, each with its own
 │   │   │                            ordered field tuple. disk.ts also carries DiskPreventsScaling
 │   │   │                            for the three kinds that spread it and scaling.ts the two
@@ -94,9 +96,14 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   │                            the array schema with the entry nested inside it, and the
 │   │   │                            guard over the pair, spread by web services, static sites, Key
 │   │   │                            Value and Postgres and required on Key Value alone (issue
-│   │   │                            #40). Route and Header are not shared — only a static site
-│   │   │                            takes them (spec §4.8), so they live in static-site.ts with
-│   │   │                            the factory (issue #6)
+│   │   │                            #40); subdomain-policy.ts carries no config of its own — it
+│   │   │                            holds the renderSubdomainPolicy and domains pair and the
+│   │   │                            SubdomainPolicyNeedsDomain refinement a web service and a
+│   │   │                            static site both spread (issue #43). Route and Header are not
+│   │   │                            shared — only a static site takes them (spec §4.8), so they
+│   │   │                            live in static-site.ts with the factory (issue #6), and
+│   │   │                            MaintenanceMode lives in web.ts for the same reason, because
+│   │   │                            spec §4.8 gives it to a web service alone (issue #43)
 │   │   ├── web.ts  private-service.ts  worker.ts  cron.ts  static-site.ts  key-value.ts
 │   │   │   postgres.ts  env-group.ts   each: the factory, its Config, and its output type
 │   │   ├── read-replica.ts          referenceable, deliberately outside BlueprintResource
@@ -286,8 +293,11 @@ literals use the same convention one level down — `DanglingReference`, `Duplic
 produces it. The config tier mints the few no rule file produces, from the issues a schema raises:
 `UnknownField`, `InvalidConfig`, `RootDirNotRelative`, `ConflictingSource` for a key one source
 branch owns on a config whose runtime picked another (issue #10), `OutOfRange` for every numeric
-bound the spec sets, and `ScalingTargetMissing` and `DiskPreventsScaling` for the two pairs a
-serverService config may not hold at once (issue #12). `WarningCode` follows the same
+bound the spec sets, `ScalingTargetMissing` and `DiskPreventsScaling` for the two pairs a
+serverService config may not hold at once (issue #12), `MaintenanceUriNotAbsolute` for a
+maintenance page the config points at with something other than an absolute URL, and
+`SubdomainPolicyNeedsDomain` for a `renderSubdomainPolicy` of `disabled` on a resource that lists
+no custom domain (issue #43). `WarningCode` follows the same
 convention one tier down, for a rule that never blocks synthesis — `SecretSkipsPreviews`,
 `UnknownServiceEnvVarKey`, `WebOnlyField`, `InstancesIgnoredByScaling`, `UnusedDefault` and
 `BuildFilterOnImageSource` among them.
