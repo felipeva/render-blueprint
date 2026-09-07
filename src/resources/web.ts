@@ -3,9 +3,14 @@ import * as z from 'zod';
 import type { AutoDeployTrigger } from '../enums/auto-deploy-trigger.js';
 import { serverPlanSchema, type ServerPlan } from '../enums/plan.js';
 import type { Region } from '../enums/region.js';
+import {
+  renderSubdomainPolicySchema,
+  type RenderSubdomainPolicy,
+} from '../enums/render-subdomain-policy.js';
 import { serviceEnvironmentSchema, type ServiceEnvironment } from '../env/self-environment.js';
 import type { Equal, Expect } from '../equal.js';
 import type { JsonObject } from '../json.js';
+import { raise } from '../raise.js';
 import {
   httpServiceReference,
   type HttpServiceReference,
@@ -26,8 +31,16 @@ import {
   type ImageSource,
   type NativeSource,
 } from './service-source.js';
+import { raiseSubdomainPolicyNeedsDomain } from './subdomain-policy.js';
 
 export type HealthCheckPath = `/${string}`;
+
+// spec §4.8: maintenance mode sits on the serverService branch and Render's prose gives it to a
+// paid web service, so no other kind models it.
+export interface MaintenanceMode {
+  readonly enabled?: boolean;
+  readonly uri?: string;
+}
 
 // spec §4.1: domains and healthCheckPath sit on the serverService branch, and the prose gives both
 // to web services alone, so a worker and a private service model neither.
@@ -41,11 +54,14 @@ interface WebFields {
   readonly preDeployCommand?: string;
   readonly domains?: readonly string[];
   readonly autoDeployTrigger?: AutoDeployTrigger;
+  readonly initialDeployHook?: string;
   readonly disk?: Disk;
   readonly buildFilter?: BuildFilter;
   readonly previews?: ServicePreviews;
+  readonly maintenanceMode?: MaintenanceMode;
   readonly maxShutdownDelaySeconds?: number;
   readonly ipAllowList?: IpAllowList;
+  readonly renderSubdomainPolicy?: RenderSubdomainPolicy;
   readonly env?: ServiceEnvironment<HttpServiceReference>;
   readonly envGroups?: readonly EnvironmentGroup[];
   readonly extraFields?: JsonObject;
@@ -90,12 +106,35 @@ export const WEB_SERVICE_FIELDS = [
   'domains',
   'envVars',
   'autoDeployTrigger',
+  'initialDeployHook',
   'disk',
   'buildFilter',
   'previews',
+  'maintenanceMode',
   'maxShutdownDelaySeconds',
   'ipAllowList',
+  'renderSubdomainPolicy',
 ] as const;
+
+// Emission order follows the schema's maintenanceMode property order.
+export const MAINTENANCE_MODE_FIELDS = ['enabled', 'uri'] as const;
+
+// spec §8.3: the published schema gives the uri format "uri" and the prose calls it absolute.
+// INFERRED: the prose also forbids a uri pointing at the service it protects, which no value on
+// its own can be read against, so the library checks absoluteness and leaves the rest unstated.
+const maintenanceModeObject = z
+  .strictObject({ enabled: z.boolean().exactOptional(), uri: z.string().exactOptional() })
+  .readonly()
+  .superRefine((value, ctx) => {
+    if (value.uri !== undefined && !URL.canParse(value.uri)) {
+      raise(
+        ctx,
+        'MaintenanceUriNotAbsolute',
+        `Render serves a maintenance page from an absolute URL, and "${value.uri}" is not one.`,
+        ['uri'],
+      );
+    }
+  });
 
 const webFields = {
   ...optionalSourcedServiceFields,
@@ -109,6 +148,9 @@ const webFields = {
     })
     .exactOptional(),
   ipAllowList: ipAllowListSchema.exactOptional(),
+  initialDeployHook: z.string().exactOptional(),
+  maintenanceMode: maintenanceModeObject.exactOptional(),
+  renderSubdomainPolicy: renderSubdomainPolicySchema.exactOptional(),
   env: serviceEnvironmentSchema<HttpServiceReference>().exactOptional(),
 };
 
@@ -118,7 +160,8 @@ const webConfigSchema = z
     z.strictObject({ ...webFields, ...dockerSourceFields }).readonly(),
     z.strictObject({ ...webFields, ...imageSourceFields }).readonly(),
   ])
-  .superRefine(raiseDiskPreventsScaling);
+  .superRefine(raiseDiskPreventsScaling)
+  .superRefine(raiseSubdomainPolicyNeedsDomain);
 
 type WebConfigSchemaMatchesInterface = Expect<Equal<z.infer<typeof webConfigSchema>, WebConfig>>;
 

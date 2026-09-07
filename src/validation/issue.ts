@@ -18,6 +18,8 @@ export const VALIDATION_CODES = [
   'ScalingTargetMissing',
   'DiskPreventsScaling',
   'MountPathDisallowed',
+  'MaintenanceUriNotAbsolute',
+  'SubdomainPolicyNeedsDomain',
 ] as const;
 
 export type ValidationCode = (typeof VALIDATION_CODES)[number];

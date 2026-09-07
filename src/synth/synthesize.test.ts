@@ -520,7 +520,7 @@ envVarGroups:
   it('merges extraFields after the modeled keys', () => {
     const api = web('api', {
       runtime: 'node',
-      extraFields: { initialDeployHook: './seed.sh', renderSubdomainPolicy: 'disabled' },
+      extraFields: { maintenanceWindow: 'sun-03:00', logStream: 'acme-logs' },
     });
 
     expect(emit(blueprint({ resources: [api] }))).toContain(
@@ -528,8 +528,8 @@ envVarGroups:
   - type: web
     name: api
     runtime: node
-    initialDeployHook: ./seed.sh
-    renderSubdomainPolicy: disabled
+    maintenanceWindow: sun-03:00
+    logStream: acme-logs
 `,
     );
   });

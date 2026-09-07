@@ -125,3 +125,26 @@ describe('staticSite ipAllowList', () => {
     staticSite('marketing', { ipAllowList: [{ source: '::1', label: 'all' }] });
   });
 });
+
+describe('static site subdomain policy', () => {
+  it('takes a subdomain policy beside the domains it leaves as the only address', () => {
+    expectTypeOf(
+      staticSite('marketing', { domains: ['acme.dev'], renderSubdomainPolicy: 'disabled' }),
+    ).toEqualTypeOf<StaticSite>();
+  });
+
+  it('rejects a subdomain policy Render does not publish', () => {
+    // @ts-expect-error spec §8.2: the policy is enabled or disabled.
+    staticSite('marketing', { renderSubdomainPolicy: 'off' });
+  });
+
+  it('rejects a first-deploy hook, which spec §4.8 gives to a web service', () => {
+    // @ts-expect-error spec §4.8: staticService lists no initialDeployHook.
+    staticSite('marketing', { initialDeployHook: './seed.sh' });
+  });
+
+  it('rejects maintenance mode, which spec §4.8 gives to a web service', () => {
+    // @ts-expect-error spec §4.8: staticService lists no maintenanceMode.
+    staticSite('marketing', { maintenanceMode: { enabled: true } });
+  });
+});

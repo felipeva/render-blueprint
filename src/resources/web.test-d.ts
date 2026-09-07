@@ -198,3 +198,41 @@ describe('web ipAllowList', () => {
     web('api', { runtime: 'node', ipAllowList: [{ source: '::1', label: 'all' }] });
   });
 });
+
+describe('web maintenance mode and subdomain policy', () => {
+  it('takes a first-deploy hook, maintenance mode and a subdomain policy', () => {
+    expectTypeOf(
+      web('api', {
+        runtime: 'node',
+        initialDeployHook: './seed_database.sh',
+        maintenanceMode: { enabled: true, uri: 'https://status.acme.dev/maintenance' },
+        domains: ['acme.dev'],
+        renderSubdomainPolicy: 'disabled',
+      }),
+    ).toEqualTypeOf<WebService>();
+  });
+
+  it('takes maintenance mode with neither of its two fields', () => {
+    expectTypeOf(web('api', { runtime: 'node', maintenanceMode: {} })).toEqualTypeOf<WebService>();
+  });
+
+  it('rejects a field the library does not model inside maintenance mode', () => {
+    // @ts-expect-error spec §4.8: maintenanceMode carries enabled and uri, and nothing else.
+    web('api', { runtime: 'node', maintenanceMode: { bypassPaths: ['/healthz'] } });
+  });
+
+  it('rejects maintenance mode written as the boolean it is not', () => {
+    // @ts-expect-error spec §4.8: maintenanceMode is an object, not the switch inside it.
+    web('api', { runtime: 'node', maintenanceMode: true });
+  });
+
+  it('rejects a subdomain policy Render does not publish', () => {
+    // @ts-expect-error spec §8.2: the policy is enabled or disabled.
+    web('api', { runtime: 'node', renderSubdomainPolicy: 'off' });
+  });
+
+  it('rejects the singular domain, the form spec §13 retired', () => {
+    // @ts-expect-error spec §13: `domains` replaced the singular form.
+    web('api', { runtime: 'node', domain: 'acme.dev' });
+  });
+});

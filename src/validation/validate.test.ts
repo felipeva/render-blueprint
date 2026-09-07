@@ -1542,6 +1542,159 @@ describe('validate', () => {
     expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'envGroups' });
   });
 
+  it('accepts a web service carrying the hook, maintenance mode and the policy', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', {
+            runtime: 'node',
+            buildCommand: 'pnpm build',
+            startCommand: 'pnpm start',
+            initialDeployHook: './seed_database.sh',
+            maintenanceMode: { enabled: true, uri: 'https://status.acme.dev/maintenance' },
+            domains: ['acme.dev'],
+            renderSubdomainPolicy: 'disabled',
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isOk(result)).toBe(true);
+    if (!Result.isOk(result)) return;
+    expect(result.value.warnings).toEqual([]);
+  });
+
+  it('reports a relative maintenance uri on the nested field', () => {
+    const result = validate(
+      blueprint({
+        resources: [web('api', { runtime: 'node', maintenanceMode: { uri: '/maintenance' } })],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['MaintenanceUriNotAbsolute']);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'maintenanceMode.uri' });
+  });
+
+  it('reports a disabled subdomain policy on a web service that lists no domain', () => {
+    const result = validate(
+      blueprint({
+        resources: [web('api', { runtime: 'node', renderSubdomainPolicy: 'disabled' })],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['SubdomainPolicyNeedsDomain']);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues[0].at).toEqual({
+      resource: 'api',
+      field: 'renderSubdomainPolicy',
+    });
+  });
+
+  it('reports a disabled subdomain policy on a static site that lists no domain', () => {
+    const result = validate(
+      blueprint({
+        resources: [staticSite('marketing', { renderSubdomainPolicy: 'disabled' })],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['SubdomainPolicyNeedsDomain']);
+  });
+
+  it('reports the first-deploy hook in a web service\u2019s extraFields as a conflict', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', { runtime: 'node', extraFields: { initialDeployHook: './seed.sh' } }),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['ExtraFieldConflict']);
+  });
+
+  it('reports maintenance mode in a web service\u2019s extraFields as a conflict', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', { runtime: 'node', extraFields: { maintenanceMode: { enabled: true } } }),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['ExtraFieldConflict']);
+  });
+
+  it('reports the subdomain policy in a web service\u2019s extraFields as a conflict', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', { runtime: 'node', extraFields: { renderSubdomainPolicy: 'disabled' } }),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['ExtraFieldConflict']);
+  });
+
+  it('reports the subdomain policy in a static site\u2019s extraFields as a conflict', () => {
+    const result = validate(
+      blueprint({
+        resources: [staticSite('marketing', { extraFields: { renderSubdomainPolicy: 'enabled' } })],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['ExtraFieldConflict']);
+  });
+
+  it('reports the singular domain in a web service\u2019s extraFields as a retired form', () => {
+    const result = validate(
+      blueprint({
+        resources: [web('api', { runtime: 'node', extraFields: { domain: 'acme.dev' } })],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['DeprecatedField']);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'extraFields.domain' });
+    expect(result.error.issues[0].message).toContain('domains');
+  });
+
+  // The web-only warning fires on the same field, and a warning reaches the author only on an
+  // accepted blueprint, so the retired form is what blocks here.
+  it('lets the retired singular domain block a worker the web-only rule also warns about', () => {
+    const result = validate(
+      blueprint({
+        resources: [worker('jobs', { runtime: 'node', extraFields: { domain: 'jobs.acme.dev' } })],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['DeprecatedField']);
+  });
+
+  it('reports no retired form for a singular domain on a cron job, which carries none', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          cron('nightly', {
+            runtime: 'node',
+            schedule: '0 2 * * *',
+            buildCommand: 'pnpm build',
+            startCommand: 'pnpm report',
+            extraFields: { domain: 'nightly.acme.dev' },
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isOk(result)).toBe(true);
+    if (!Result.isOk(result)) return;
+    expect(result.value.warnings.map((warning) => warning.code)).toEqual(['WebOnlyField']);
+  });
+
   it('carries the secret preview warning on an accepted blueprint', () => {
     const result = validate(
       blueprint({

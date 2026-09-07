@@ -21,7 +21,7 @@ import {
   STATIC_SITE_FIELDS,
   STATIC_SITE_PREVIEWS_FIELDS,
 } from '../src/resources/static-site.js';
-import { WEB_SERVICE_FIELDS } from '../src/resources/web.js';
+import { MAINTENANCE_MODE_FIELDS, WEB_SERVICE_FIELDS } from '../src/resources/web.js';
 import { WORKER_FIELDS } from '../src/resources/worker.js';
 
 interface RenderSchemaObject {
@@ -106,6 +106,12 @@ describe('KEY_VALUE_STORE_FIELDS', () => {
 describe('POSTGRES_DATABASE_FIELDS', () => {
   it('emits the database keys in the order Render publishes them', () => {
     expectPublishedOrder(POSTGRES_DATABASE_FIELDS, 'database');
+  });
+});
+
+describe('MAINTENANCE_MODE_FIELDS', () => {
+  it('emits the maintenanceMode keys in the order Render publishes them', () => {
+    expectPublishedOrder(MAINTENANCE_MODE_FIELDS, 'serverService', 'maintenanceMode');
   });
 });
 

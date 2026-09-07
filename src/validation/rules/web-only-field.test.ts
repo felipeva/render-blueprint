@@ -65,6 +65,17 @@ describe('webOnlyField', () => {
     expect(warnings[0]?.code).toBe('WebOnlyField');
   });
 
+  // spec §13: the singular domain is also the retired form, so the deprecated-field rule reports
+  // an issue on the same key; the issue is the one that blocks and this warning rides beside it.
+  it('warns about the singular domain on a worker, beside the issue that retires it', () => {
+    const warnings = webOnlyField([
+      worker('jobs', { runtime: 'node', extraFields: { domain: 'jobs.example.com' } }),
+    ]);
+
+    expect(warnings.map((warning) => warning.at.field)).toEqual(['extraFields.domain']);
+    expect(warnings[0]?.code).toBe('WebOnlyField');
+  });
+
   it('warns about nothing when a worker sets no extra fields', () => {
     expect(webOnlyField([worker('jobs', { runtime: 'node' })])).toEqual([]);
   });

@@ -254,4 +254,72 @@ describe('parseWebConfig', () => {
       issueCodes(unchecked('{"runtime":"node","ipAllowList":[{"description":"office"}]}')),
     ).toEqual(['invalid_type']);
   });
+
+  it('accepts a first-deploy hook, maintenance mode and a subdomain policy', () => {
+    expect(
+      issueCodes({
+        runtime: 'node',
+        initialDeployHook: './seed_database.sh',
+        maintenanceMode: { enabled: true, uri: 'https://status.acme.dev/maintenance' },
+        domains: ['acme.dev'],
+        renderSubdomainPolicy: 'disabled',
+      }),
+    ).toEqual([]);
+  });
+
+  it('accepts maintenance mode with no uri, which Render answers with its own page', () => {
+    expect(issueCodes({ runtime: 'node', maintenanceMode: { enabled: true } })).toEqual([]);
+  });
+
+  it('rejects a field the library does not model inside maintenanceMode', () => {
+    expect(
+      issueCodes(unchecked('{"runtime":"node","maintenanceMode":{"bypassPaths":["/healthz"]}}')),
+    ).toEqual(['unrecognized_keys']);
+  });
+
+  it('rejects a maintenance mode written as a boolean', () => {
+    expect(issueCodes(unchecked('{"runtime":"node","maintenanceMode":true}'))).toEqual([
+      'invalid_type',
+    ]);
+  });
+
+  it('rejects a subdomain policy Render does not publish', () => {
+    expect(issueCodes(unchecked('{"runtime":"node","renderSubdomainPolicy":"off"}'))).toEqual([
+      'invalid_value',
+    ]);
+  });
+
+  it('reports a relative maintenance uri on the nested uri field', () => {
+    expect(raisedIssues({ runtime: 'node', maintenanceMode: { uri: '/maintenance' } })).toEqual([
+      { validationCode: 'MaintenanceUriNotAbsolute', path: ['maintenanceMode', 'uri'] },
+    ]);
+  });
+
+  it('reports an empty maintenance uri on the nested uri field', () => {
+    expect(raisedIssues({ runtime: 'node', maintenanceMode: { uri: '' } })).toEqual([
+      { validationCode: 'MaintenanceUriNotAbsolute', path: ['maintenanceMode', 'uri'] },
+    ]);
+  });
+
+  it('accepts an absolute maintenance uri', () => {
+    expect(
+      issueCodes({ runtime: 'node', maintenanceMode: { uri: 'https://acme.dev/down' } }),
+    ).toEqual([]);
+  });
+
+  it('reports a disabled subdomain policy on a service that lists no domain', () => {
+    expect(raisedIssues({ runtime: 'node', renderSubdomainPolicy: 'disabled' })).toEqual([
+      { validationCode: 'SubdomainPolicyNeedsDomain', path: ['renderSubdomainPolicy'] },
+    ]);
+  });
+
+  it('reports a disabled subdomain policy beside an empty list of domains', () => {
+    expect(
+      raisedIssues({ runtime: 'node', renderSubdomainPolicy: 'disabled', domains: [] }),
+    ).toEqual([{ validationCode: 'SubdomainPolicyNeedsDomain', path: ['renderSubdomainPolicy'] }]);
+  });
+
+  it('accepts an enabled subdomain policy on a service that lists no domain', () => {
+    expect(issueCodes({ runtime: 'node', renderSubdomainPolicy: 'enabled' })).toEqual([]);
+  });
 });

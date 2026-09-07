@@ -19,10 +19,15 @@ const REPLACEMENTS: ReadonlyMap<string, string> = new Map([
   ['previewsExpireAfterDays', 'previews.expireAfterDays'],
   ['pullRequestPreviewsEnabled', 'previews.generation'],
   ['previewPlan', 'previews.plan'],
+  ['domain', 'domains'],
 ]);
 
 // spec §13: previewPlan is deprecated on a service, and is the current form on a datastore.
 const CURRENT_ON_A_DATASTORE: ReadonlySet<string> = new Set(['previewPlan']);
+
+// spec §4.8: only serverService and staticService carry a domain at all, so no other scope has the
+// legacy single-domain form to retire and naming its replacement there would misdirect the author.
+const ON_A_SERVICE_ALONE: ReadonlySet<string> = new Set(['domain']);
 
 // spec §4.8: cronService carries no previews object and no previewPlan, so the replacement a
 // service is pointed at does not exist on a cron job either.
@@ -42,6 +47,7 @@ export const deprecation = (
   // its fields; naming a replacement for a field a group never had would misdirect the author.
   if (scope === 'envGroup') return undefined;
   if (scope === 'datastore' && CURRENT_ON_A_DATASTORE.has(key)) return undefined;
+  if (scope !== 'service' && ON_A_SERVICE_ALONE.has(key)) return undefined;
 
   if (scope === 'cron' && PREVIEW_FIELDS.has(key)) return { key, replacement: undefined };
 
