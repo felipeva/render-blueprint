@@ -12,8 +12,7 @@ import type { BuildFilter } from '../resources/build-filter.js';
 import type { DefaultKey } from '../resources/defaults-provenance.js';
 import type { IpAllowList } from '../resources/ip-allow-list.js';
 
-// design B §2.3: one key per kind that has a plan, because the four plan enums differ and cannot
-// share a slot. A static site has no plan, so it has no key here.
+// design B §2.3: one key per kind that has a plan.
 export interface PlanDefaults {
   readonly web?: ServerPlan;
   readonly privateService?: PaidServerPlan;
@@ -23,8 +22,6 @@ export interface PlanDefaults {
   readonly postgres?: PostgresPlan;
 }
 
-// An object or an array default is written by reference and a resource's own value replaces it
-// whole, so the record holds the same declarations a config field takes.
 export interface ResourceDefaults {
   readonly region?: Region;
   readonly repo?: string;

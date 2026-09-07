@@ -13,8 +13,7 @@ import { keyValueReference, type KeyValueReference } from '../references/key-val
 import type { DefaultsProvenance } from './defaults-provenance.js';
 import { ipAllowListSchema, type IpAllowList } from './ip-allow-list.js';
 
-// spec §5 and §11: a Key Value instance has no previews object on Render, and previewPlan is the
-// current form there rather than a retired one; design B §2.6 renames the field on the way out.
+// spec §5 and §11: a Key Value instance has no previews object on Render.
 export interface KeyValuePreviews {
   readonly plan?: KeyValuePlan;
 }

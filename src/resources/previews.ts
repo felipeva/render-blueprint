@@ -5,8 +5,7 @@ import { type ServerPlan } from '../enums/plan.js';
 import { previewGenerationSchema, type PreviewGeneration } from '../enums/preview-generation.js';
 import type { Equal, Expect } from '../equal.js';
 
-// spec §4.6: a web service, a private service and a worker take all three; the plan a preview
-// instance runs on is the plan set of the kind that declares it.
+// spec §4.6: a web service, a private service and a worker take all three.
 export interface ServicePreviews<P extends ServerPlan = ServerPlan> {
   readonly generation?: PreviewGeneration;
   readonly plan?: P;
@@ -26,7 +25,7 @@ const previewsObject = <P extends ServerPlan>(plan: z.ZodType<P>) =>
     .readonly();
 
 // The guard needs a concrete instantiation, because a generic builder has no one inferred type to
-// compare; the plan is the only parameter, so widening it to ServerPlan checks the other two keys.
+// compare.
 type ServicePreviewsSchemaMatchesInterface = Expect<
   Equal<z.infer<ReturnType<typeof previewsObject<ServerPlan>>>, ServicePreviews<ServerPlan>>
 >;

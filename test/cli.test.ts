@@ -24,10 +24,6 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const binary = join(root, 'dist', 'cli.js');
 const seeds = fileURLToPath(new URL('fixtures/cli/', import.meta.url));
 
-// The seed's import specifier is a placeholder rather than a path: a committed absolute path would
-// be one machine's, and a committed relative one would break the moment the seed is copied. The
-// test rewrites it to the built entry's file URL, which is what lets the spawned binary resolve
-// render-blueprint with no install and no link step.
 const PLACEHOLDER = '__RENDER_BLUEPRINT__';
 
 const made: string[] = [];

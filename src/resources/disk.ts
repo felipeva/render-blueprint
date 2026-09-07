@@ -5,8 +5,7 @@ import type { Equal, Expect } from '../equal.js';
 import { raise } from '../raise.js';
 import type { Scaling } from './scaling.js';
 
-// spec §4.4: a disk needs a name and a mount path; sizeGB defaults to 10 and Render only ever
-// grows it. spec §8 bounds it at 1 GB and leaves the multiple-of-five rule to a database.
+// spec §4.4: a disk needs a name and a mount path.
 export interface Disk {
   readonly name: string;
   readonly mountPath: string;
@@ -16,8 +15,7 @@ export interface Disk {
 // Emission order follows the schema's disk property order.
 export const DISK_FIELDS = ['name', 'mountPath', 'sizeGB'] as const;
 
-// spec §4.4: the nine paths Render refuses to mount a disk on. The list is of exact paths, so a
-// directory under one of them is allowed and nothing here reads a prefix.
+// spec §4.4: the nine paths Render refuses to mount a disk on.
 const DISALLOWED_MOUNT_PATHS: ReadonlySet<string> = new Set([
   '/',
   '/opt',
@@ -60,8 +58,7 @@ export interface ScalableFields {
   readonly scaling?: Scaling;
 }
 
-// spec §4.4: a service with an attached disk cannot run on more than one instance, so a disk
-// beside autoscaling or beside a count above one is a pair Render cannot honour.
+// spec §4.4: a service with an attached disk cannot run on more than one instance.
 export const raiseDiskPreventsScaling = <T extends ScalableFields>(
   config: T,
   ctx: z.core.$RefinementCtx<T>,

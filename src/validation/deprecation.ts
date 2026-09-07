@@ -25,12 +25,10 @@ const REPLACEMENTS: ReadonlyMap<string, string> = new Map([
 // spec §13: previewPlan is deprecated on a service, and is the current form on a datastore.
 const CURRENT_ON_A_DATASTORE: ReadonlySet<string> = new Set(['previewPlan']);
 
-// spec §4.8: only serverService and staticService carry a domain at all, so no other scope has the
-// legacy single-domain form to retire and naming its replacement there would misdirect the author.
+// spec §4.8: only serverService and staticService carry a domain at all.
 const ON_A_SERVICE_ALONE: ReadonlySet<string> = new Set(['domain']);
 
-// spec §4.8: cronService carries no previews object and no previewPlan, so the replacement a
-// service is pointed at does not exist on a cron job either.
+// spec §4.8: cronService carries no previews object and no previewPlan.
 const PREVIEW_FIELDS: ReadonlySet<string> = new Set([
   'previewPlan',
   'previewsEnabled',
@@ -43,8 +41,7 @@ export const deprecation = (
   value: JsonValue,
   scope: DeprecationScope,
 ): Deprecation | undefined => {
-  // spec §6.1: a group carries a name and its variables, so no retired field of §13 is one of
-  // its fields; naming a replacement for a field a group never had would misdirect the author.
+  // spec §6.1: a group carries a name and its variables.
   if (scope === 'envGroup') return undefined;
   if (scope === 'datastore' && CURRENT_ON_A_DATASTORE.has(key)) return undefined;
   if (scope !== 'service' && ON_A_SERVICE_ALONE.has(key)) return undefined;
@@ -73,7 +70,6 @@ export const deprecationScope = (kind: BlueprintResource['kind']): DeprecationSc
   }
 };
 
-// One sentence for every retired field, so the three rules that report one all say it the same way.
 export const deprecationAdvice = (retired: Deprecation): string => {
   if (retired.replacement === undefined) {
     return `Render deprecated "${retired.key}", and a cron job has no previews of its own to name in its place. The escape hatch never emits a retired form.`;

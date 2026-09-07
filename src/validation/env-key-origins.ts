@@ -12,7 +12,6 @@ export interface ResourceEnvKeyOrigins {
   readonly origins: readonly EnvKeyOrigin[];
 }
 
-// One quoted list, one conjunction, wherever a message names several things the author wrote.
 export const describeNames = (names: readonly string[]): string => {
   const quoted = names.map((name) => `"${name}"`);
   const last = quoted.at(-1) ?? '';
@@ -36,10 +35,7 @@ const listedGroups = (
   return groups;
 };
 
-// spec §6.1: a fromGroup entry carries the group's name, and Render resolves it against the groups
-// the blueprint declares. So the listed group of that name is what a service imports, whichever
-// object it holds; a name no listed group answers to is a group the Dashboard manages (spec §6.3),
-// and the held object is then the only description of its keys there is.
+// spec §6.1: a fromGroup entry carries the group's name.
 const importedGroup = (
   held: EnvironmentGroup,
   listed: ReadonlyMap<string, EnvironmentGroup>,
@@ -80,8 +76,7 @@ const originsOf = (
   }));
 };
 
-// spec §6.1: a fromGroup entry names no key, so a group is the only place the keys it carries into
-// a service are written down. Both key rules read this list rather than the emitted entries.
+// spec §6.1: a fromGroup entry names no key.
 export const envKeyOrigins = (
   resources: readonly BlueprintResource[],
 ): readonly ResourceEnvKeyOrigins[] => {

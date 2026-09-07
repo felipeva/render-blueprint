@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Installed by `git config core.hooksPath .githooks`, run once per clone: git does not
-# version-control hooks itself. Checks the subject line alone, so the body and its trailers
-# pass through untouched.
+# version-control hooks itself.
 set -euo pipefail
 
 TYPES='build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test'
@@ -9,8 +8,7 @@ MAX_SUBJECT=72
 
 msg_file="$1"
 
-# Mirror git's own cleanup: drop the scissors block first (its marker is itself a
-# comment), then every remaining comment line, then any leading blank lines.
+# Mirror git's own cleanup.
 clean=$(
   sed -e '/^#[[:space:]]*-\{5,\}[[:space:]]*>8/,$d' -e '/^#/d' "$msg_file" |
     awk 'NF { seen = 1 } seen { print }'
@@ -34,7 +32,7 @@ die() {
   exit 1
 }
 
-# git generates these itself, or rewrites them on rebase. Not ours to validate.
+# git generates these itself, or rewrites them on rebase.
 case "$subject" in
   "Merge "* | "Revert "* | "fixup!"* | "squash!"* | "amend!"*) exit 0 ;;
 esac

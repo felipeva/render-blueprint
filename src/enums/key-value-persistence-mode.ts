@@ -1,7 +1,7 @@
 import * as z from 'zod';
 
-// spec §5: journal-snapshot for a new paid instance, off for a new free one, and an existing paid
-// instance retains its current mode. Changing to or from `off` loses every key.
+// spec §5: journal-snapshot for a new paid instance, off for a new free one.
+// Changing to or from `off` loses every key.
 export const KEY_VALUE_PERSISTENCE_MODES = ['journal-snapshot', 'snapshot', 'off'] as const;
 
 export type KeyValuePersistenceMode = (typeof KEY_VALUE_PERSISTENCE_MODES)[number];

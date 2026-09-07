@@ -64,7 +64,6 @@ const publishedField = (name: string, field: string): readonly string[] | undefi
 const converted = (values: readonly string[]): JsonSchemaEnum =>
   z.toJSONSchema(z.enum(values)).enum;
 
-// The environment's own fields sit in an allOf branch, so they carry no named definition.
 const publishedInEnvironment = (group: string, field: string): readonly string[] | undefined =>
   (renderSchema.definitions['environment']?.allOf ?? [])
     .map((branch) => branch.properties?.[group]?.properties?.[field]?.enum)
@@ -84,8 +83,7 @@ describe('SERVER_PLANS', () => {
 
 describe('PAID_SERVER_PLANS', () => {
   it('holds the serverPlan enum Render publishes without the free tier', () => {
-    // spec §8.1: the [SPEC] tables for private services and background workers omit `free`; the
-    // schema does not distinguish, so the published enum is the only oracle for the rest.
+    // spec §8.1: the [SPEC] tables for private services and background workers omit `free`.
     expect(converted(PAID_SERVER_PLANS)).toEqual(
       (published('serverPlan') ?? []).filter((plan) => plan !== 'free'),
     );

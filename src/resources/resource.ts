@@ -74,8 +74,6 @@ export const modeledFields = (resource: BlueprintResource): readonly string[] =>
   }
 };
 
-// A defaults scope fills the seven kinds that take a default; a group takes none, so it carries no
-// provenance to read.
 export const resourceDefaults = (resource: BlueprintResource): DefaultsProvenance | undefined => {
   switch (resource.kind) {
     case 'web':
@@ -97,8 +95,7 @@ export const resourceDefaults = (resource: BlueprintResource): DefaultsProvenanc
   }
 };
 
-// spec §9 and §5: neither a database nor a Key Value instance carries envVars, so they are the two
-// kinds with no environment map. A callback resolves against the resource's own handle.
+// spec §9 and §5: neither a database nor a Key Value instance carries envVars.
 export const resourceEnv = (resource: BlueprintResource): EnvironmentMap | undefined => {
   switch (resource.kind) {
     case 'web':
@@ -121,7 +118,7 @@ export const resourceEnv = (resource: BlueprintResource): EnvironmentMap | undef
 };
 
 // A callback is the author's own code, and resolving it against a config the schema rejected runs
-// it on values it was never written for. A map is inert, so parse-configs parses one either way.
+// it on values it was never written for.
 export const resourceEnvIsCallback = (resource: BlueprintResource): boolean => {
   switch (resource.kind) {
     case 'web':
@@ -141,8 +138,6 @@ export const resourceEnvIsCallback = (resource: BlueprintResource): boolean => {
   }
 };
 
-// A service config takes env as it is written, because a callback hides the map behind a call; a
-// group's own schema parses the narrower map it takes, and no other kind carries one.
 const unparsedEnv = (resource: BlueprintResource): EnvironmentMap | undefined => {
   switch (resource.kind) {
     case 'web':
@@ -189,8 +184,6 @@ export const resourceEnvGroups = (
   }
 };
 
-// The config tier reads this before its schema has parsed, so the value is whatever the author
-// wrote. A kind that chooses no source answers with nothing.
 export const sourceRuntime = (resource: BlueprintResource): string | undefined => {
   switch (resource.kind) {
     case 'web':
@@ -206,8 +199,7 @@ export const sourceRuntime = (resource: BlueprintResource): string | undefined =
   }
 };
 
-// spec §6.2: a fromService reference names a service; a database answers fromDatabase instead, and
-// a group is no reference target at all.
+// spec §6.2: a fromService reference names a service.
 export const serviceReferenceType = (
   resource: BlueprintResource,
 ): ReferenceableServiceType | undefined => {

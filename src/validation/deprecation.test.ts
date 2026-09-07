@@ -28,8 +28,7 @@ describe('deprecation', () => {
     });
   });
 
-  // spec §4.8: only serverService and staticService carry a domain, so neither a cron job nor a
-  // datastore has the legacy form to retire.
+  // spec §4.8: only serverService and staticService carry a domain.
   it('retires no domain outside a service, where no kind carries one', () => {
     expect([
       deprecation('domain', 'acme.dev', 'cron'),
@@ -64,8 +63,7 @@ describe('deprecationScope', () => {
     expect(deprecationScope('envGroup')).toBe('envGroup');
   });
 
-  // spec §13: previewPlan is the current form on a datastore, and a Key Value instance is one
-  // even though Render lists it under services.
+  // spec §13: previewPlan is the current form on a datastore.
   it('reads a Key Value instance as a datastore', () => {
     expect(deprecationScope('keyValue')).toBe('datastore');
   });
@@ -74,8 +72,7 @@ describe('deprecationScope', () => {
     expect(deprecation('previewPlan', 'starter', deprecationScope('keyValue'))).toBeUndefined();
   });
 
-  // spec §4.8: cronService carries no previews object and no previewPlan, so pointing the author
-  // at previews.plan would name a field a cron job does not have either.
+  // spec §4.8: cronService carries no previews object and no previewPlan.
   it('reads a cron job as its own scope', () => {
     expect(deprecationScope('cron')).toBe('cron');
   });

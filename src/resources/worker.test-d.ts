@@ -145,8 +145,7 @@ describe('worker disks, scaling and previews', () => {
     ).toEqualTypeOf<Worker>();
   });
 
-  // spec §4.4: a disk and autoscaling are a pair DiskPreventsScaling rejects, so the two cases
-  // stay apart rather than reading as one config the library endorses.
+  // spec §4.4: a disk and autoscaling are a pair DiskPreventsScaling rejects.
   it('takes autoscaling with a target metric', () => {
     expectTypeOf(
       worker('jobs', {

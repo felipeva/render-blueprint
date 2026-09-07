@@ -7,8 +7,7 @@ import type { ValidationWarning } from '../issue.js';
 const previewsAreOn = (previews: RootPreviews | undefined): boolean =>
   previews !== undefined && previews.generation !== 'off';
 
-// spec §6.3: Render never copies a sync: false variable into a preview environment, so a preview
-// built from this blueprint starts with the variable missing.
+// spec §6.3: Render never copies a sync: false variable into a preview environment.
 export const secretSkipsPreviews = (
   previews: RootPreviews | undefined,
   resources: readonly BlueprintResource[],

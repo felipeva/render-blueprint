@@ -4,8 +4,7 @@ import { boundedInteger, INSTANCE_COUNT_BOUNDS, type IntegerBounds } from '../bo
 import type { Equal, Expect } from '../equal.js';
 import { raise } from '../raise.js';
 
-// spec §4.5: the published schema requires none of the four, and the prose requires both bounds
-// and at least one target metric; design B follows the prose.
+// spec §4.5: the published schema requires none of the four.
 export interface Scaling {
   readonly minInstances: number;
   readonly maxInstances: number;

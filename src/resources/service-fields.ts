@@ -22,8 +22,7 @@ const rootDirSchema: z.ZodString = z.string().superRefine((value, ctx) => {
   }
 });
 
-// env is missing on purpose: its callback form is typed to the enclosing kind's own handle, so
-// each factory declares its own.
+// env is missing on purpose: its callback form is typed to the enclosing kind's own handle.
 export interface CommonServiceFields {
   readonly repo: z.ZodString;
   readonly branch: z.ZodString;
@@ -64,8 +63,6 @@ export const optionalCommonServiceFields: OptionalCommonServiceFields = {
   extraFields: commonServiceFields.extraFields.exactOptional(),
 };
 
-// The fields the four kinds that choose a source share whatever source they choose. A static site
-// chooses none and runs no start command, so it spreads the common map above instead.
 export interface OptionalSourcedServiceFields {
   readonly region: z.ZodExactOptional<z.ZodEnum<z.core.util.ToEnum<Region>>>;
   readonly startCommand: z.ZodExactOptional<z.ZodString>;
@@ -87,7 +84,7 @@ export const optionalSourcedServiceFields: OptionalSourcedServiceFields = {
 };
 
 // spec §4.8: a disk, an instance count, autoscaling and the shutdown delay sit on the serverService
-// branch alone, so a cron job and a static site spread neither this map nor its fields.
+// branch alone.
 export interface OptionalServerServiceFields {
   readonly disk: z.ZodExactOptional<z.ZodType<Disk>>;
   readonly instances: z.ZodExactOptional<z.ZodInt>;

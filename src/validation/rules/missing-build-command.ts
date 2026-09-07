@@ -7,9 +7,7 @@ interface BuiltFromSource {
   readonly buildCommand: string | undefined;
 }
 
-// spec §9 and §5: a database is not built from source, a Key Value instance is not, and neither is
-// a group, so no build command applies to any of them. A Docker source builds the Dockerfile and a
-// prebuilt image builds nothing, so only a native runtime has a build command to miss.
+// spec §9 and §5: a database is not built from source.
 const builtFromSource = (resource: BlueprintResource): BuiltFromSource | undefined => {
   switch (resource.kind) {
     case 'web':

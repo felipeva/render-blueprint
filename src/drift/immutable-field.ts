@@ -76,7 +76,7 @@ const fieldChanges = (
   fields.flatMap((field) => {
     const value = generated[field];
 
-    // spec §12: an omitted key retains the current value, so a field that went away is not a change.
+    // spec §12: an omitted key retains the current value.
     if (value === undefined || same(committed[field], value)) return [];
 
     const change: ImmutableFieldChange = {
@@ -90,8 +90,6 @@ const fieldChanges = (
     return [change];
   });
 
-// One dropped and one added resource that agree on every other immutable field is a rename; any
-// other leftover is a delete and a create, which the diff already reports as what they are.
 const renamed = (
   section: DriftSection,
   fields: readonly ImmutableField[],

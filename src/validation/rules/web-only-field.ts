@@ -3,13 +3,8 @@ import type { BlueprintResource } from '../../resources/resource.js';
 import type { ValidationWarning } from '../issue.js';
 
 // spec §16 F: the first six sit on the serverService branch a worker and a private service share
-// with a web service, and Render's prose gives them to web services alone. A worker, a private
-// service and a cron job model none of the seven, so extraFields is the only way one reaches the
-// emitted mapping there; a static site models the four ON_A_STATIC_SITE names below and reaches
-// the other three the same way.
-// spec §4.8: initialDeployHook is the seventh. Its matrix row reaches the whole serverService
-// column, so the schema takes it on all three kinds and the restriction to a web service is the
-// library's own; the warning is what keeps that choice from passing in silence.
+// with a web service.
+// spec §4.8: initialDeployHook is the seventh.
 const WEB_ONLY_FIELDS = [
   'healthCheckPath',
   'maintenanceMode',
@@ -20,8 +15,7 @@ const WEB_ONLY_FIELDS = [
   'initialDeployHook',
 ] as const;
 
-// spec §4.8: staticService lists four of the seven, so a static site is out of reach for the other
-// three alone; the library models three of these four and the fourth is the retired singular form.
+// spec §4.8: staticService lists four of the seven.
 const ON_A_STATIC_SITE: ReadonlySet<string> = new Set([
   'domain',
   'domains',
@@ -65,17 +59,13 @@ const outOfReach = (type: WebOnlyCandidate['type']): readonly string[] =>
     ? WEB_ONLY_FIELDS.filter((field) => !ON_A_STATIC_SITE.has(field))
     : WEB_ONLY_FIELDS;
 
-// spec §4 gives initialDeployHook to the whole serverService branch, so naming Render's
-// documentation for it would claim a restriction Render does not state.
+// spec §4 gives initialDeployHook to the whole serverService branch.
 const restriction = (field: string): string =>
   field === 'initialDeployHook'
     ? 'the library models that field on a web service alone'
     : "Render's documentation gives that field to web services";
 
-// spec §4.8: neither a cron job nor a static site shares the serverService branch, and cronService
-// and staticService each allow no property beyond the ones they list, so a field one of them does
-// not carry is further out of reach there than on the two kinds the prose merely excludes — the
-// emitted document is one Render's own schema rejects rather than one it ignores the field in.
+// spec §4.8: neither a cron job nor a static site shares the serverService branch.
 const message = (name: string, type: WebOnlyCandidate['type'], field: string): string => {
   switch (type) {
     case 'cron':

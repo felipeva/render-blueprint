@@ -7,8 +7,6 @@ import {
   type RegistryCredentialReference,
 } from './registry-credential-reference.js';
 
-// An external handle carries no kind, so listing one in resources is a compile error, and its
-// references never raise DanglingReference.
 export interface ExternalReferences {
   readonly web: (name: string) => HttpServiceReference;
   readonly privateService: (name: string) => HttpServiceReference;
@@ -28,7 +26,6 @@ export const external: ExternalReferences = {
   staticSite: (name) => opaqueServiceReference({ name, type: 'static', origin: 'external' }),
   keyValue: (name) => keyValueReference(name, 'external'),
   postgres: (name) => postgresReference(name, 'external'),
-  // spec §4.2: a registry credential lives in the workspace and no blueprint declares one, so the
-  // external handle is the only form there is.
+  // spec §4.2: a registry credential lives in the workspace and no blueprint declares one.
   registryCredential: (name) => registryCredentialReference(name),
 };

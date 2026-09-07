@@ -2,8 +2,7 @@ import type { RenderProvidedKey } from '../enums/render-provided-key.js';
 import type { ServiceReferenceValue } from './reference-value.js';
 import { serviceEnvVar, type ServiceTarget } from './service-target.js';
 
-// spec §6.2: host, port and hostport belong to web and private services, so a worker, a cron job
-// and a static site expose their environment variables and nothing else.
+// spec §6.2: host, port and hostport belong to web and private services.
 export interface OpaqueServiceReference {
   readonly envVar: (key: string) => ServiceReferenceValue;
   readonly renderVar: (name: RenderProvidedKey) => ServiceReferenceValue;

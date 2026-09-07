@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 # Installed by `git config core.hooksPath .githooks`, run once per clone: git does not
-# version-control hooks itself. oxfmt honours the ignore patterns in .oxfmtrc.json for explicit
-# paths; oxlint does not, so it runs over the whole project through its own config, matching
-# `pnpm check`. Partially staged files are formatted whole and re-staged whole.
+# version-control hooks itself.
 set -euo pipefail
 
 bin=./node_modules/.bin
@@ -15,7 +13,7 @@ for tool in oxfmt oxlint; do
   [ -x "$bin/$tool" ] || { echo "pre-commit: $bin/$tool is missing — run pnpm install" >&2; exit 1; }
 done
 
-# oxfmt exits 1 when every given path is excluded by its ignore patterns. That is not a failure.
+# oxfmt exits 1 when every given path is excluded by its ignore patterns.
 if ! output=$("$bin/oxfmt" "${staged[@]}" 2>&1); then
   case "$output" in
     *"Expected at least one target file"*) ;;

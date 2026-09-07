@@ -27,7 +27,7 @@ import {
 } from './service-source.js';
 
 // spec §16 F: healthCheckPath, domains, maintenanceMode and ipAllowList sit on the schema branch a
-// worker shares with a web service, and the prose restricts all four to web services.
+// worker shares with a web service.
 interface WorkerFields {
   readonly region?: Region;
   readonly plan?: PaidServerPlan;
@@ -114,8 +114,7 @@ export const WORKER_CONFIG_SCHEMA_MATCHES_INTERFACE: true =
 export const parseWorkerConfig = (config: WorkerConfig): z.ZodSafeParseResult<WorkerConfig> =>
   workerConfigSchema.safeParse(config);
 
-// spec §6.2: a worker answers on no address, so it carries the handle without host, port and
-// hostport.
+// spec §6.2: a worker answers on no address.
 export const worker = (name: string, config: WorkerConfig): Worker => ({
   kind: 'worker',
   name,

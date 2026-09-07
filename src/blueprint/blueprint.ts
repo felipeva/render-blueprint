@@ -29,7 +29,7 @@ export interface Blueprint {
 
 export const ROOT_NAME = 'blueprint' as const;
 
-// Emission order follows the schema's root property order, with previews ahead of the resources.
+// Emission order follows the schema's root property order.
 export const BLUEPRINT_FIELDS = [
   'previews',
   'services',

@@ -11,10 +11,6 @@ interface ScopeUse {
 
 const MODELED_KEYS: ReadonlySet<string> = new Set(DEFAULT_KEYS);
 
-// One cause: nothing the scope created can take the field from a scope. That is not the same as
-// nothing having the field — a Key Value store requires its own ipAllowList, so it has the field
-// and still takes no default for it. A resource that set its own value and an inner scope that
-// overrode the key both took a default that applies to something, so neither is reported here.
 const message = (key: string, names: readonly string[]): string => {
   const scope = `The defaults scope that created ${describeNames(names)} sets "${key}"`;
 
@@ -29,9 +25,6 @@ const message = (key: string, names: readonly string[]): string => {
   return `${scope}, which nothing it created can take: a default reaches only a kind and a source branch that can take the field from a scope.`;
 };
 
-// A scope reaches validation through the resources it filled, so a scope whose resources are never
-// listed says nothing here. A key is used when one of those resources could take it, landed or
-// overridden, and unused when the field reaches none of them at all.
 export const unusedDefault = (
   resources: readonly BlueprintResource[],
 ): readonly ValidationWarning[] => {

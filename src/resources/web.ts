@@ -36,16 +36,13 @@ import { raiseSubdomainPolicyNeedsDomain } from './subdomain-policy.js';
 export type HealthCheckPath = `/${string}`;
 
 // spec §4.8: maintenance mode sits on the serverService branch and Render's prose gives it to a
-// paid web service, so no other kind models it. The paid half is a warning and not a type:
-// MaintenanceModeNeedsPaidPlan reports the plan a config writes, and a config that writes none says
-// nothing, because Render adopts a service by name and an adopted one may already be paid.
+// paid web service.
 export interface MaintenanceMode {
   readonly enabled?: boolean;
   readonly uri?: string;
 }
 
-// spec §4.1: domains and healthCheckPath sit on the serverService branch, and the prose gives both
-// to web services alone, so a worker and a private service model neither.
+// spec §4.1: domains and healthCheckPath sit on the serverService branch.
 interface WebFields {
   readonly region?: Region;
   readonly plan?: ServerPlan;
@@ -121,8 +118,7 @@ export const WEB_SERVICE_FIELDS = [
 // Emission order follows the schema's maintenanceMode property order.
 export const MAINTENANCE_MODE_FIELDS = ['enabled', 'uri'] as const;
 
-// A browser fetches the maintenance page, so the URL needs a host: without one, "localhost:8080"
-// and "about:blank" parse as absolute and address nothing Render can serve.
+// A browser fetches the maintenance page, so the URL needs a host.
 const isAbsolutePageUrl = (value: string): boolean => {
   const parsed = URL.parse(value);
   return parsed !== null && parsed.host !== '';

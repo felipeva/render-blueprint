@@ -11,7 +11,6 @@ import type { ValidationWarning } from '../issue.js';
 // spec §6.6: Render sets these on every service, so a reference to one always resolves.
 const RENDER_PROVIDED: ReadonlySet<string> = new Set(RENDER_PROVIDED_KEYS);
 
-// A key reaches a service directly or through a group it imports, and either one declares it.
 const declaredKeys = (
   resources: readonly BlueprintResource[],
 ): ReadonlyMap<string, ReadonlySet<string>> => {
@@ -26,10 +25,7 @@ const declaredKeys = (
   return declared;
 };
 
-// spec §6.4: Render preserves variables a blueprint omits, so a key this blueprint cannot see may
-// exist on the service already. That makes an unresolvable key probably wrong rather than wrong,
-// which is the warning tier. A target this blueprint does not list carries no key list at all, so
-// danglingReference owns that one.
+// spec §6.4: Render preserves variables a blueprint omits.
 export const unknownServiceEnvVarKey = (
   resources: readonly BlueprintResource[],
 ): readonly ValidationWarning[] => {
@@ -42,8 +38,6 @@ export const unknownServiceEnvVarKey = (
 
     for (const entry of resolveEnv(env, undefined)) {
       if (entry.form !== 'fromService' || !('envVarKey' in entry.reference)) continue;
-      // An external handle names a resource this blueprint does not manage, so its keys are not
-      // written down here, whatever a listed resource of the same name happens to declare.
       if (entry.reference.origin === 'external') continue;
 
       const target = declared.get(entry.reference.name);

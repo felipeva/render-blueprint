@@ -19,8 +19,7 @@ export type EnvValue =
   | DatabaseReferenceValue
   | ServiceReferenceValue;
 
-// spec §6.3: Render ignores a sync: false variable inside a group, and spec §6.1 gives a group's
-// items the key-value form only, so no reference reaches one.
+// spec §6.3: Render ignores a sync: false variable inside a group.
 export type EnvGroupValue = string | number | LiteralValue | GeneratedValue;
 
 export interface EnvironmentMap {

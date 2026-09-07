@@ -3,15 +3,13 @@ import type * as z from 'zod';
 import type { RenderSubdomainPolicy } from '../enums/render-subdomain-policy.js';
 import { raise } from '../raise.js';
 
-// The pair the policy rule reads. spec §4.8 gives both fields to web services and static sites,
-// and the rule is a cross-field one of the single config that carries them.
+// spec §4.8 gives both fields to web services and static sites.
 export interface SubdomainFields {
   readonly renderSubdomainPolicy?: RenderSubdomainPolicy;
   readonly domains?: readonly string[];
 }
 
-// spec §4.1: `disabled` requires at least one custom domain, because the onrender.com subdomain is
-// then the address Render stops answering on.
+// spec §4.1: `disabled` requires at least one custom domain.
 export const raiseSubdomainPolicyNeedsDomain = <T extends SubdomainFields>(
   config: T,
   ctx: z.core.$RefinementCtx<T>,

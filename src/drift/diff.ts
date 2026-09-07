@@ -151,7 +151,6 @@ const hunk = (ops: readonly PositionedOp[]): readonly string[] => {
   return [`@@ ${from} ${to} @@`, ...ops.map((op) => `${op.mark}${op.text}`)];
 };
 
-// The committed file is the baseline, so a removed line is what is on disk today.
 export const diff = (committed: readonly string[], generated: readonly string[]): string => {
   const prefix = commonPrefix(committed, generated);
   const suffix = commonSuffix(committed, generated, prefix);

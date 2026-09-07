@@ -34,8 +34,7 @@ describe('external', () => {
     ]).toEqual(['web', 'pserv', 'worker', 'cron', 'static', 'keyvalue']);
   });
 
-  // spec §4.2: a registry credential is never declared in a blueprint, so the external handle is
-  // the only form there is.
+  // spec §4.2: a registry credential is never declared in a blueprint.
   it('names a registry credential the workspace holds', () => {
     expect(external.registryCredential('acme-dockerhub')).toEqual({
       fromRegistryCreds: { name: 'acme-dockerhub' },

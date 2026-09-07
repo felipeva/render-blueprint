@@ -1,13 +1,9 @@
 import type { BlueprintResource } from '../../resources/resource.js';
 import type { ValidationWarning } from '../issue.js';
 
-// spec §4.1: paths and ignoredPaths are globs relative to the repository root. spec §4.8: the four
-// kinds below are the ones whose schema branch carries a build filter and an image source at once.
-//
+// spec §4.1: paths and ignoredPaths are globs relative to the repository root.
 // INFERRED: no Render document says what a build filter does on a service built from a prebuilt
-// image. The service names no repository of its own for the globs to be read against, while spec
-// §11's preview gate reads every service's filter against the repository the blueprint lives in, so
-// the outcome is unstated rather than known to be nothing.
+// image.
 const filtersAnImage = (resource: BlueprintResource): boolean => {
   switch (resource.kind) {
     case 'web':

@@ -40,8 +40,7 @@ const EXIT_OK = 0;
 const EXIT_FAILED = 1;
 const EXIT_DRIFT = 2;
 
-// argSource is process.argv, whose first two entries are the executable and this script. The
-// arguments are sliced off once here, so the theme reads exactly the list brocli parses.
+// argSource is process.argv, whose first two entries are the executable and this script.
 const ARGV_OFFSET = 2;
 
 const args: readonly string[] = process.argv.slice(ARGV_OFFSET);
@@ -165,8 +164,7 @@ const failed = (error: CliError): number => {
   return EXIT_FAILED;
 };
 
-// brocli's run() discards whatever a handler returns, so the exit code the CLI owns is recorded here
-// by the handler and by the event handler, and read once run() has settled.
+// brocli's run() discards whatever a handler returns.
 let exitCode: number = EXIT_OK;
 
 const runner: CommandRunner = async (name, options) => {

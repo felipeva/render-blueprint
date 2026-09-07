@@ -33,8 +33,7 @@ export interface Header {
   readonly value: string;
 }
 
-// spec §4.6: staticServicePreviews carries generation alone — a static site runs on no plan and on
-// no instance count, so neither reaches its previews either.
+// spec §4.6: staticServicePreviews carries generation alone.
 export interface StaticSitePreviews {
   readonly generation?: PreviewGeneration;
 }
@@ -140,8 +139,7 @@ export const parseStaticSiteConfig = (
   config: StaticSiteConfig,
 ): z.ZodSafeParseResult<StaticSiteConfig> => staticSiteConfigSchema.safeParse(config);
 
-// spec §6.2: a static site answers fromService with type "static", which is not a value its own
-// type field takes.
+// spec §6.2: a static site answers fromService with type "static".
 export const staticSite = (name: string, config: StaticSiteConfig): StaticSite => ({
   kind: 'staticSite',
   name,

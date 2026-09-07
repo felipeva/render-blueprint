@@ -27,7 +27,7 @@ import {
 } from './service-source.js';
 
 // spec §16 F: healthCheckPath, domains, maintenanceMode and ipAllowList sit on the schema branch a
-// private service shares with a web service, and the prose restricts all four to web services.
+// private service shares with a web service.
 interface PrivateServiceFields {
   readonly region?: Region;
   readonly plan?: PaidServerPlan;
@@ -118,8 +118,7 @@ export const parsePrivateServiceConfig = (
   config: PrivateServiceConfig,
 ): z.ZodSafeParseResult<PrivateServiceConfig> => privateServiceConfigSchema.safeParse(config);
 
-// spec §6.2: a private service answers on the private network, so it carries host, port and
-// hostport; §3.1 spells its type `pserv`.
+// spec §6.2: a private service answers on the private network.
 export const privateService = (name: string, config: PrivateServiceConfig): PrivateService => ({
   kind: 'privateService',
   name,

@@ -71,8 +71,7 @@ const envVar = (entry: EnvEntry): YAMLMap => {
   }
 };
 
-// An env map with no keys is not an omitted one: it still emits an empty list. A list of no groups
-// is not a source at all, so a service that imports none and declares no map writes no envVars key.
+// An env map with no keys is not an omitted one: it still emits an empty list.
 export const envVars = (
   env: EnvironmentMap | undefined,
   groups: readonly EnvironmentGroup[] | undefined,

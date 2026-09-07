@@ -2,8 +2,7 @@ import * as z from 'zod';
 
 import type { Equal, Expect } from '../equal.js';
 
-// spec §4.1: the two lists are globs relative to the repository root, and spec §12 reads an
-// omitted buildFilter as "retain current" while an empty list replaces what the service has.
+// spec §4.1: the two lists are globs relative to the repository root.
 export interface BuildFilter {
   readonly paths?: readonly string[];
   readonly ignoredPaths?: readonly string[];
