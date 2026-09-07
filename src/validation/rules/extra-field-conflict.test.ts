@@ -46,7 +46,7 @@ describe('extraFieldConflict', () => {
     ).toEqual([]);
   });
 
-  // A sourced kind's emission tuple lists all eight source keys, because one branch or another
+  // A sourced kind's emission tuple lists all nine source keys, because one branch or another
   // emits each. Telling the author to set a key through a config that has no such field would be
   // advice they cannot take, so the key names the wrong source instead.
   it('reports a build command beside a Dockerfile as the wrong source', () => {

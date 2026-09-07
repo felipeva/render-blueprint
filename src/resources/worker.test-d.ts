@@ -166,3 +166,29 @@ describe('worker disks, scaling and previews', () => {
     worker('jobs', { runtime: 'node', domains: ['jobs.acme.dev'] });
   });
 });
+
+describe('worker registry credential', () => {
+  it('takes the workspace credential that pulls the private base image a Dockerfile builds on', () => {
+    expectTypeOf(
+      worker('jobs', {
+        runtime: 'docker',
+        dockerfilePath: './Dockerfile.jobs',
+        registryCredential: external.registryCredential('acme-dockerhub'),
+      }),
+    ).toEqualTypeOf<Worker>();
+  });
+
+  it('rejects the credential beside a native runtime, which pulls no base image', () => {
+    // @ts-expect-error spec §4.2: registryCredential authorises a Dockerfile build's base image.
+    worker('jobs', { runtime: 'node', registryCredential: external.registryCredential('acme') });
+  });
+
+  it('rejects the credential beside a prebuilt image, which carries image.creds instead', () => {
+    worker('jobs', {
+      runtime: 'image',
+      image: { url: 'docker.io/acme/jobs:1' },
+      // @ts-expect-error spec §4.3: a prebuilt image names its credential through image.creds.
+      registryCredential: external.registryCredential('acme'),
+    });
+  });
+});
