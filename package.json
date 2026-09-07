@@ -52,7 +52,7 @@
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:types",
     "build": "tsdown && node scripts/check-declarations.mjs",
     "schema:refresh": "node scripts/refresh-render-schema.mjs",
-    "fixtures:update": "UPDATE_FIXTURES=1 vitest run test/fixtures.test.ts",
+    "fixtures:update": "UPDATE_FIXTURES=1 vitest run test/fixtures.test.ts test/cli.test.ts",
     "prepublishOnly": "pnpm check && pnpm build"
   },
   "dependencies": {

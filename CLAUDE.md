@@ -192,10 +192,11 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `main` is
   names the exported symbol; `it` states the rule in the present indicative, never "should".
 - Every compile-time row of design B's mistake matrix has a `*.test-d.ts` case using
   `@ts-expect-error`. Adding a compile-time guarantee means adding its type test.
-- `test/fixtures/canonical/render.yaml` is the golden file and the only file a test may rewrite
-  (`vitest -u`). Review its diff by hand. `test/schema/render.yaml.schema.json` is the conformance
-  oracle; refresh it with `pnpm schema:refresh`, never by hand, and never read
-  `docs/research/raw/` from code.
+- `test/fixtures/canonical/render.yaml` is the golden file. A test may rewrite only
+  `test/fixtures/*/render.yaml` and the CLI seeds' `test/fixtures/cli/*/expected.yaml`, only under
+  `UPDATE_FIXTURES=1` through `pnpm fixtures:update`, and a human reviews every diff by hand.
+  `test/schema/render.yaml.schema.json` is the conformance oracle; refresh it with
+  `pnpm schema:refresh`, never by hand, and never read `docs/research/raw/` from code.
 - Run `pnpm check` before claiming done: format, lint, typecheck, tests, type tests.
 - Run `pnpm format` before committing. The `pre-commit` hook in `.githooks/` formats the staged
   files with oxfmt, re-stages them, and runs oxlint on the staged source; a lint finding aborts

@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { access, cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -8,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 
 import type { JsonValue } from '../src/index.js';
+import { expectation, type ReadText, type WriteText } from './expectation.js';
 import { renderSchema } from './render-schema.js';
 
 interface Ran {
@@ -26,7 +28,25 @@ const seeds = fileURLToPath(new URL('fixtures/cli/', import.meta.url));
 
 const PLACEHOLDER = '__RENDER_BLUEPRINT__';
 
+const updating = process.env['UPDATE_FIXTURES'] === '1';
+
 const made: string[] = [];
+
+const readText: ReadText = async (path) => (existsSync(path) ? readFile(path, 'utf8') : undefined);
+
+const writeText: WriteText = (path, text) => writeFile(path, text);
+
+const stored = expectation(readText, writeText, updating);
+
+const seedYaml = async (name: string, produced: string): Promise<string> => {
+  const expected = await stored(join(seeds, name, 'expected.yaml'), produced);
+
+  if (!expected.present) {
+    expect.fail(`${name}/expected.yaml is missing; run pnpm fixtures:update and review the diff`);
+  }
+
+  return expected.text;
+};
 
 const spawned = (command: string, args: readonly string[], cwd: string): Promise<Ran> =>
   new Promise((settle) => {
@@ -100,9 +120,10 @@ describe('render-blueprint', () => {
     const ran = await run(cwd, ['synth']);
 
     expect(ran.code, ran.stderr).toBe(0);
-    expect(await readFile(join(cwd, 'render.yaml'), 'utf8')).toBe(
-      await readFile(join(seeds, 'split', 'expected.yaml'), 'utf8'),
-    );
+
+    const produced = await readFile(join(cwd, 'render.yaml'), 'utf8');
+
+    expect(produced).toBe(await seedYaml('split', produced));
   });
 
   it('exits 0 with no warnings and writes the v1.1 surface the seed commits', async () => {
@@ -112,9 +133,10 @@ describe('render-blueprint', () => {
     expect(ran.code, ran.stderr).toBe(0);
     expect(ran.stderr).toBe('');
 
-    const expected = await readFile(join(seeds, 'v1-1-surface', 'expected.yaml'), 'utf8');
+    const produced = await readFile(join(cwd, 'render.yaml'), 'utf8');
+    const expected = await seedYaml('v1-1-surface', produced);
 
-    expect(await readFile(join(cwd, 'render.yaml'), 'utf8')).toBe(expected);
+    expect(produced).toBe(expected);
 
     // SAFETY: yaml's parse returns any. Its input is the expectation the binary wrote, whose leaves
     // are all JsonValue, so it round-trips into JsonValue.
