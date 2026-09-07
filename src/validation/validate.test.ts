@@ -1630,6 +1630,33 @@ describe('validate', () => {
     expect(reportedCodes(result)).toEqual(['ExtraFieldConflict']);
   });
 
+  it('reports the first-deploy hook in a private service\u2019s extraFields as a conflict', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          privateService('auth', {
+            runtime: 'node',
+            extraFields: { initialDeployHook: './seed.sh' },
+          }),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['ExtraFieldConflict']);
+  });
+
+  it('reports the first-deploy hook in a worker\u2019s extraFields as a conflict', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          worker('jobs', { runtime: 'node', extraFields: { initialDeployHook: './seed.sh' } }),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['ExtraFieldConflict']);
+  });
+
   it('reports maintenance mode in a web service\u2019s extraFields as a conflict', () => {
     const result = validate(
       blueprint({

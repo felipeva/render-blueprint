@@ -76,7 +76,7 @@ describe('webOnlyField', () => {
   });
 
   // spec §4.8: the matrix row reaches the whole serverService column.
-  it('warns about nothing when a private service or a worker sets a first-deploy hook', () => {
+  it('leaves a first-deploy hook on a private service or a worker to the conflict rule', () => {
     expect(
       webOnlyField([
         privateService('auth', {

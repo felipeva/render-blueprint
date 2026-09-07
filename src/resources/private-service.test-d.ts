@@ -44,6 +44,11 @@ describe('privateService', () => {
     ).toEqualTypeOf<PrivateService>();
   });
 
+  it('rejects a first-deploy hook written as the switch it is not', () => {
+    // @ts-expect-error spec §4.8: initialDeployHook is the command Render runs, not a flag.
+    privateService('auth', { runtime: 'node', initialDeployHook: true });
+  });
+
   it('answers on the private network, so it carries host, port and hostport', () => {
     const auth = privateService('auth', { runtime: 'node' });
 

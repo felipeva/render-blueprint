@@ -212,6 +212,11 @@ describe('web maintenance mode and subdomain policy', () => {
     ).toEqualTypeOf<WebService>();
   });
 
+  it('rejects a first-deploy hook written as the switch it is not', () => {
+    // @ts-expect-error spec §4.8: initialDeployHook is the command Render runs, not a flag.
+    web('api', { runtime: 'node', initialDeployHook: true });
+  });
+
   it('takes maintenance mode with neither of its two fields', () => {
     expectTypeOf(web('api', { runtime: 'node', maintenanceMode: {} })).toEqualTypeOf<WebService>();
   });

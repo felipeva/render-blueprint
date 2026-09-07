@@ -41,6 +41,11 @@ describe('worker', () => {
     ).toEqualTypeOf<Worker>();
   });
 
+  it('rejects a first-deploy hook written as the switch it is not', () => {
+    // @ts-expect-error spec §4.8: initialDeployHook is the command Render runs, not a flag.
+    worker('jobs', { runtime: 'node', initialDeployHook: true });
+  });
+
   it('rejects the address properties a worker does not answer on', () => {
     web('api', {
       runtime: 'node',
