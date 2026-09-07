@@ -252,6 +252,67 @@ services:
     );
   });
 
+  // spec §4.2: the credential a Dockerfile build pulls its private base image with sits beside the
+  // service rather than inside an image node, in the same nested form image.creds carries.
+  it('emits the registry credential a Docker source builds its base image with', () => {
+    const jobs = worker('jobs', {
+      runtime: 'docker',
+      dockerfilePath: './Dockerfile.jobs',
+      registryCredential: external.registryCredential('acme-dockerhub'),
+      startCommand: 'node jobs.js',
+    });
+
+    expect(emit(blueprint({ resources: [jobs] }))).toContain(
+      `services:
+  - type: worker
+    name: jobs
+    runtime: docker
+    dockerfilePath: ./Dockerfile.jobs
+    startCommand: node jobs.js
+    registryCredential:
+      fromRegistryCreds:
+        name: acme-dockerhub
+`,
+    );
+  });
+
+  it('emits the registry credential of a cron job where cronService lists it', () => {
+    const nightly = cron('nightly', {
+      runtime: 'docker',
+      schedule: '0 2 * * *',
+      dockerContext: './',
+      registryCredential: external.registryCredential('acme-dockerhub'),
+      repo: 'https://github.com/acme/report',
+    });
+
+    expect(emit(blueprint({ resources: [nightly] }))).toContain(
+      `services:
+  - type: cron
+    name: nightly
+    runtime: docker
+    schedule: 0 2 * * *
+    dockerContext: ./
+    registryCredential:
+      fromRegistryCreds:
+        name: acme-dockerhub
+    repo: https://github.com/acme/report
+`,
+    );
+  });
+
+  it('writes no registryCredential key for a Docker source that names none', () => {
+    const jobs = worker('jobs', { runtime: 'docker', dockerfilePath: './Dockerfile.jobs' });
+
+    expect(emit(blueprint({ resources: [jobs] }))).toContain(
+      `services:
+  - type: worker
+    name: jobs
+    runtime: docker
+    dockerfilePath: ./Dockerfile.jobs
+`,
+    );
+  });
+
   it('emits a reference to a worker and to a cron job with the types Render publishes', () => {
     const jobs = worker('jobs', { runtime: 'node' });
     const nightly = cron('nightly', { runtime: 'node', schedule: '0 2 * * *' });

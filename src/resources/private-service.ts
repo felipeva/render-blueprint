@@ -82,6 +82,7 @@ export const PRIVATE_SERVICE_FIELDS = [
   'buildCommand',
   'startCommand',
   'preDeployCommand',
+  'registryCredential',
   'envVars',
   'autoDeployTrigger',
   'disk',

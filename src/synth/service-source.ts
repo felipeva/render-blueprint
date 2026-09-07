@@ -21,6 +21,7 @@ export interface SourceValues {
   readonly dockerCommand: string | undefined;
   readonly dockerContext: string | undefined;
   readonly dockerfilePath: string | undefined;
+  readonly registryCredential: YAMLMap | undefined;
   readonly buildCommand: string | undefined;
 }
 
@@ -58,6 +59,7 @@ export const sourceValues = (source: ServiceSource): SourceValues => {
       dockerCommand: source.dockerCommand,
       dockerContext: undefined,
       dockerfilePath: undefined,
+      registryCredential: undefined,
       buildCommand: undefined,
     };
   }
@@ -72,6 +74,10 @@ export const sourceValues = (source: ServiceSource): SourceValues => {
       dockerCommand: source.dockerCommand,
       dockerContext: source.dockerContext,
       dockerfilePath: source.dockerfilePath,
+      registryCredential:
+        source.registryCredential === undefined
+          ? undefined
+          : registryCredential(source.registryCredential),
       buildCommand: undefined,
     };
   }
@@ -85,6 +91,7 @@ export const sourceValues = (source: ServiceSource): SourceValues => {
     dockerCommand: undefined,
     dockerContext: undefined,
     dockerfilePath: undefined,
+    registryCredential: undefined,
     buildCommand: source.buildCommand,
   };
 };

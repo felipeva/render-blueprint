@@ -84,6 +84,7 @@ export const WEB_SERVICE_FIELDS = [
   'buildCommand',
   'startCommand',
   'preDeployCommand',
+  'registryCredential',
   'domains',
   'envVars',
   'autoDeployTrigger',

@@ -94,6 +94,48 @@ describe('extraFieldConflict', () => {
     expect(issues[0]?.message).toContain('already emits');
   });
 
+  // spec §4.2: a registry credential authorises the base image a Dockerfile build pulls, so the two
+  // runtimes that build no Dockerfile name the wrong source. The escape hatch cannot reach past the
+  // branch: only a Docker source has the field, and only a Docker source emits the key.
+  it('reports a registry credential beside a native runtime as the wrong source', () => {
+    const issues = extraFieldConflict([
+      web('api', {
+        runtime: 'node',
+        extraFields: { registryCredential: { fromRegistryCreds: { name: 'acme-dockerhub' } } },
+      }),
+    ]);
+
+    expect(issues.map((issue) => issue.code)).toEqual(['ConflictingSource']);
+    expect(issues[0]?.at).toEqual({ resource: 'api', field: 'extraFields.registryCredential' });
+    expect(issues[0]?.message).toContain('"node"');
+    expect(issues[0]?.message).not.toContain('extraFields');
+  });
+
+  it('reports a registry credential beside a prebuilt image as the wrong source', () => {
+    const issues = extraFieldConflict([
+      worker('jobs', {
+        runtime: 'image',
+        image: { url: 'docker.io/acme/jobs:1' },
+        extraFields: { registryCredential: { fromRegistryCreds: { name: 'acme-dockerhub' } } },
+      }),
+    ]);
+
+    expect(issues.map((issue) => issue.code)).toEqual(['ConflictingSource']);
+    expect(issues[0]?.message).toContain('"image"');
+  });
+
+  it('reports a registry credential a Docker source does emit as the conflict it is', () => {
+    const issues = extraFieldConflict([
+      worker('jobs', {
+        runtime: 'docker',
+        extraFields: { registryCredential: { fromRegistryCreds: { name: 'acme-dockerhub' } } },
+      }),
+    ]);
+
+    expect(issues.map((issue) => issue.code)).toEqual(['ExtraFieldConflict']);
+    expect(issues[0]?.message).toContain('already emits');
+  });
+
   it('reports a source key on a kind that picks no source as the conflict it is', () => {
     const issues = extraFieldConflict([
       staticSite('marketing', { extraFields: { buildCommand: 'pnpm build' } }),
