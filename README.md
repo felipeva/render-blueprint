@@ -257,3 +257,7 @@ git config core.hooksPath .githooks   # once per clone: the commit hooks
 pnpm check                            # format, lint, typecheck, tests, type tests
 pnpm build                            # the ESM bundle, the types and the bin, into dist/
 ```
+
+## License
+
+MIT
