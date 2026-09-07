@@ -133,7 +133,9 @@ const filled = <V>(
 ): Filled<V> | undefined => (own === undefined ? outer : { value: own, scope });
 
 // An inner scope wins over an outer one key by key, and a key it wins carries its own declaration,
-// so a key an inner scope shadowed is credited to nobody and reported as unused.
+// so an applied default names the innermost scope that declared it. A key an inner scope shadowed
+// lands under no applied default, and the unused-default rule still says nothing about it: that
+// rule reads eligibility, which shadowing does not change.
 const scopeValues = (
   outer: ScopeValues | undefined,
   record: ResourceDefaults,
