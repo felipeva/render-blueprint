@@ -57,7 +57,7 @@ describe('usageTheme', () => {
     const ran = await attempt(themed(['plan'], (failure) => failures.push(failure)));
 
     expect(ran.panicked).toBe(false);
-    expect(failures).toEqual(['reported']);
+    expect(failures).toEqual([{ failure: 'reported' }]);
   });
 
   it('records nothing when brocli prints the help it generated', async () => {
@@ -69,20 +69,37 @@ describe('usageTheme', () => {
     expect(failures).toEqual([]);
   });
 
-  it.each([[[]], [['--nope']], [['-x']], [['--nope', 'boom']], [['--', '--nope']]])(
-    'records a missing command when %j drives brocli to the global help',
-    async (args: readonly string[]) => {
-      const failures: UsageFailure[] = [];
+  it('records a bare command line as no arguments at all', async () => {
+    const failures: UsageFailure[] = [];
 
-      const ran = await attempt(themed(args, (failure) => failures.push(failure)));
+    const ran = await attempt(themed([], (failure) => failures.push(failure)));
 
-      expect(ran.panicked).toBe(false);
-      expect(failures).toEqual(['no-command']);
-    },
-  );
+    expect(ran.panicked).toBe(false);
+    expect(failures).toEqual([{ failure: 'no-arguments' }]);
+  });
 
-  it.each([[['--help']], [['-h']], [['help']], [['--nope', '--help']]])(
-    'records nothing when %j asks for the global help',
+  it.each([
+    [['--nope'], '--nope'],
+    [['-x'], '-x'],
+    [['--nope', 'boom'], '--nope'],
+    [['--', '--nope'], '--'],
+    [['--nope', '--version'], '--nope'],
+    [['--nope', '--help'], '--nope'],
+    [['--nope', '-h'], '--nope'],
+    [['--file', '--help'], '--file'],
+    [['--', '--help'], '--'],
+    [['--nope', 'help'], '--nope'],
+  ])('names the flag brocli read where the command belongs in %j', async (args, offender) => {
+    const failures: UsageFailure[] = [];
+
+    const ran = await attempt(themed(args, (failure) => failures.push(failure)));
+
+    expect(ran.panicked).toBe(false);
+    expect(failures).toEqual([{ failure: 'flag-before-command', offender }]);
+  });
+
+  it.each([[['--help']], [['-h']], [['help']], [['--file=x', 'help']]])(
+    'records nothing when %j is the help request brocli reads it as',
     async (args: readonly string[]) => {
       const failures: UsageFailure[] = [];
 

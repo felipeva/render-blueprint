@@ -1,17 +1,74 @@
 import type { BroCliEvent, EventHandler } from '@drizzle-team/brocli';
 
-export const USAGE_FAILURES = ['no-command', 'reported'] as const;
-
-export type UsageFailure = (typeof USAGE_FAILURES)[number];
+export type UsageFailure =
+  | { readonly failure: 'no-arguments' }
+  | { readonly failure: 'flag-before-command'; readonly offender: string }
+  | { readonly failure: 'reported' };
 
 export type UsageErrorSink = (failure: UsageFailure) => void;
 
 const HELP_FLAGS = ['--help', '-h'] as const;
 
+const RESERVED_FLAGS = ['--help', '-h', '--version', '-v'] as const;
+
+const BOOLEAN_WORDS = ['0', '1', 'true', 'false'] as const;
+
 const HELP_COMMAND = 'help';
 
+const isOneOf = (words: readonly string[], word: string | undefined): boolean =>
+  word !== undefined && words.some((candidate) => candidate === word);
+
+// Mirrors brocli's getCommand (index.js:577), which is what decides there is no command: a reserved
+// flag swallows a following boolean word, every other dash argument swallows the next argument
+// unless it carries its own '=', and the first argument left standing is the command brocli looks up.
+const firstCandidate = (args: readonly string[]): string | undefined => {
+  let index = 0;
+
+  while (index < args.length) {
+    const arg = args[index];
+
+    if (arg === undefined) return undefined;
+
+    if (isOneOf(RESERVED_FLAGS, arg)) {
+      index += isOneOf(BOOLEAN_WORDS, args[index + 1]?.toLowerCase()) ? 2 : 1;
+      continue;
+    }
+
+    if (arg.startsWith('-')) {
+      index += arg.includes('=') ? 1 : 2;
+      continue;
+    }
+
+    return arg;
+  }
+
+  return undefined;
+};
+
+// Mirrors brocli's help guard (index.js:1046): only the first --help or -h counts, and it counts for
+// nothing when the argument before it is a dash argument carrying no '=', because brocli reads it as
+// that flag's value rather than as a request for help.
+const asksForHelpFlag = (args: readonly string[]): boolean => {
+  const index = args.findIndex((arg) => isOneOf(HELP_FLAGS, arg));
+
+  if (index === -1) return false;
+  if (index === 0) return true;
+
+  const before = args[index - 1];
+
+  return before === undefined || !before.startsWith('-') || before.includes('=');
+};
+
 const asksForHelp = (args: readonly string[]): boolean =>
-  args[0] === HELP_COMMAND || args.some((arg) => HELP_FLAGS.some((flag) => flag === arg));
+  asksForHelpFlag(args) || firstCandidate(args) === HELP_COMMAND;
+
+const noCommand = (args: readonly string[]): UsageFailure => {
+  const offender = args.find((arg) => arg.startsWith('-'));
+
+  return offender === undefined
+    ? { failure: 'no-arguments' }
+    : { failure: 'flag-before-command', offender };
+};
 
 // brocli catches everything a handler throws and reports it as an unknown_error event instead of
 // rethrowing. Throwing it back out of the event handler is what lets a defect reach main.ts, the one
@@ -20,11 +77,11 @@ const asksForHelp = (args: readonly string[]): boolean =>
 export const usageTheme =
   (args: readonly string[], onUsageError: UsageErrorSink): EventHandler =>
   (event: BroCliEvent) => {
-    // brocli's getCommand reads every argument that starts with '-' as a flag, so a command line
-    // whose words are all flags names no command; brocli answers that with the generated help and
-    // no error event at all. Only help the caller asked for earns exit 0 there.
+    // brocli prints the generated help and reports no error at all whenever it resolves no command,
+    // so a flag standing where the command belongs would otherwise succeed. Exit 0 is earned only by
+    // a line brocli itself would read as a request for help; every other one is a usage failure.
     if (event.type === 'global_help') {
-      if (!asksForHelp(args)) onUsageError('no-command');
+      if (!asksForHelp(args)) onUsageError(noCommand(args));
 
       return false;
     }
@@ -32,6 +89,6 @@ export const usageTheme =
     if (event.type !== 'error') return false;
     if (event.violation === 'unknown_error') throw event.error;
 
-    onUsageError('reported');
+    onUsageError({ failure: 'reported' });
     return false;
   };

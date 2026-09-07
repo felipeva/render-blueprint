@@ -197,16 +197,32 @@ describe('render-blueprint', () => {
     expect(ran.stderr).toContain('No command given');
   });
 
-  it('exits 1 and asks for a command when the command line names none', async () => {
+  it('exits 1 and names the flag when one stands where the command belongs', async () => {
     const cwd = await seeded('clean');
-    const ran = await run(cwd, ['--nope']);
 
-    expect(ran.code).toBe(1);
-    expect(ran.stderr).toContain('No command given');
-    expect(ran.stdout).toContain('render-blueprint [command]');
+    for (const [args, offender] of [
+      [['--nope'], '--nope'],
+      [['-x'], '-x'],
+      [['--strict', 'synth'], '--strict'],
+      [['--nope', 'synth'], '--nope'],
+      [['--', '--nope'], '--'],
+      [['--nope', '--version'], '--nope'],
+      [['--nope', '--help'], '--nope'],
+      [['--nope', '-h'], '--nope'],
+      [['--file', '--help'], '--file'],
+      [['--', '--help'], '--'],
+      [['--nope', 'help'], '--nope'],
+    ] as const) {
+      const ran = await run(cwd, args);
+      const line = args.join(' ');
 
-    expect((await run(cwd, ['-x'])).code).toBe(1);
-    expect((await run(cwd, ['--nope', 'synth'])).code).toBe(1);
+      expect(ran.code, `${line} must exit 1`).toBe(1);
+      expect(ran.stderr, `${line} must name the flag`).toContain(`'${offender}'`);
+      expect(ran.stderr, `${line} must state the rule`).toContain('flags follow the command');
+      expect(ran.stdout, `${line} must still print the usage`).toContain(
+        'render-blueprint [command]',
+      );
+    }
   });
 
   it('prints the generated help for the cli and for both commands', async () => {
@@ -218,6 +234,13 @@ describe('render-blueprint', () => {
       expect(cli.code).toBe(0);
       expect(cli.stdout).toContain('synth');
       expect(cli.stdout).toContain('check');
+    }
+
+    for (const args of [['help'], ['--file=x', 'help']]) {
+      const asked = await run(cwd, args);
+
+      expect(asked.code, `${args.join(' ')} must exit 0`).toBe(0);
+      expect(asked.stdout).toContain('render-blueprint [command]');
     }
 
     for (const command of ['synth', 'check']) {
