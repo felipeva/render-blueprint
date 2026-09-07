@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { staticSite, type StaticSiteConfig } from './static-site.js';
+import { parseStaticSiteConfig, staticSite, type StaticSiteConfig } from './static-site.js';
+
+// SAFETY: JSON.parse returns any. Every config below stands in for a blueprint the CLI loaded
+// through Node type stripping, which erases types without checking them, so the annotation is
+// deliberately stronger than the value — the gap ADR-0003 gives the schemas to close.
+const unchecked: (json: string) => StaticSiteConfig = JSON.parse;
+
+const issueCodes = (config: StaticSiteConfig): readonly string[] => {
+  const result = parseStaticSiteConfig(config);
+  return result.success ? [] : result.error.issues.map((issue) => String(issue.code));
+};
 
 describe('staticSite', () => {
   it('returns an inert value carrying the kind, the name, and the config', () => {
@@ -41,5 +51,31 @@ describe('staticSite', () => {
 
     expect(site.config.routes?.map((route) => route.type)).toEqual(['redirect', 'rewrite']);
     expect(site.config.headers?.[0]?.name).toBe('X-Frame-Options');
+  });
+});
+
+describe('parseStaticSiteConfig', () => {
+  it('accepts an ipAllowList in the entry form every kind that takes one shares', () => {
+    expect(
+      issueCodes({
+        ipAllowList: [{ source: '203.0.113.4/30', description: 'office' }, { source: '::1' }],
+      }),
+    ).toEqual([]);
+  });
+
+  it('accepts an empty ipAllowList, which blocks every external connection', () => {
+    expect(issueCodes({ ipAllowList: [] })).toEqual([]);
+  });
+
+  it('rejects a field the library does not model on an ipAllowList entry', () => {
+    expect(issueCodes(unchecked('{"ipAllowList":[{"source":"::1","label":"all"}]}'))).toEqual([
+      'unrecognized_keys',
+    ]);
+  });
+
+  it('rejects an ipAllowList entry with no source', () => {
+    expect(issueCodes(unchecked('{"ipAllowList":[{"description":"office"}]}'))).toEqual([
+      'invalid_type',
+    ]);
   });
 });

@@ -14,6 +14,7 @@ import type { BuildFilter } from './build-filter.js';
 import type { DefaultsProvenance } from './defaults-provenance.js';
 import { raiseDiskPreventsScaling, type Disk } from './disk.js';
 import type { EnvironmentGroup } from './env-group.js';
+import { ipAllowListSchema, type IpAllowList } from './ip-allow-list.js';
 import { servicePreviewsSchema, type ServicePreviews } from './previews.js';
 import type { Scaling } from './scaling.js';
 import { optionalServerServiceFields, optionalSourcedServiceFields } from './service-fields.js';
@@ -44,6 +45,7 @@ interface WebFields {
   readonly buildFilter?: BuildFilter;
   readonly previews?: ServicePreviews;
   readonly maxShutdownDelaySeconds?: number;
+  readonly ipAllowList?: IpAllowList;
   readonly env?: ServiceEnvironment<HttpServiceReference>;
   readonly envGroups?: readonly EnvironmentGroup[];
   readonly extraFields?: JsonObject;
@@ -92,6 +94,7 @@ export const WEB_SERVICE_FIELDS = [
   'buildFilter',
   'previews',
   'maxShutdownDelaySeconds',
+  'ipAllowList',
 ] as const;
 
 const webFields = {
@@ -105,6 +108,7 @@ const webFields = {
       error: 'A healthCheckPath is a string starting with "/"; Render requests it from the root.',
     })
     .exactOptional(),
+  ipAllowList: ipAllowListSchema.exactOptional(),
   env: serviceEnvironmentSchema<HttpServiceReference>().exactOptional(),
 };
 

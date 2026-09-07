@@ -13,6 +13,7 @@ import {
 import type { BuildFilter } from './build-filter.js';
 import type { DefaultsProvenance } from './defaults-provenance.js';
 import type { EnvironmentGroup } from './env-group.js';
+import { ipAllowListSchema, type IpAllowList } from './ip-allow-list.js';
 import { optionalCommonServiceFields } from './service-fields.js';
 
 export interface Route {
@@ -46,6 +47,7 @@ export interface StaticSiteConfig {
   readonly headers?: readonly Header[];
   readonly domains?: readonly string[];
   readonly autoDeployTrigger?: AutoDeployTrigger;
+  readonly ipAllowList?: IpAllowList;
   readonly env?: ServiceEnvironment<OpaqueServiceReference>;
   readonly envGroups?: readonly EnvironmentGroup[];
   readonly extraFields?: JsonObject;
@@ -76,6 +78,7 @@ export const STATIC_SITE_FIELDS = [
   'domains',
   'autoDeployTrigger',
   'preDeployCommand',
+  'ipAllowList',
 ] as const;
 
 export const HEADER_FIELDS = ['path', 'name', 'value'] as const;
@@ -112,6 +115,7 @@ const staticSiteConfigSchema = z
     routes: z.array(routeSchema).readonly().exactOptional(),
     headers: z.array(headerSchema).readonly().exactOptional(),
     domains: z.array(z.string()).readonly().exactOptional(),
+    ipAllowList: ipAllowListSchema.exactOptional(),
     env: serviceEnvironmentSchema<OpaqueServiceReference>().exactOptional(),
   })
   .readonly();

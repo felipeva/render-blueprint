@@ -99,6 +99,11 @@ describe('privateService disks, scaling and previews', () => {
     // @ts-expect-error spec §16 F: domains sits on the shared branch and the prose restricts it.
     privateService('auth', { runtime: 'node', domains: ['auth.acme.dev'] });
   });
+
+  it('rejects an ipAllowList, which the prose gives to web services and static sites', () => {
+    // @ts-expect-error spec §16 F: ipAllowList sits on the shared branch and the prose restricts it.
+    privateService('auth', { runtime: 'node', ipAllowList: [{ source: '203.0.113.4/30' }] });
+  });
 });
 
 describe('privateService registry credential', () => {

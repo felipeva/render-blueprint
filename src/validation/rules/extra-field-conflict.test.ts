@@ -136,6 +136,34 @@ describe('extraFieldConflict', () => {
     expect(issues[0]?.message).toContain('already emits');
   });
 
+  // The allow list is a modeled web and static field now, so the escape hatch would overwrite the
+  // key the config emits; on the three kinds that model none of it, webOnlyField still warns.
+  it('reports an allow list set through extraFields on a web service', () => {
+    const issues = extraFieldConflict([
+      web('api', { runtime: 'node', extraFields: { ipAllowList: [{ source: '::1' }] } }),
+    ]);
+
+    expect(issues.map((issue) => issue.code)).toEqual(['ExtraFieldConflict']);
+    expect(issues[0]?.at).toEqual({ resource: 'api', field: 'extraFields.ipAllowList' });
+  });
+
+  it('reports an allow list set through extraFields on a static site', () => {
+    const issues = extraFieldConflict([
+      staticSite('marketing', { extraFields: { ipAllowList: [] } }),
+    ]);
+
+    expect(issues.map((issue) => issue.code)).toEqual(['ExtraFieldConflict']);
+    expect(issues[0]?.at).toEqual({ resource: 'marketing', field: 'extraFields.ipAllowList' });
+  });
+
+  it('reports nothing for an allow list on a worker, which models none of it', () => {
+    expect(
+      extraFieldConflict([
+        worker('jobs', { runtime: 'node', extraFields: { ipAllowList: [{ source: '::1' }] } }),
+      ]),
+    ).toEqual([]);
+  });
+
   it('reports a source key on a kind that picks no source as the conflict it is', () => {
     const issues = extraFieldConflict([
       staticSite('marketing', { extraFields: { buildCommand: 'pnpm build' } }),

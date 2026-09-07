@@ -229,4 +229,29 @@ describe('parseWebConfig', () => {
       'unrecognized_keys',
     ]);
   });
+
+  it('accepts an ipAllowList in the entry form every kind that takes one shares', () => {
+    expect(
+      issueCodes({
+        runtime: 'node',
+        ipAllowList: [{ source: '203.0.113.4/30', description: 'office' }, { source: '::1' }],
+      }),
+    ).toEqual([]);
+  });
+
+  it('accepts an empty ipAllowList, which blocks every external connection', () => {
+    expect(issueCodes({ runtime: 'node', ipAllowList: [] })).toEqual([]);
+  });
+
+  it('rejects a field the library does not model on an ipAllowList entry', () => {
+    expect(
+      issueCodes(unchecked('{"runtime":"node","ipAllowList":[{"source":"::1","label":"all"}]}')),
+    ).toEqual(['unrecognized_keys']);
+  });
+
+  it('rejects an ipAllowList entry with no source', () => {
+    expect(
+      issueCodes(unchecked('{"runtime":"node","ipAllowList":[{"description":"office"}]}')),
+    ).toEqual(['invalid_type']);
+  });
 });

@@ -105,6 +105,7 @@ const webService = (resource: WebService): YAMLMap => {
       buildFilter: buildFilter(config.buildFilter),
       previews: servicePreviews(config.previews),
       maxShutdownDelaySeconds: config.maxShutdownDelaySeconds,
+      ipAllowList: config.ipAllowList === undefined ? undefined : ipAllowList(config.ipAllowList),
     },
     config.extraFields,
   );
@@ -271,6 +272,7 @@ const staticSiteService = (resource: StaticSite): YAMLMap => {
       domains: config.domains,
       autoDeployTrigger: config.autoDeployTrigger,
       preDeployCommand: config.preDeployCommand,
+      ipAllowList: config.ipAllowList === undefined ? undefined : ipAllowList(config.ipAllowList),
     },
     config.extraFields,
   );

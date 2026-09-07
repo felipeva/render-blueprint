@@ -173,3 +173,28 @@ describe('web registry credential', () => {
     });
   });
 });
+
+describe('web ipAllowList', () => {
+  it('takes an allow list in the entry form every kind that takes one shares', () => {
+    expectTypeOf(
+      web('api', {
+        runtime: 'node',
+        ipAllowList: [{ source: '203.0.113.4/30', description: 'office' }, { source: '::1' }],
+      }),
+    ).toEqualTypeOf<WebService>();
+  });
+
+  it('takes an empty allow list, which blocks every external connection', () => {
+    expectTypeOf(web('api', { runtime: 'node', ipAllowList: [] })).toEqualTypeOf<WebService>();
+  });
+
+  it('rejects an entry with no source', () => {
+    // @ts-expect-error spec §7: source is the one field an ipAllowList entry requires.
+    web('api', { runtime: 'node', ipAllowList: [{ description: 'office' }] });
+  });
+
+  it('rejects a field the library does not model on an entry', () => {
+    // @ts-expect-error an entry carries a source and a description, and nothing else.
+    web('api', { runtime: 'node', ipAllowList: [{ source: '::1', label: 'all' }] });
+  });
+});
