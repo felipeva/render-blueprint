@@ -162,9 +162,9 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │       ├── commands.ts              synth and check as brocli command() declarations: --file, --out
 │       │                            and --strict as typed option builders, and the help text brocli
 │       │                            generates from them (issue #22 replaced parse-arguments.ts)
-│       ├── usage-theme.ts           the brocli event handler: records exit 1 for a usage failure and
-│       │                            leaves the message to brocli, and rethrows a defect, which is
-│       │                            what carries a Panic past brocli's catch to main.ts
+│       ├── usage-theme.ts           the brocli event handler: records exit 1 for a usage failure — brocli's
+│       │                            own, and the global help it prints for a line that names no command — and
+│       │                            rethrows a defect, which carries a Panic past brocli's catch to main.ts
 │       ├── run-config.ts            RunConfig extends BroCliConfig with noExit — brocli 0.12.1 reads
 │       │                            it at runtime but does not declare it
 │       ├── package-version.ts       reads the version out of the manifest beside the built binary,
