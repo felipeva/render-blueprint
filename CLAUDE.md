@@ -3,7 +3,8 @@
 `render-blueprint` is a TypeScript library of factories that describe Render.com resources and
 synthesize them to `render.yaml`. Generator only: it never calls the Render API. The npm package
 and the CLI binary are both named `render-blueprint`. Phases 1 to 4 are done: the spec is issue #1; the tickets #2 to #14 plus #17, #20, #22, and the
-bug #31 all landed as squash-merged PRs on `main` (last: #35 on 2026-09-06). New work starts with
+bug #31 all landed as squash-merged PRs on `main` (last: #35 on 2026-09-06). v1.1 (spec #39, tickets
+#40 to #45, bugs #36 to #38) landed the same way, last #54 on 2026-09-07. New work starts with
 `/to-spec` for a feature or a plain `ready-for-agent` issue for a bug, then a Herdr dispatch.
 
 - `CONTEXT.md` — the glossary. Read it before exploring.
