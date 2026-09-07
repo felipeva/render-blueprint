@@ -11,9 +11,10 @@ interface ScopeUse {
 
 const MODELED_KEYS: ReadonlySet<string> = new Set(DEFAULT_KEYS);
 
-// One cause: nothing the scope created has the field. A resource that set its own value and an
-// inner scope that overrode the key both took a default that applies to something, so neither is
-// reported here.
+// One cause: nothing the scope created can take the field from a scope. That is not the same as
+// nothing having the field — a Key Value store requires its own ipAllowList, so it has the field
+// and still takes no default for it. A resource that set its own value and an inner scope that
+// overrode the key both took a default that applies to something, so neither is reported here.
 const message = (key: string, names: readonly string[]): string => {
   const scope = `The defaults scope that created ${describeNames(names)} sets "${key}"`;
 
@@ -25,7 +26,7 @@ const message = (key: string, names: readonly string[]): string => {
     return `${scope}, which is not a default this library models, so nothing reads it.`;
   }
 
-  return `${scope}, and no resource it created has that field: a default reaches only the kinds and the source branches Render gives the field to.`;
+  return `${scope}, which nothing it created can take: a default reaches only a kind and a source branch that can take the field from a scope.`;
 };
 
 // A scope reaches validation through the resources it filled, so a scope whose resources are never

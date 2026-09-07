@@ -11,14 +11,14 @@ const unchecked: (json: string) => ResourceDefaults = JSON.parse;
 const uncheckedPlan: (json: string) => PlanDefaults = JSON.parse;
 
 describe('unusedDefault', () => {
-  it('warns about a default no resource it created has', () => {
+  it('warns about a default nothing it created can take', () => {
     const scope = withDefaults({ region: 'frankfurt', repo: 'https://github.com/acme/mono' });
 
     expect(unusedDefault([scope.staticSite('site', { buildCommand: 'pnpm build' })])).toEqual([
       {
         code: 'UnusedDefault',
         at: { resource: 'site', field: 'defaults.region' },
-        message: expect.stringContaining('no resource it created has that field'),
+        message: expect.stringContaining('which nothing it created can take'),
       },
     ]);
   });
