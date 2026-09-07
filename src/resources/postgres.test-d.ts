@@ -33,6 +33,22 @@ describe('postgres', () => {
     postgres('elephant', { plan: 'pro ultra' });
   });
 
+  it('rejects a connection pool Render does not publish', () => {
+    // @ts-expect-error `pgpool` is not a member of ConnectionPool.
+    postgres('elephant', { connectionPool: 'pgpool' });
+  });
+
+  it('takes both storage autoscaling and a connection pool', () => {
+    expectTypeOf(
+      postgres('elephant', { storageAutoscalingEnabled: true, connectionPool: 'pgbouncer' }),
+    ).toEqualTypeOf<PostgresDatabase>();
+  });
+
+  it('rejects storage autoscaling written as a string', () => {
+    // @ts-expect-error `storageAutoscalingEnabled` is a boolean.
+    postgres('elephant', { storageAutoscalingEnabled: 'true' });
+  });
+
   it('rejects a major version written as a number', () => {
     // @ts-expect-error Render takes the major version as a string.
     postgres('elephant', { postgresMajorVersion: 17 });

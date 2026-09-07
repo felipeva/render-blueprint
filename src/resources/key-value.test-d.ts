@@ -38,6 +38,16 @@ describe('keyValue', () => {
     keyValue('cache', { ipAllowList: [], persistenceMode: 'journal' });
   });
 
+  it('rejects a connection pool, which Render gives a database alone', () => {
+    // @ts-expect-error spec §9: `connectionPool` is a database field.
+    keyValue('cache', { ipAllowList: [], connectionPool: 'pgbouncer' });
+  });
+
+  it('rejects storage autoscaling, which Render gives a database alone', () => {
+    // @ts-expect-error spec §9: `storageAutoscalingEnabled` is a database field.
+    keyValue('cache', { ipAllowList: [], storageAutoscalingEnabled: true });
+  });
+
   it('rejects an environment map, because Render gives a Key Value instance none', () => {
     // @ts-expect-error spec §5: a Key Value instance carries no envVars.
     keyValue('cache', { ipAllowList: [], env: { NODE_ENV: 'production' } });
