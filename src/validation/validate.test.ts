@@ -877,14 +877,17 @@ describe('validate', () => {
   it('reports a field the library does not model on a database', () => {
     const result = validate(
       blueprint({
-        resources: [postgres('elephant', uncheckedDatabase('{"connectionPool":"none"}'))],
+        resources: [postgres('elephant', uncheckedDatabase('{"maintenanceWindow":"sun-03:00"}'))],
       }),
     );
 
     expect(Result.isError(result)).toBe(true);
     if (!Result.isError(result)) return;
     expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
-    expect(result.error.issues[0].at).toEqual({ resource: 'elephant', field: 'connectionPool' });
+    expect(result.error.issues[0].at).toEqual({
+      resource: 'elephant',
+      field: 'maintenanceWindow',
+    });
   });
 
   it('reports high availability below PostgreSQL 13 under its own code', () => {
@@ -1151,6 +1154,26 @@ describe('validate', () => {
     const result = validate(
       blueprint({
         resources: [postgres('elephant', { extraFields: { previewPlan: 'basic-1gb' } })],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['ExtraFieldConflict']);
+  });
+
+  it('reports connectionPool in a database\u2019s extraFields as a conflict', () => {
+    const result = validate(
+      blueprint({
+        resources: [postgres('elephant', { extraFields: { connectionPool: 'pgbouncer' } })],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['ExtraFieldConflict']);
+  });
+
+  it('reports storageAutoscalingEnabled in a database\u2019s extraFields as a conflict', () => {
+    const result = validate(
+      blueprint({
+        resources: [postgres('elephant', { extraFields: { storageAutoscalingEnabled: true } })],
       }),
     );
 

@@ -1,5 +1,6 @@
 import * as z from 'zod';
 
+import { connectionPoolSchema, type ConnectionPool } from '../enums/connection-pool.js';
 import { diskSizeGBSchema, type DiskSizeGB } from '../enums/disk-size.js';
 import { postgresPlanSchema, type PostgresPlan } from '../enums/plan.js';
 import {
@@ -33,6 +34,8 @@ export interface PostgresConfig {
   readonly user?: string;
   readonly postgresMajorVersion?: PostgresMajorVersion;
   readonly diskSizeGB?: DiskSizeGB;
+  readonly storageAutoscalingEnabled?: boolean;
+  readonly connectionPool?: ConnectionPool;
   readonly previews?: PostgresPreviews;
   readonly highAvailability?: HighAvailability;
   readonly ipAllowList?: IpAllowList;
@@ -58,6 +61,8 @@ export const POSTGRES_DATABASE_FIELDS = [
   'region',
   'plan',
   'diskSizeGB',
+  'storageAutoscalingEnabled',
+  'connectionPool',
   'previewPlan',
   'previewDiskSizeGB',
   'postgresMajorVersion',
@@ -80,6 +85,8 @@ const postgresConfigSchema = z
     user: z.string().exactOptional(),
     postgresMajorVersion: postgresMajorVersionSchema.exactOptional(),
     diskSizeGB: diskSizeGBSchema.exactOptional(),
+    storageAutoscalingEnabled: z.boolean().exactOptional(),
+    connectionPool: connectionPoolSchema.exactOptional(),
     previews: z
       .strictObject({
         plan: postgresPlanSchema.exactOptional(),

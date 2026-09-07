@@ -522,6 +522,8 @@ databases:
       plan: 'basic-1gb',
       region: 'frankfurt',
       databaseName: 'elephant',
+      connectionPool: 'pgbouncer',
+      storageAutoscalingEnabled: true,
       ipAllowList: [{ source: '203.0.113.4/30', description: 'office' }],
     });
 
@@ -533,6 +535,8 @@ databases:
     region: frankfurt
     plan: basic-1gb
     diskSizeGB: 35
+    storageAutoscalingEnabled: true
+    connectionPool: pgbouncer
     postgresMajorVersion: '17'
     highAvailability:
       enabled: true
@@ -543,6 +547,21 @@ databases:
       - name: elephant-replica
 `,
     );
+  });
+
+  it('emits neither the connection pool nor storage autoscaling when the config omits them', () => {
+    const emitted = emit(blueprint({ resources: [postgres('elephant', { diskSizeGB: 35 })] }));
+
+    expect(emitted).not.toContain('connectionPool');
+    expect(emitted).not.toContain('storageAutoscalingEnabled');
+  });
+
+  it('emits storage autoscaling turned off, because false is a value Render reads', () => {
+    expect(
+      emit(blueprint({ resources: [postgres('elephant', { storageAutoscalingEnabled: false })] })),
+    ).toContain(`  - name: elephant
+    storageAutoscalingEnabled: false
+`);
   });
 
   it('quotes the major version, because Render reads it as a string', () => {

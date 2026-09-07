@@ -63,17 +63,29 @@ describe('parsePostgresConfig', () => {
         user: 'elephant_user',
         postgresMajorVersion: '17',
         diskSizeGB: 35,
+        storageAutoscalingEnabled: true,
+        connectionPool: 'pgbouncer',
         previews: { plan: 'basic-1gb', diskSizeGB: 5 },
         highAvailability: { enabled: true },
         ipAllowList: [{ source: '203.0.113.4/30', description: 'office' }],
         readReplicas: [readReplica('elephant-replica')],
-        extraFields: { connectionPool: 'pgbouncer' },
+        extraFields: { maintenanceWindow: 'sun-03:00' },
       }),
     ).toEqual([]);
   });
 
   it('rejects a field the library does not model', () => {
-    expect(issueCodes(unchecked('{"connectionPool":"pgbouncer"}'))).toEqual(['unrecognized_keys']);
+    expect(issueCodes(unchecked('{"maintenanceWindow":"sun-03:00"}'))).toEqual([
+      'unrecognized_keys',
+    ]);
+  });
+
+  it('rejects a connection pool Render does not publish', () => {
+    expect(issueCodes(unchecked('{"connectionPool":"pgpool"}'))).toEqual(['invalid_value']);
+  });
+
+  it('rejects storage autoscaling written as a string', () => {
+    expect(issueCodes(unchecked('{"storageAutoscalingEnabled":"true"}'))).toEqual(['invalid_type']);
   });
 
   it('rejects a disk size that is neither 1 nor a multiple of 5', () => {

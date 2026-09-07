@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import * as z from 'zod';
 
 import { AUTO_DEPLOY_TRIGGERS } from '../src/enums/auto-deploy-trigger.js';
+import { CONNECTION_POOLS } from '../src/enums/connection-pool.js';
 import { DATABASE_PROPERTIES } from '../src/enums/database-property.js';
 import { DISK_SIZES_GB } from '../src/enums/disk-size.js';
 import { ENVIRONMENT_PROTECTIONS } from '../src/enums/environment-protection.js';
@@ -160,6 +161,12 @@ describe('ENVIRONMENT_PROTECTIONS', () => {
 describe('POSTGRES_PLANS', () => {
   it('holds the postgresPlan enum Render publishes', () => {
     expect(converted(POSTGRES_PLANS)).toEqual(published('postgresPlan'));
+  });
+});
+
+describe('CONNECTION_POOLS', () => {
+  it('holds the connectionPool enum Render publishes', () => {
+    expect(converted(CONNECTION_POOLS)).toEqual(published('connectionPool'));
   });
 });
 
