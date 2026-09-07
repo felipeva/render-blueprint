@@ -36,7 +36,9 @@ import { raiseSubdomainPolicyNeedsDomain } from './subdomain-policy.js';
 export type HealthCheckPath = `/${string}`;
 
 // spec §4.8: maintenance mode sits on the serverService branch and Render's prose gives it to a
-// paid web service, so no other kind models it.
+// paid web service, so no other kind models it. The paid half is a warning and not a type:
+// MaintenanceModeNeedsPaidPlan reports the plan a config writes, and a config that writes none says
+// nothing, because Render adopts a service by name and an adopted one may already be paid.
 export interface MaintenanceMode {
   readonly enabled?: boolean;
   readonly uri?: string;
@@ -119,18 +121,25 @@ export const WEB_SERVICE_FIELDS = [
 // Emission order follows the schema's maintenanceMode property order.
 export const MAINTENANCE_MODE_FIELDS = ['enabled', 'uri'] as const;
 
+// A browser fetches the maintenance page, so the URL needs a host: without one, "localhost:8080"
+// and "about:blank" parse as absolute and address nothing Render can serve.
+const isAbsolutePageUrl = (value: string): boolean => {
+  const parsed = URL.parse(value);
+  return parsed !== null && parsed.host !== '';
+};
+
 // spec §8.3: the published schema gives the uri format "uri" and the prose calls it absolute.
 // INFERRED: the prose also forbids a uri pointing at the service it protects, which no value on
-// its own can be read against, so the library checks absoluteness and leaves the rest unstated.
+// its own can be read against, so the library checks the form and leaves the target unstated.
 const maintenanceModeObject = z
   .strictObject({ enabled: z.boolean().exactOptional(), uri: z.string().exactOptional() })
   .readonly()
   .superRefine((value, ctx) => {
-    if (value.uri !== undefined && !URL.canParse(value.uri)) {
+    if (value.uri !== undefined && !isAbsolutePageUrl(value.uri)) {
       raise(
         ctx,
         'MaintenanceUriNotAbsolute',
-        `Render serves a maintenance page from an absolute URL, and "${value.uri}" is not one.`,
+        `Render serves a maintenance page from an absolute URL with a host, and "${value.uri}" is not one.`,
         ['uri'],
       );
     }

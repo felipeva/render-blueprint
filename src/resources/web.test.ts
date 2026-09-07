@@ -305,6 +305,21 @@ describe('parseWebConfig', () => {
     expect(
       issueCodes({ runtime: 'node', maintenanceMode: { uri: 'https://acme.dev/down' } }),
     ).toEqual([]);
+    expect(issueCodes({ runtime: 'node', maintenanceMode: { uri: 'http://acme.dev' } })).toEqual(
+      [],
+    );
+  });
+
+  it('reports a maintenance uri that parses as absolute but addresses no host', () => {
+    expect(raisedIssues({ runtime: 'node', maintenanceMode: { uri: 'localhost:8080' } })).toEqual([
+      { validationCode: 'MaintenanceUriNotAbsolute', path: ['maintenanceMode', 'uri'] },
+    ]);
+    expect(raisedIssues({ runtime: 'node', maintenanceMode: { uri: 'about:blank' } })).toEqual([
+      { validationCode: 'MaintenanceUriNotAbsolute', path: ['maintenanceMode', 'uri'] },
+    ]);
+    expect(
+      raisedIssues({ runtime: 'node', maintenanceMode: { uri: 'mailto:ops@acme.dev' } }),
+    ).toEqual([{ validationCode: 'MaintenanceUriNotAbsolute', path: ['maintenanceMode', 'uri'] }]);
   });
 
   it('reports a disabled subdomain policy on a service that lists no domain', () => {

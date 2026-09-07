@@ -132,7 +132,8 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │                                     env-key-collision, unknown-service-env-var-key,
 │                                     secret-skips-previews, web-only-field,
 │                                     instances-ignored-by-scaling, unused-default,
-│                                     build-filter-on-image-source. The scaling,
+│                                     build-filter-on-image-source,
+│                                     maintenance-mode-needs-paid-plan. The scaling,
 │                                     numeric-range and high-availability families are refinements
 │                                     beside their own config instead, because each reads one config
 │                                     and no other
@@ -299,8 +300,8 @@ maintenance page the config points at with something other than an absolute URL,
 `SubdomainPolicyNeedsDomain` for a `renderSubdomainPolicy` of `disabled` on a resource that lists
 no custom domain (issue #43). `WarningCode` follows the same
 convention one tier down, for a rule that never blocks synthesis — `SecretSkipsPreviews`,
-`UnknownServiceEnvVarKey`, `WebOnlyField`, `InstancesIgnoredByScaling`, `UnusedDefault` and
-`BuildFilterOnImageSource` among them.
+`UnknownServiceEnvVarKey`, `WebOnlyField`, `InstancesIgnoredByScaling`, `UnusedDefault`,
+`BuildFilterOnImageSource` and `MaintenanceModeNeedsPaidPlan` among them.
 
 **Enums.** `erasableSyntaxOnly` bans `enum`. Every closed set is a SCREAMING_SNAKE `as const`
 tuple plus its derived union, in one file; the tuple is exported because validation and tests

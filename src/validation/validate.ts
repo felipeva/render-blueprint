@@ -18,6 +18,7 @@ import { duplicateResourceName } from './rules/duplicate-resource-name.js';
 import { envKeyCollision } from './rules/env-key-collision.js';
 import { extraFieldConflict } from './rules/extra-field-conflict.js';
 import { instancesIgnoredByScaling } from './rules/instances-ignored-by-scaling.js';
+import { maintenanceModeNeedsPaidPlan } from './rules/maintenance-mode-needs-paid-plan.js';
 import { missingBuildCommand } from './rules/missing-build-command.js';
 import { missingStartCommand } from './rules/missing-start-command.js';
 import { missingStaticPublishPath } from './rules/missing-static-publish-path.js';
@@ -60,6 +61,7 @@ const WARNING_RULES = [
   instancesIgnoredByScaling,
   unusedDefault,
   buildFilterOnImageSource,
+  maintenanceModeNeedsPaidPlan,
 ] as const;
 
 export const validate = (value: Blueprint): ResultType<ValidatedBlueprint, BlueprintInvalid> => {

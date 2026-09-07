@@ -35,6 +35,7 @@ export const WARNING_CODES = [
   'InstancesIgnoredByScaling',
   'UnusedDefault',
   'BuildFilterOnImageSource',
+  'MaintenanceModeNeedsPaidPlan',
 ] as const;
 
 export type WarningCode = (typeof WARNING_CODES)[number];

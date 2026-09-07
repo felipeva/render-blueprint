@@ -1695,6 +1695,101 @@ describe('validate', () => {
     expect(result.value.warnings.map((warning) => warning.code)).toEqual(['WebOnlyField']);
   });
 
+  // spec §4.1: maintenance mode needs a paid web service instance.
+  it('warns about maintenance mode on a service that writes the free plan', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', {
+            runtime: 'node',
+            plan: 'free',
+            buildCommand: 'pnpm build',
+            startCommand: 'pnpm start',
+            maintenanceMode: { enabled: true },
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isOk(result)).toBe(true);
+    if (!Result.isOk(result)) return;
+    expect(result.value.warnings.map((warning) => warning.code)).toEqual([
+      'MaintenanceModeNeedsPaidPlan',
+    ]);
+    expect(result.value.warnings[0]?.at).toEqual({ resource: 'api', field: 'maintenanceMode' });
+  });
+
+  // Render adopts a service by name, so a config that writes no plan may be describing a paid one.
+  it('warns about nothing when maintenance mode sits beside no written plan', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', {
+            runtime: 'node',
+            buildCommand: 'pnpm build',
+            startCommand: 'pnpm start',
+            maintenanceMode: { enabled: true },
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isOk(result)).toBe(true);
+    if (!Result.isOk(result)) return;
+    expect(result.value.warnings).toEqual([]);
+  });
+
+  it('warns about nothing when the free plan sits beside no maintenance mode', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', {
+            runtime: 'node',
+            plan: 'free',
+            buildCommand: 'pnpm build',
+            startCommand: 'pnpm start',
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isOk(result)).toBe(true);
+    if (!Result.isOk(result)) return;
+    expect(result.value.warnings).toEqual([]);
+  });
+
+  it('warns about maintenance mode in a static site\u2019s extraFields, which its schema lacks', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          staticSite('marketing', {
+            buildCommand: 'pnpm build',
+            staticPublishPath: './dist',
+            extraFields: { maintenanceMode: { enabled: true } },
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isOk(result)).toBe(true);
+    if (!Result.isOk(result)) return;
+    expect(result.value.warnings.map((warning) => warning.code)).toEqual(['WebOnlyField']);
+    expect(result.value.warnings[0]?.at).toEqual({
+      resource: 'marketing',
+      field: 'extraFields.maintenanceMode',
+    });
+  });
+
+  it('reports domains in a static site\u2019s extraFields as a conflict, not a field out of reach', () => {
+    const result = validate(
+      blueprint({
+        resources: [staticSite('marketing', { extraFields: { domains: ['acme.dev'] } })],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['ExtraFieldConflict']);
+  });
+
   it('carries the secret preview warning on an accepted blueprint', () => {
     const result = validate(
       blueprint({
