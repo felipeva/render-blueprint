@@ -177,7 +177,9 @@ const config: RunConfig = {
   description: CLI_DESCRIPTION,
   argSource: process.argv,
   version: showVersion,
-  theme: usageTheme(() => {
+  theme: usageTheme(process.argv.slice(ARGV_OFFSET), (failure) => {
+    if (failure === 'no-command') complain(`No command given. Run ${CLI_NAME} --help.`);
+
     exitCode = EXIT_FAILED;
   }),
   noExit: true,
@@ -189,13 +191,6 @@ const main = async (): Promise<number> => {
       `render-blueprint needs Node ${NODE_FLOOR} or newer to strip the types from a TypeScript blueprint; this is Node ${process.versions.node}.`,
     );
     return EXIT_FAILED;
-  }
-
-  // brocli answers a bare command line with the generated help; naming no command is still the usage
-  // error it was before brocli, so it keeps exit 1.
-  if (process.argv.length <= ARGV_OFFSET) {
-    complain(`No command given. Run ${CLI_NAME} --help.`);
-    exitCode = EXIT_FAILED;
   }
 
   await run(commands(runner), config);

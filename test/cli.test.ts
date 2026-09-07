@@ -197,14 +197,28 @@ describe('render-blueprint', () => {
     expect(ran.stderr).toContain('No command given');
   });
 
+  it('exits 1 and asks for a command when an unknown flag stands where the command should', async () => {
+    const cwd = await seeded('clean');
+    const ran = await run(cwd, ['--nope']);
+
+    expect(ran.code).toBe(1);
+    expect(ran.stderr).toContain('No command given');
+    expect(ran.stdout).toContain('render-blueprint [command]');
+
+    expect((await run(cwd, ['-x'])).code).toBe(1);
+    expect((await run(cwd, ['--nope', 'synth'])).code).toBe(1);
+  });
+
   it('prints the generated help for the cli and for both commands', async () => {
     const cwd = await seeded('clean');
 
-    const cli = await run(cwd, ['--help']);
+    for (const flag of ['--help', '-h']) {
+      const cli = await run(cwd, [flag]);
 
-    expect(cli.code).toBe(0);
-    expect(cli.stdout).toContain('synth');
-    expect(cli.stdout).toContain('check');
+      expect(cli.code).toBe(0);
+      expect(cli.stdout).toContain('synth');
+      expect(cli.stdout).toContain('check');
+    }
 
     for (const command of ['synth', 'check']) {
       const help = await run(cwd, [command, '--help']);
@@ -221,9 +235,13 @@ describe('render-blueprint', () => {
     // SAFETY: JSON.parse answers any. This is the repository's own package.json, whose "version" npm
     // writes and whose absence would fail the build long before this assertion runs.
     const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')) as Manifest;
-    const ran = await run(await seeded('clean'), ['--version']);
+    const cwd = await seeded('clean');
 
-    expect(ran.code).toBe(0);
-    expect(ran.stdout.trim()).toBe(manifest.version);
+    for (const flag of ['--version', '-v']) {
+      const ran = await run(cwd, [flag]);
+
+      expect(ran.code).toBe(0);
+      expect(ran.stdout.trim()).toBe(manifest.version);
+    }
   });
 });
