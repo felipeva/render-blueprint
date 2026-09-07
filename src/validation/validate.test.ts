@@ -1554,6 +1554,31 @@ describe('validate', () => {
     expect(result.value.warnings).toEqual([]);
   });
 
+  it('accepts a private service and a worker carrying the hook', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          privateService('auth', {
+            runtime: 'node',
+            buildCommand: 'pnpm build',
+            startCommand: 'pnpm start',
+            initialDeployHook: './seed.sh',
+          }),
+          worker('jobs', {
+            runtime: 'node',
+            buildCommand: 'pnpm build',
+            startCommand: 'pnpm jobs',
+            initialDeployHook: './seed.sh',
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isOk(result)).toBe(true);
+    if (!Result.isOk(result)) return;
+    expect(result.value.warnings).toEqual([]);
+  });
+
   it('reports a relative maintenance uri on the nested field', () => {
     const result = validate(
       blueprint({

@@ -34,6 +34,13 @@ describe('worker', () => {
     worker('jobs', { runtime: 'node', healthCheckPath: '/healthz' });
   });
 
+  // spec §4.8: the hook reaches every kind the serverService branch covers.
+  it('takes a first-deploy hook, which Render runs once after the first deploy', () => {
+    expectTypeOf(
+      worker('jobs', { runtime: 'node', initialDeployHook: './seed.sh' }),
+    ).toEqualTypeOf<Worker>();
+  });
+
   it('rejects the address properties a worker does not answer on', () => {
     web('api', {
       runtime: 'node',
@@ -201,11 +208,6 @@ describe('worker registry credential', () => {
 });
 
 describe('worker web-only fields', () => {
-  it('rejects a first-deploy hook, which the library models on a web service', () => {
-    // @ts-expect-error spec §4.8: the library gives initialDeployHook to a web service.
-    worker('jobs', { runtime: 'node', initialDeployHook: './seed.sh' });
-  });
-
   it('rejects maintenance mode, which Render documents for a web service', () => {
     // @ts-expect-error spec §4.8: maintenanceMode is a web service field.
     worker('jobs', { runtime: 'node', maintenanceMode: { enabled: true } });

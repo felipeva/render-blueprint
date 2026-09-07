@@ -116,6 +116,28 @@ services:
     );
   });
 
+  it('emits the first-deploy hook of a private service between the trigger and the disk', () => {
+    const auth = privateService('auth', {
+      runtime: 'node',
+      autoDeployTrigger: 'commit',
+      initialDeployHook: './seed.sh',
+      disk: { name: 'keys', mountPath: '/var/keys' },
+    });
+
+    expect(emit(blueprint({ resources: [auth] }))).toContain(
+      `services:
+  - type: pserv
+    name: auth
+    runtime: node
+    autoDeployTrigger: commit
+    initialDeployHook: ./seed.sh
+    disk:
+      name: keys
+      mountPath: /var/keys
+`,
+    );
+  });
+
   it('emits the keys of a worker in one fixed order', () => {
     const jobs = worker('jobs', {
       runtime: 'node',
@@ -327,6 +349,28 @@ services:
           type: cron
           name: nightly
           envVarKey: TOKEN
+`,
+    );
+  });
+
+  it('emits the first-deploy hook of a worker between the trigger and the disk', () => {
+    const jobs = worker('jobs', {
+      runtime: 'node',
+      autoDeployTrigger: 'commit',
+      initialDeployHook: './seed.sh',
+      disk: { name: 'spool', mountPath: '/var/spool' },
+    });
+
+    expect(emit(blueprint({ resources: [jobs] }))).toContain(
+      `services:
+  - type: worker
+    name: jobs
+    runtime: node
+    autoDeployTrigger: commit
+    initialDeployHook: ./seed.sh
+    disk:
+      name: spool
+      mountPath: /var/spool
 `,
     );
   });

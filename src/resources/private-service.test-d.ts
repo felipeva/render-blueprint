@@ -37,6 +37,13 @@ describe('privateService', () => {
     privateService('auth', { runtime: 'node', healthCheckPath: '/healthz' });
   });
 
+  // spec §4.8: the hook reaches every kind the serverService branch covers.
+  it('takes a first-deploy hook, which Render runs once after the first deploy', () => {
+    expectTypeOf(
+      privateService('auth', { runtime: 'node', initialDeployHook: './seed.sh' }),
+    ).toEqualTypeOf<PrivateService>();
+  });
+
   it('answers on the private network, so it carries host, port and hostport', () => {
     const auth = privateService('auth', { runtime: 'node' });
 
@@ -136,11 +143,6 @@ describe('privateService registry credential', () => {
 });
 
 describe('private service web-only fields', () => {
-  it('rejects a first-deploy hook, which the library models on a web service', () => {
-    // @ts-expect-error spec §4.8: the library gives initialDeployHook to a web service.
-    privateService('auth', { runtime: 'node', initialDeployHook: './seed.sh' });
-  });
-
   it('rejects maintenance mode, which Render documents for a web service', () => {
     // @ts-expect-error spec §4.8: maintenanceMode is a web service field.
     privateService('auth', { runtime: 'node', maintenanceMode: { enabled: true } });
