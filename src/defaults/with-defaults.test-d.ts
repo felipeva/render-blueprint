@@ -1,5 +1,12 @@
 import { describe, expectTypeOf, it } from 'vitest';
 
+import type {
+  CronPlan,
+  KeyValuePlan,
+  PaidServerPlan,
+  PostgresPlan,
+  ServerPlan,
+} from '../enums/plan.js';
 import { cron } from '../resources/cron.js';
 import { envGroup } from '../resources/env-group.js';
 import { keyValue } from '../resources/key-value.js';
@@ -9,6 +16,7 @@ import { staticSite } from '../resources/static-site.js';
 import type { WebService } from '../resources/web.js';
 import { web } from '../resources/web.js';
 import { worker } from '../resources/worker.js';
+import type { PlanDefaults, ResourceDefaults } from './resource-defaults.js';
 import { RECORD_KEYS_COVER_THE_DEFAULT_KEYS } from './resource-defaults.js';
 import { withDefaults } from './with-defaults.js';
 
@@ -98,6 +106,65 @@ describe('withDefaults', () => {
         },
       }),
     ).toEqualTypeOf<typeof scope>();
+  });
+
+  it('accepts the build filter, the deploy trigger and the allow list', () => {
+    expectTypeOf(
+      withDefaults({
+        autoDeployTrigger: 'checksPass',
+        buildFilter: { paths: ['apps/**'], ignoredPaths: ['docs/**'] },
+        ipAllowList: [{ source: '203.0.113.0/24', description: 'office' }],
+      }),
+    ).toEqualTypeOf<typeof scope>();
+  });
+
+  it('rejects a deploy trigger Render does not publish', () => {
+    // @ts-expect-error `onPush` is not a member of AutoDeployTrigger.
+    withDefaults({ autoDeployTrigger: 'onPush' });
+  });
+
+  it('rejects a build filter key the schema does not carry', () => {
+    // @ts-expect-error a BuildFilter carries paths and ignoredPaths and nothing else.
+    withDefaults({ buildFilter: { include: ['apps/**'] } });
+    // @ts-expect-error a path list is a list of strings.
+    withDefaults({ buildFilter: { paths: 'apps/**' } });
+  });
+
+  it('rejects an allow list entry the schema does not carry', () => {
+    // @ts-expect-error an entry names its `source`.
+    withDefaults({ ipAllowList: [{ cidr: '203.0.113.0/24' }] });
+    // @ts-expect-error an allow list is a list of entries, not one entry.
+    withDefaults({ ipAllowList: { source: '203.0.113.0/24' } });
+  });
+
+  it('keeps the plan record the one place a plan default is written', () => {
+    expectTypeOf<ResourceDefaults['plan']>().toEqualTypeOf<PlanDefaults | undefined>();
+    expectTypeOf<PlanDefaults>().toEqualTypeOf<{
+      readonly web?: ServerPlan;
+      readonly privateService?: PaidServerPlan;
+      readonly worker?: PaidServerPlan;
+      readonly cron?: CronPlan;
+      readonly keyValue?: KeyValuePlan;
+      readonly postgres?: PostgresPlan;
+    }>();
+  });
+
+  it('takes a build filter and a deploy trigger beside an image-sourced resource', () => {
+    expectTypeOf(
+      withDefaults({
+        autoDeployTrigger: 'checksPass',
+        buildFilter: { paths: ['apps/**'] },
+      }).worker('jobs', { runtime: 'image', image: { url: 'acme/jobs:1.4.0' } }),
+    ).toEqualTypeOf<ReturnType<typeof worker>>();
+  });
+
+  it('rejects an allow list on the kinds whose config lacks the field', () => {
+    const allowed = withDefaults({ ipAllowList: [{ source: '203.0.113.0/24' }] });
+
+    // @ts-expect-error a WorkerConfig has no ipAllowList, through a scope as without one.
+    allowed.worker('jobs', { runtime: 'node', ipAllowList: [] });
+    // @ts-expect-error a CronConfig has no ipAllowList, through a scope as without one.
+    allowed.cron('nightly', { runtime: 'node', schedule: '0 3 * * *', ipAllowList: [] });
   });
 
   it('takes a repository default beside an image-sourced resource', () => {

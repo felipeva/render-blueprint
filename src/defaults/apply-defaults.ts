@@ -1,3 +1,4 @@
+import type { AutoDeployTrigger } from '../enums/auto-deploy-trigger.js';
 import type {
   CronPlan,
   KeyValuePlan,
@@ -6,6 +7,7 @@ import type {
   ServerPlan,
 } from '../enums/plan.js';
 import type { Region } from '../enums/region.js';
+import type { BuildFilter } from '../resources/build-filter.js';
 import type { CronConfig } from '../resources/cron.js';
 import type {
   AppliedDefault,
@@ -13,6 +15,7 @@ import type {
   DefaultKey,
   DefaultsDeclaration,
 } from '../resources/defaults-provenance.js';
+import type { IpAllowList } from '../resources/ip-allow-list.js';
 import type { KeyValueConfig } from '../resources/key-value.js';
 import type { PostgresConfig } from '../resources/postgres.js';
 import type { PrivateServiceConfig } from '../resources/private-service.js';
@@ -42,6 +45,9 @@ export interface ScopeValues {
   readonly repo: Filled<string> | undefined;
   readonly branch: Filled<string> | undefined;
   readonly rootDir: Filled<string> | undefined;
+  readonly autoDeployTrigger: Filled<AutoDeployTrigger> | undefined;
+  readonly buildFilter: Filled<BuildFilter> | undefined;
+  readonly ipAllowList: Filled<IpAllowList> | undefined;
   readonly plan: ScopePlans;
 }
 
@@ -72,7 +78,23 @@ interface RepoFields {
   readonly rootDir?: string;
 }
 
-interface SourcedFill<P extends string> extends RepoFill {
+// spec §4.1: both fields govern what a push to the repository builds, so a source that names no
+// repository takes neither.
+interface BuildFill {
+  autoDeployTrigger?: AutoDeployTrigger;
+  buildFilter?: BuildFilter;
+}
+
+interface BuildFields {
+  readonly autoDeployTrigger?: AutoDeployTrigger;
+  readonly buildFilter?: BuildFilter;
+}
+
+interface AllowListFill {
+  ipAllowList?: IpAllowList;
+}
+
+interface SourcedFill<P extends string> extends RepoFill, BuildFill {
   region?: Region;
   plan?: P;
 }
@@ -82,10 +104,16 @@ interface SourcedFields<P extends string> {
   readonly plan?: P;
 }
 
+interface WebFill extends SourcedFill<ServerPlan>, AllowListFill {}
+
+interface StaticSiteFill extends RepoFill, BuildFill, AllowListFill {}
+
 interface DatastoreFill<P extends string> {
   region?: Region;
   plan?: P;
 }
+
+interface PostgresFill extends DatastoreFill<PostgresPlan>, AllowListFill {}
 
 const appliedDefault = (
   key: DefaultKey,
@@ -157,113 +185,151 @@ const fillRepo = (values: ScopeValues, own: RepoFields, fill: RepoFill, marks: M
   }
 };
 
-interface Application<F> {
-  readonly fill: F;
-  readonly marks: Marks;
-}
+// The scope's value lands by reference and the resource's own value replaces it whole: a filter the
+// resource wrote is exactly the filter it wrote, with neither list joined to the scope's.
+const fillBuild = (values: ScopeValues, own: BuildFields, fill: BuildFill, marks: Marks): void => {
+  if (values.autoDeployTrigger !== undefined) {
+    marks.eligible.push('autoDeployTrigger');
 
-// The four kinds that choose a source take region, their own plan, and — on the two branches that
-// build from a repository — repo, branch and rootDir. spec §4.3: an image source names no
-// repository, so `runtime` deciding the branch is what keeps a repo default off it.
-const sourcedApplication = <P extends string>(
+    if (own.autoDeployTrigger === undefined) {
+      fill.autoDeployTrigger = values.autoDeployTrigger.value;
+      marks.applied.push(
+        appliedDefault('autoDeployTrigger', 'autoDeployTrigger', values.autoDeployTrigger.scope),
+      );
+    }
+  }
+
+  if (values.buildFilter !== undefined) {
+    marks.eligible.push('buildFilter');
+
+    if (own.buildFilter === undefined) {
+      fill.buildFilter = values.buildFilter.value;
+      marks.applied.push(appliedDefault('buildFilter', 'buildFilter', values.buildFilter.scope));
+    }
+  }
+};
+
+// spec §7: a web service, a static site and a Postgres database take an optional list. A Key Value
+// instance is the one kind Render requires one on, so its config has no open field for a scope to
+// fill and it never calls in.
+const fillIpAllowList = (
   values: ScopeValues,
-  config: SourcedFields<P> & ServiceSource,
+  own: IpAllowList | undefined,
+  fill: AllowListFill,
+  marks: Marks,
+): void => {
+  if (values.ipAllowList === undefined) return;
+
+  marks.eligible.push('ipAllowList');
+  if (own !== undefined) return;
+
+  fill.ipAllowList = values.ipAllowList.value;
+  marks.applied.push(appliedDefault('ipAllowList', 'ipAllowList', values.ipAllowList.scope));
+};
+
+// spec §4.3: an image source names no repository, so `runtime` deciding the branch is what keeps
+// both the three repository fields and the two that govern a build from one off a prebuilt image.
+const fillFromRepository = (
+  values: ScopeValues,
+  config: BuildFields & ServiceSource,
+  fill: RepoFill & BuildFill,
+  marks: Marks,
+): void => {
+  const source = repoSource(config);
+  if (source === undefined) return;
+
+  fillRepo(values, source, fill, marks);
+  fillBuild(values, config, fill, marks);
+};
+
+// The four kinds that choose a source take region and their own plan whatever branch they pick.
+const fillSourced = <P extends string>(
+  values: ScopeValues,
+  config: SourcedFields<P> & BuildFields & ServiceSource,
   plan: Filled<P> | undefined,
   key: DefaultKey,
-): Application<SourcedFill<P>> => {
-  const fill: SourcedFill<P> = {};
-  const marks: Marks = { eligible: [], applied: [] };
-
+  fill: SourcedFill<P>,
+  marks: Marks,
+): void => {
   fillRegion(values, config.region, fill, marks);
   fillPlan(plan, key, config.plan, fill, marks);
-
-  const source = repoSource(config);
-  if (source !== undefined) fillRepo(values, source, fill, marks);
-
-  return { fill, marks };
+  fillFromRepository(values, config, fill, marks);
 };
 
 // spec §9 and §5: neither a database nor a Key Value instance builds from a repository, so repo,
-// branch and rootDir never reach one.
-const datastoreApplication = <P extends string>(
+// branch, rootDir and the two fields that govern a build from one never reach one.
+const fillDatastore = <P extends string>(
   values: ScopeValues,
   config: SourcedFields<P>,
   plan: Filled<P> | undefined,
   key: DefaultKey,
-): Application<DatastoreFill<P>> => {
-  const fill: DatastoreFill<P> = {};
-  const marks: Marks = { eligible: [], applied: [] };
-
+  fill: DatastoreFill<P>,
+  marks: Marks,
+): void => {
   fillRegion(values, config.region, fill, marks);
   fillPlan(plan, key, config.plan, fill, marks);
-
-  return { fill, marks };
 };
 
 export const webDefaults = (values: ScopeValues, config: WebConfig): AppliedConfig<WebConfig> => {
-  const application = sourcedApplication(values, config, values.plan.web, 'plan.web');
+  const fill: WebFill = {};
+  const marks: Marks = { eligible: [], applied: [] };
 
-  return {
-    config: { ...config, ...application.fill },
-    eligible: application.marks.eligible,
-    applied: application.marks.applied,
-  };
+  fillSourced(values, config, values.plan.web, 'plan.web', fill, marks);
+  fillIpAllowList(values, config.ipAllowList, fill, marks);
+
+  return { config: { ...config, ...fill }, eligible: marks.eligible, applied: marks.applied };
 };
 
+// spec §16 F: an allow list sits on the web branch alone among the four sourced kinds, so a private
+// service, a worker and a cron job take every other key and not that one.
 export const privateServiceDefaults = (
   values: ScopeValues,
   config: PrivateServiceConfig,
 ): AppliedConfig<PrivateServiceConfig> => {
-  const application = sourcedApplication(
-    values,
-    config,
-    values.plan.privateService,
-    'plan.privateService',
-  );
+  const fill: SourcedFill<PaidServerPlan> = {};
+  const marks: Marks = { eligible: [], applied: [] };
 
-  return {
-    config: { ...config, ...application.fill },
-    eligible: application.marks.eligible,
-    applied: application.marks.applied,
-  };
+  fillSourced(values, config, values.plan.privateService, 'plan.privateService', fill, marks);
+
+  return { config: { ...config, ...fill }, eligible: marks.eligible, applied: marks.applied };
 };
 
 export const workerDefaults = (
   values: ScopeValues,
   config: WorkerConfig,
 ): AppliedConfig<WorkerConfig> => {
-  const application = sourcedApplication(values, config, values.plan.worker, 'plan.worker');
+  const fill: SourcedFill<PaidServerPlan> = {};
+  const marks: Marks = { eligible: [], applied: [] };
 
-  return {
-    config: { ...config, ...application.fill },
-    eligible: application.marks.eligible,
-    applied: application.marks.applied,
-  };
+  fillSourced(values, config, values.plan.worker, 'plan.worker', fill, marks);
+
+  return { config: { ...config, ...fill }, eligible: marks.eligible, applied: marks.applied };
 };
 
 export const cronDefaults = (
   values: ScopeValues,
   config: CronConfig,
 ): AppliedConfig<CronConfig> => {
-  const application = sourcedApplication(values, config, values.plan.cron, 'plan.cron');
+  const fill: SourcedFill<CronPlan> = {};
+  const marks: Marks = { eligible: [], applied: [] };
 
-  return {
-    config: { ...config, ...application.fill },
-    eligible: application.marks.eligible,
-    applied: application.marks.applied,
-  };
+  fillSourced(values, config, values.plan.cron, 'plan.cron', fill, marks);
+
+  return { config: { ...config, ...fill }, eligible: marks.eligible, applied: marks.applied };
 };
 
 // spec §4.8 and §8.1: a static site runs nowhere and takes no plan, so region and plan never reach
-// one; it builds from a repository, so the other three do.
+// one; it always builds from a repository, so every field that governs one does.
 export const staticSiteDefaults = (
   values: ScopeValues,
   config: StaticSiteConfig,
 ): AppliedConfig<StaticSiteConfig> => {
-  const fill: RepoFill = {};
+  const fill: StaticSiteFill = {};
   const marks: Marks = { eligible: [], applied: [] };
 
   fillRepo(values, config, fill, marks);
+  fillBuild(values, config, fill, marks);
+  fillIpAllowList(values, config.ipAllowList, fill, marks);
 
   return { config: { ...config, ...fill }, eligible: marks.eligible, applied: marks.applied };
 };
@@ -272,24 +338,23 @@ export const keyValueDefaults = (
   values: ScopeValues,
   config: KeyValueConfig,
 ): AppliedConfig<KeyValueConfig> => {
-  const application = datastoreApplication(values, config, values.plan.keyValue, 'plan.keyValue');
+  const fill: DatastoreFill<KeyValuePlan> = {};
+  const marks: Marks = { eligible: [], applied: [] };
 
-  return {
-    config: { ...config, ...application.fill },
-    eligible: application.marks.eligible,
-    applied: application.marks.applied,
-  };
+  fillDatastore(values, config, values.plan.keyValue, 'plan.keyValue', fill, marks);
+
+  return { config: { ...config, ...fill }, eligible: marks.eligible, applied: marks.applied };
 };
 
 export const postgresDefaults = (
   values: ScopeValues,
   config: PostgresConfig,
 ): AppliedConfig<PostgresConfig> => {
-  const application = datastoreApplication(values, config, values.plan.postgres, 'plan.postgres');
+  const fill: PostgresFill = {};
+  const marks: Marks = { eligible: [], applied: [] };
 
-  return {
-    config: { ...config, ...application.fill },
-    eligible: application.marks.eligible,
-    applied: application.marks.applied,
-  };
+  fillDatastore(values, config, values.plan.postgres, 'plan.postgres', fill, marks);
+  fillIpAllowList(values, config.ipAllowList, fill, marks);
+
+  return { config: { ...config, ...fill }, eligible: marks.eligible, applied: marks.applied };
 };

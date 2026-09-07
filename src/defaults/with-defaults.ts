@@ -49,7 +49,16 @@ interface Scope {
   readonly declarations: readonly DefaultsDeclaration[];
 }
 
-const RECORD_FIELDS: ReadonlySet<string> = new Set(['region', 'repo', 'branch', 'rootDir', 'plan']);
+const RECORD_FIELDS: ReadonlySet<string> = new Set([
+  'region',
+  'repo',
+  'branch',
+  'rootDir',
+  'autoDeployTrigger',
+  'buildFilter',
+  'ipAllowList',
+  'plan',
+]);
 
 const PLAN_FIELDS: ReadonlySet<string> = new Set([
   'web',
@@ -101,6 +110,9 @@ const declaredKeys = (
   if (record.repo !== undefined) declare('repo');
   if (record.branch !== undefined) declare('branch');
   if (record.rootDir !== undefined) declare('rootDir');
+  if (record.autoDeployTrigger !== undefined) declare('autoDeployTrigger');
+  if (record.buildFilter !== undefined) declare('buildFilter');
+  if (record.ipAllowList !== undefined) declare('ipAllowList');
 
   if (plan !== undefined) {
     if (plan.web !== undefined) declare('plan.web');
@@ -132,6 +144,9 @@ const scopeValues = (
   repo: filled(record.repo, scope, outer?.repo),
   branch: filled(record.branch, scope, outer?.branch),
   rootDir: filled(record.rootDir, scope, outer?.rootDir),
+  autoDeployTrigger: filled(record.autoDeployTrigger, scope, outer?.autoDeployTrigger),
+  buildFilter: filled(record.buildFilter, scope, outer?.buildFilter),
+  ipAllowList: filled(record.ipAllowList, scope, outer?.ipAllowList),
   plan: {
     web: filled(plan?.web, scope, outer?.plan.web),
     privateService: filled(plan?.privateService, scope, outer?.plan.privateService),

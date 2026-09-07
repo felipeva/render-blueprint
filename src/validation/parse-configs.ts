@@ -93,16 +93,24 @@ export const translate = (
   ];
 };
 
+// An object or an array default lands whole, so an issue raised inside one is an issue on the value
+// the scope wrote: the field the default landed on is the whole path or its first segment.
+const landedOn = (field: string, applied: AppliedDefault): boolean =>
+  field === applied.field || field.startsWith(`${applied.field}.`);
+
 // A defaults scope never validates: the merged config is what the schema parses, so a bad default
 // lands on every resource that took it. The resource is the author's coordinate, and the message
 // says the value to change is the scope's.
-const fromScope = (issue: ValidationIssue, applied: readonly AppliedDefault[]): ValidationIssue =>
-  applied.some((entry) => entry.field === issue.at.field)
-    ? {
+const fromScope = (issue: ValidationIssue, applied: readonly AppliedDefault[]): ValidationIssue => {
+  const entry = applied.find((candidate) => landedOn(issue.at.field, candidate));
+
+  return entry === undefined
+    ? issue
+    : {
         ...issue,
-        message: `${issue.message} "${issue.at.resource}" takes "${issue.at.field}" from a defaults scope, so the value to change is the scope's.`,
-      }
-    : issue;
+        message: `${issue.message} "${issue.at.resource}" takes "${entry.field}" from a defaults scope, so the value to change is the scope's.`,
+      };
+};
 
 export const parseConfigs = (resources: readonly BlueprintResource[]): ParsedConfigs => {
   const issues: ValidationIssue[] = [];
