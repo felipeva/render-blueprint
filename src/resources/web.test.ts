@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { raisedIssuesThrough, type RaisedIssue } from '../../test/raised-issues.js';
 import { parseWebConfig, web, type WebConfig } from './web.js';
 
 // SAFETY: JSON.parse returns any. Every config below stands in for a blueprint the CLI loaded
@@ -12,21 +13,8 @@ const issueCodes = (config: WebConfig): readonly string[] => {
   return result.success ? [] : result.error.issues.map((issue) => String(issue.code));
 };
 
-interface RaisedIssue {
-  readonly validationCode: string;
-  readonly path: readonly PropertyKey[];
-}
-
-const raisedIssues = (config: WebConfig): readonly RaisedIssue[] => {
-  const result = parseWebConfig(config);
-  if (result.success) return [];
-
-  return result.error.issues.flatMap((issue): readonly RaisedIssue[] =>
-    issue.code === 'custom'
-      ? [{ validationCode: String(issue.params?.['validationCode']), path: issue.path }]
-      : [],
-  );
-};
+const raisedIssues: (config: WebConfig) => readonly RaisedIssue[] =
+  raisedIssuesThrough(parseWebConfig);
 
 const DISK: WebConfig['disk'] = { name: 'uploads', mountPath: '/var/data' };
 

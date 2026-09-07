@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { raisedIssuesThrough, type RaisedIssue } from '../../test/raised-issues.js';
 import { parseStaticSiteConfig, staticSite, type StaticSiteConfig } from './static-site.js';
 
 // SAFETY: JSON.parse returns any. Every config below stands in for a blueprint the CLI loaded
@@ -12,21 +13,8 @@ const issueCodes = (config: StaticSiteConfig): readonly string[] => {
   return result.success ? [] : result.error.issues.map((issue) => String(issue.code));
 };
 
-interface RaisedIssue {
-  readonly validationCode: string;
-  readonly path: readonly PropertyKey[];
-}
-
-const raisedIssues = (config: StaticSiteConfig): readonly RaisedIssue[] => {
-  const result = parseStaticSiteConfig(config);
-  if (result.success) return [];
-
-  return result.error.issues.flatMap((issue): readonly RaisedIssue[] =>
-    issue.code === 'custom'
-      ? [{ validationCode: String(issue.params?.['validationCode']), path: issue.path }]
-      : [],
-  );
-};
+const raisedIssues: (config: StaticSiteConfig) => readonly RaisedIssue[] =
+  raisedIssuesThrough(parseStaticSiteConfig);
 
 describe('staticSite', () => {
   it('returns an inert value carrying the kind, the name, and the config', () => {
