@@ -29,7 +29,9 @@ const checkout = team.withDefaults({
   buildFilter: { paths: ['apps/checkout/**'] },
 });
 
-// The resource overrides the deploy trigger, and its own value replaces the scope's.
+// One resource overrides two keys, and each of its own values replaces the scope's. spec §7: the
+// empty list is the value that blocks every external connection, so it is a real override rather
+// than an absence.
 const api = team.web('api', {
   runtime: 'node',
   region: 'oregon',
@@ -37,6 +39,7 @@ const api = team.web('api', {
   buildCommand: 'pnpm install --frozen-lockfile && pnpm build',
   startCommand: 'pnpm start',
   autoDeployTrigger: 'commit',
+  ipAllowList: [],
 });
 
 const checkoutService = checkout.privateService('checkout', {
@@ -69,8 +72,9 @@ const site = team.staticSite('site', {
 // spec §5: a Key Value instance requires its own allow list, so the scope's never reaches one.
 const cache = team.keyValue('cache', { ipAllowList: [] });
 
-// The resource overrides the allow list with the empty list that blocks every connection.
-const records = team.postgres('records', { ipAllowList: [] });
+// The database takes the scope's allow list, which is the one kind that carries it without being
+// a service.
+const records = team.postgres('records');
 
 const value: Blueprint = blueprint({
   resources: [api, checkoutService, pdf, nightly, site, cache, records],

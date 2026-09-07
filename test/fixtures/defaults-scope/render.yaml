@@ -18,9 +18,7 @@ services:
         - apps/**
       ignoredPaths:
         - docs/**
-    ipAllowList:
-      - source: 203.0.113.4/30
-        description: office
+    ipAllowList: []
   - type: pserv
     name: checkout
     region: frankfurt
@@ -81,4 +79,6 @@ databases:
   - name: records
     region: frankfurt
     plan: basic-1gb
-    ipAllowList: []
+    ipAllowList:
+      - source: 203.0.113.4/30
+        description: office
