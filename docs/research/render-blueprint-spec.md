@@ -15,7 +15,7 @@ designing typed TypeScript builders that emit `render.yaml`. No design opinions 
 | `[PREVIEW]` | https://render.com/docs/preview-environments | Preview environments. |
 | `[SVCPREVIEW]` | https://render.com/docs/service-previews | Per-service PR previews. |
 | `[KV]` | https://render.com/docs/key-value | Key Value maxmemory/persistence detail. |
-| `[DISKS]` | https://render.com/docs/disks | Disk constraints. |
+| `[DISKS]` | https://render.com/docs/disks | Disk constraints. Verbatim capture at `docs/research/raw/render-disks.md` (fetched via the `.md` endpoint `https://render.com/docs/disks.md`, `text/markdown`). |
 | `[SCALING]` | https://render.com/docs/scaling | Autoscaling constraints. |
 | `[ENVVARS]` | https://render.com/docs/configure-environment-variables , https://render.com/docs/environment-variables | Env groups, Render-default env vars. |
 

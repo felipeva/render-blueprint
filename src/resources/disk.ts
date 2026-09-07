@@ -15,7 +15,7 @@ export interface Disk {
 // Emission order follows the schema's disk property order.
 export const DISK_FIELDS = ['name', 'mountPath', 'sizeGB'] as const;
 
-// spec §4.4: the nine paths Render refuses to mount a disk on.
+// docs/research/raw/render-disks.md § "Disallowed mount paths"
 const DISALLOWED_MOUNT_PATHS: ReadonlySet<string> = new Set([
   '/',
   '/opt',
@@ -58,7 +58,7 @@ export interface ScalableFields {
   readonly scaling?: Scaling;
 }
 
-// spec §4.4: a service with an attached disk cannot run on more than one instance.
+// docs/research/raw/render-disks.md § "Disk limitations and considerations"
 export const raiseDiskPreventsScaling = <T extends ScalableFields>(
   config: T,
   ctx: z.core.$RefinementCtx<T>,
