@@ -5,6 +5,10 @@ import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { parse } from 'yaml';
+
+import type { JsonValue } from '../src/index.js';
+import { renderSchema } from './render-schema.js';
 
 interface Ran {
   readonly code: number;
@@ -103,6 +107,34 @@ describe('render-blueprint', () => {
     expect(await readFile(join(cwd, 'render.yaml'), 'utf8')).toBe(
       await readFile(join(seeds, 'split', 'expected.yaml'), 'utf8'),
     );
+  });
+
+  it('exits 0 with no warnings and writes the v1.1 surface the seed commits', async () => {
+    const cwd = await seeded('v1-1-surface');
+    const ran = await run(cwd, ['synth']);
+
+    expect(ran.code, ran.stderr).toBe(0);
+    expect(ran.stderr).toBe('');
+
+    const expected = await readFile(join(seeds, 'v1-1-surface', 'expected.yaml'), 'utf8');
+
+    expect(await readFile(join(cwd, 'render.yaml'), 'utf8')).toBe(expected);
+
+    // SAFETY: yaml's parse returns any. Its input is the expectation the binary wrote, whose leaves
+    // are all JsonValue, so it round-trips into JsonValue.
+    const document: JsonValue = parse(expected);
+
+    expect(renderSchema(document)).toEqual([]);
+  });
+
+  it('exits 0 when check reads back the v1.1 surface synth wrote', async () => {
+    const cwd = await seeded('v1-1-surface');
+
+    expect((await run(cwd, ['synth'])).code).toBe(0);
+
+    const ran = await run(cwd, ['check']);
+
+    expect(ran.code, ran.stderr).toBe(0);
   });
 
   it('exits 0 when check finds the committed file clean', async () => {
