@@ -2,39 +2,14 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { Ajv2020 } from 'ajv/dist/2020.js';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 
-import { synthesize, type Blueprint, type JsonObject, type JsonValue } from '../src/index.js';
+import { synthesize, type Blueprint, type JsonValue } from '../src/index.js';
+import { renderSchema } from './render-schema.js';
 
-interface SchemaViolation {
-  readonly at: string;
-  readonly message: string;
-}
-
-type SchemaValidator = (value: JsonValue) => readonly SchemaViolation[];
-
-const schemaPath = fileURLToPath(new URL('schema/render.yaml.schema.json', import.meta.url));
 const fixturesPath = fileURLToPath(new URL('fixtures/', import.meta.url));
 const updating = process.env['UPDATE_FIXTURES'] === '1';
-
-const compileRenderSchema = (): SchemaValidator => {
-  // SAFETY: JSON.parse returns any. The file is the committed Render schema, whose root is a JSON
-  // object; if it ever were not, ajv.compile below would reject it and every fixture would fail.
-  const schema: JsonObject = JSON.parse(readFileSync(schemaPath, 'utf8'));
-  const compiled = new Ajv2020({ strict: false, allErrors: true }).compile(schema);
-
-  return (value) =>
-    compiled(value)
-      ? []
-      : (compiled.errors ?? []).map((error) => ({
-          at: error.instancePath === '' ? '/' : error.instancePath,
-          message: error.message ?? error.keyword,
-        }));
-};
-
-const renderSchema: SchemaValidator = compileRenderSchema();
 
 const fixtureNames: readonly string[] = readdirSync(fixturesPath, { withFileTypes: true })
   .filter((entry) => entry.isDirectory() && existsSync(join(fixturesPath, entry.name, 'render.ts')))
@@ -48,16 +23,6 @@ const emit = async (name: string): Promise<string> => {
 
   return synthesize(module.default).unwrap(`Fixture "${name}" must synthesize`).yaml;
 };
-
-describe('renderSchema', () => {
-  it("rejects a document Render's JSON Schema forbids", () => {
-    const violations = renderSchema({
-      services: [{ type: 'web', name: 'api', runtime: 'node', notARenderField: true }],
-    });
-
-    expect(violations).not.toEqual([]);
-  });
-});
 
 describe('synthesize', () => {
   it('has at least one fixture to run', () => {
