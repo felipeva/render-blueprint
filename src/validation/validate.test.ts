@@ -357,6 +357,26 @@ describe('validate', () => {
     expect(result.error.issues[0].at.field).toBe('registryCredential.fromRegistryCreds.id');
   });
 
+  it('reports a field beside fromRegistryCreds, which is the whole of a credential', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          worker(
+            'jobs',
+            uncheckedWorker(
+              '{"runtime":"docker","registryCredential":{"fromRegistryCreds":{"name":"acme"},"nope":1}}',
+            ),
+          ),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+    expect(result.error.issues[0].at.field).toBe('registryCredential.nope');
+  });
+
   // A source key is only the wrong source on the config that picked the runtime; a kind that picks
   // none, and an object nested inside one, answer with the unknown field they always did.
   it('reports a source key on a kind that picks no source as an unknown field', () => {
