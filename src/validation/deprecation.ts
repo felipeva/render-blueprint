@@ -20,6 +20,7 @@ const REPLACEMENTS: ReadonlyMap<string, string> = new Map([
   ['pullRequestPreviewsEnabled', 'previews.generation'],
   ['previewPlan', 'previews.plan'],
   ['domain', 'domains'],
+  ['afterFirstDeployCommand', 'initialDeployHook'],
 ]);
 
 // spec §13: previewPlan is deprecated on a service, and is the current form on a datastore.
@@ -77,6 +78,12 @@ export const deprecationAdvice = (retired: Deprecation): string => {
 
   if (retired.key === 'type') {
     return `Render deprecated the service type "redis"; use "${retired.replacement}". The escape hatch never emits a retired form.`;
+  }
+
+  // spec §4.1: a web service, a private service and a background worker carry the hook; no other
+  // kind does, and Render's schema accepts the retired alias on none of them.
+  if (retired.key === 'afterFirstDeployCommand') {
+    return `Render retired "${retired.key}" and its schema no longer accepts it; a web service, a private service and a background worker take "${retired.replacement}" instead. The escape hatch never emits a retired form.`;
   }
 
   return `Render deprecated "${retired.key}"; use "${retired.replacement}". The escape hatch never emits a retired form.`;

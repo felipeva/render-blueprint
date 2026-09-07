@@ -10,4 +10,14 @@ describe('renderSchema', () => {
 
     expect(violations).not.toEqual([]);
   });
+
+  it('rejects the retired afterFirstDeployCommand alias on a server service', () => {
+    const violations = renderSchema({
+      services: [
+        { type: 'web', name: 'api', runtime: 'node', afterFirstDeployCommand: './seed.sh' },
+      ],
+    });
+
+    expect(violations).not.toEqual([]);
+  });
 });

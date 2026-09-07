@@ -37,6 +37,16 @@ describe('deprecation', () => {
     ]).toEqual([undefined, undefined, undefined]);
   });
 
+  it('retires afterFirstDeployCommand, where initialDeployHook replaced it', () => {
+    expect([
+      deprecation('afterFirstDeployCommand', './seed.sh', 'service'),
+      deprecation('afterFirstDeployCommand', './seed.sh', 'cron'),
+    ]).toEqual([
+      { key: 'afterFirstDeployCommand', replacement: 'initialDeployHook' },
+      { key: 'afterFirstDeployCommand', replacement: 'initialDeployHook' },
+    ]);
+  });
+
   it('retires nothing inside an environment group, which has none of the retired fields', () => {
     expect([
       deprecation('env', 'node', 'envGroup'),
@@ -100,6 +110,16 @@ describe('deprecationScope', () => {
 describe('deprecationAdvice', () => {
   it('names the replacement a retired field has', () => {
     expect(deprecationAdvice({ key: 'env', replacement: 'runtime' })).toContain('use "runtime"');
+  });
+
+  it('names the kinds that carry the hook the retired alias stood for', () => {
+    const advice = deprecationAdvice({
+      key: 'afterFirstDeployCommand',
+      replacement: 'initialDeployHook',
+    });
+
+    expect(advice).toContain('a web service, a private service and a background worker');
+    expect(advice).toContain('"initialDeployHook"');
   });
 
   it('says a cron job has no previews when nothing replaces the field', () => {
