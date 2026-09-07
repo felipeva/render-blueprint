@@ -76,6 +76,22 @@ describe('webOnlyField', () => {
     expect(warnings[0]?.code).toBe('WebOnlyField');
   });
 
+  // spec §4.8: the matrix row reaches the whole serverService column, so the schema accepts the
+  // hook on a private service; the library models it on a web service alone, and says so.
+  it('warns about a first-deploy hook on a private service, naming the library for it', () => {
+    const warnings = webOnlyField([
+      privateService('auth', { runtime: 'node', extraFields: { initialDeployHook: './seed.sh' } }),
+    ]);
+
+    expect(warnings).toEqual([
+      {
+        code: 'WebOnlyField',
+        at: { resource: 'auth', field: 'extraFields.initialDeployHook' },
+        message: expect.stringContaining('the library models that field on a web service alone'),
+      },
+    ]);
+  });
+
   it('warns about nothing when a worker sets no extra fields', () => {
     expect(webOnlyField([worker('jobs', { runtime: 'node' })])).toEqual([]);
   });
