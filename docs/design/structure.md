@@ -57,7 +57,7 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │                                runtime, plan, disk-size, auto-deploy-trigger, maxmemory-policy,
 │   │                                preview-generation, service-type, render-provided-key,
 │   │                                service-property, referenceable-service-type,
-│   │                                key-value-persistence-mode (spec §6.6)
+│   │                                key-value-persistence-mode, connection-pool (spec §6.6)
 │   ├── references/                  what a resource exposes; the core of design B
 │   │   ├── reference-value.ts       DatabaseReferenceValue, ServiceReferenceValue (the XOR union)
 │   │   ├── reference-origin.ts      ReferenceOrigin — 'blueprint' | 'external', a target's origin
