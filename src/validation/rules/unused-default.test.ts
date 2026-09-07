@@ -11,14 +11,14 @@ const unchecked: (json: string) => ResourceDefaults = JSON.parse;
 const uncheckedPlan: (json: string) => PlanDefaults = JSON.parse;
 
 describe('unusedDefault', () => {
-  it('warns about a default no resource it created has', () => {
+  it('warns about a default nothing it created can take', () => {
     const scope = withDefaults({ region: 'frankfurt', repo: 'https://github.com/acme/mono' });
 
     expect(unusedDefault([scope.staticSite('site', { buildCommand: 'pnpm build' })])).toEqual([
       {
         code: 'UnusedDefault',
         at: { resource: 'site', field: 'defaults.region' },
-        message: expect.stringContaining('no resource it created has that field'),
+        message: expect.stringContaining('which nothing it created can take'),
       },
     ]);
   });
@@ -80,6 +80,52 @@ describe('unusedDefault', () => {
         sites.staticSite('site', { buildCommand: 'pnpm build' }),
       ]).map((warning) => warning.at),
     ).toEqual([{ resource: 'site', field: 'defaults.region' }]);
+  });
+
+  it('warns about a build filter no resource under the scope can take', () => {
+    const scope = withDefaults({ buildFilter: { paths: ['apps/**'] }, region: 'frankfurt' });
+
+    expect(
+      unusedDefault([scope.postgres('records'), scope.keyValue('cache', { ipAllowList: [] })]).map(
+        (warning) => warning.at,
+      ),
+    ).toEqual([{ resource: 'records', field: 'defaults.buildFilter' }]);
+  });
+
+  it('warns about a build filter when every service pulls a prebuilt image', () => {
+    const scope = withDefaults({ autoDeployTrigger: 'checksPass' });
+
+    expect(
+      unusedDefault([
+        scope.worker('jobs', { runtime: 'image', image: { url: 'acme/jobs:1.4.0' } }),
+      ]).map((warning) => warning.at),
+    ).toEqual([{ resource: 'jobs', field: 'defaults.autoDeployTrigger' }]);
+  });
+
+  it('warns about an allow list the kinds the scope created never carry', () => {
+    const scope = withDefaults({ ipAllowList: [{ source: '203.0.113.0/24' }] });
+
+    expect(
+      unusedDefault([
+        scope.worker('jobs', { runtime: 'node' }),
+        scope.keyValue('cache', { ipAllowList: [] }),
+      ]).map((warning) => warning.at),
+    ).toEqual([{ resource: 'jobs', field: 'defaults.ipAllowList' }]);
+  });
+
+  it('leaves a build filter one resource of the scope overrode alone', () => {
+    const scope = withDefaults({ buildFilter: { paths: ['apps/**'] } });
+
+    expect(
+      unusedDefault([scope.web('api', { runtime: 'node', buildFilter: { paths: ['api/**'] } })]),
+    ).toEqual([]);
+  });
+
+  it('leaves an outer allow list an inner scope overrode alone', () => {
+    const team = withDefaults({ ipAllowList: [{ source: '203.0.113.0/24' }] });
+    const app = team.withDefaults({ ipAllowList: [] });
+
+    expect(unusedDefault([app.staticSite('site', { buildCommand: 'pnpm build' })])).toEqual([]);
   });
 
   it('warns about nothing for a resource no scope created', () => {

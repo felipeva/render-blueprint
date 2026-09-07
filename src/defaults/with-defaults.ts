@@ -49,7 +49,16 @@ interface Scope {
   readonly declarations: readonly DefaultsDeclaration[];
 }
 
-const RECORD_FIELDS: ReadonlySet<string> = new Set(['region', 'repo', 'branch', 'rootDir', 'plan']);
+const RECORD_FIELDS: ReadonlySet<string> = new Set([
+  'region',
+  'repo',
+  'branch',
+  'rootDir',
+  'autoDeployTrigger',
+  'buildFilter',
+  'ipAllowList',
+  'plan',
+]);
 
 const PLAN_FIELDS: ReadonlySet<string> = new Set([
   'web',
@@ -101,6 +110,9 @@ const declaredKeys = (
   if (record.repo !== undefined) declare('repo');
   if (record.branch !== undefined) declare('branch');
   if (record.rootDir !== undefined) declare('rootDir');
+  if (record.autoDeployTrigger !== undefined) declare('autoDeployTrigger');
+  if (record.buildFilter !== undefined) declare('buildFilter');
+  if (record.ipAllowList !== undefined) declare('ipAllowList');
 
   if (plan !== undefined) {
     if (plan.web !== undefined) declare('plan.web');
@@ -121,7 +133,9 @@ const filled = <V>(
 ): Filled<V> | undefined => (own === undefined ? outer : { value: own, scope });
 
 // An inner scope wins over an outer one key by key, and a key it wins carries its own declaration,
-// so a key an inner scope shadowed is credited to nobody and reported as unused.
+// so an applied default names the innermost scope that declared it. A key an inner scope shadowed
+// lands under no applied default, and the unused-default rule still says nothing about it: that
+// rule reads eligibility, which shadowing does not change.
 const scopeValues = (
   outer: ScopeValues | undefined,
   record: ResourceDefaults,
@@ -132,6 +146,9 @@ const scopeValues = (
   repo: filled(record.repo, scope, outer?.repo),
   branch: filled(record.branch, scope, outer?.branch),
   rootDir: filled(record.rootDir, scope, outer?.rootDir),
+  autoDeployTrigger: filled(record.autoDeployTrigger, scope, outer?.autoDeployTrigger),
+  buildFilter: filled(record.buildFilter, scope, outer?.buildFilter),
+  ipAllowList: filled(record.ipAllowList, scope, outer?.ipAllowList),
   plan: {
     web: filled(plan?.web, scope, outer?.plan.web),
     privateService: filled(plan?.privateService, scope, outer?.plan.privateService),

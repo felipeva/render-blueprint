@@ -5,6 +5,9 @@ export const DEFAULT_KEYS = [
   'repo',
   'branch',
   'rootDir',
+  'autoDeployTrigger',
+  'buildFilter',
+  'ipAllowList',
   'plan.web',
   'plan.privateService',
   'plan.worker',
@@ -17,7 +20,16 @@ export type DefaultKey = (typeof DEFAULT_KEYS)[number];
 
 // The config fields those keys land on. Six plan keys land on one field, because a resource holds
 // only its own kind's plan.
-export const DEFAULT_FIELDS = ['region', 'plan', 'repo', 'branch', 'rootDir'] as const;
+export const DEFAULT_FIELDS = [
+  'region',
+  'plan',
+  'repo',
+  'branch',
+  'rootDir',
+  'autoDeployTrigger',
+  'buildFilter',
+  'ipAllowList',
+] as const;
 
 export type DefaultField = (typeof DEFAULT_FIELDS)[number];
 

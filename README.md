@@ -70,8 +70,9 @@ export const apiService = (deps: ApiDependencies): WebService =>
 ```
 
 The root file creates the shared resources, calls each app function, and exports the blueprint as
-the default export. `withDefaults` sets the region, the repository and one plan per kind in one
-place. A value on a resource always wins over a default.
+the default export. `withDefaults` sets the region, the repository, the build filter, the deploy
+trigger, the IP allow list and one plan per kind in one place. A value on a resource always wins
+over a default.
 
 ```ts
 // render.ts

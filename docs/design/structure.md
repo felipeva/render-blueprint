@@ -106,10 +106,17 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │                                    never emitted, read by validation (issue #13)
 │   ├── defaults/                    the withDefaults scope
 │   │   ├── resource-defaults.ts     ResourceDefaults/PlanDefaults, one plan key per kind that has
-│   │   │                            a plan, and the guard holding those keys equal to DefaultKey
+│   │   │                            a plan, the build filter, the deploy trigger and the allow list
+│   │   │                            typed by the same declarations a config field takes (issue
+│   │   │                            #44), and the guard holding those keys equal to DefaultKey
 │   │   ├── apply-defaults.ts        the kind × field matrix: region and plan never reach a static
 │   │   │                            site, no repository field reaches a datastore, and `runtime`
-│   │   │                            keeps one off an image source; a per-resource value always wins
+│   │   │                            keeps one off an image source, which is what also keeps the
+│   │   │                            build filter and the deploy trigger off it; an allow list
+│   │   │                            reaches a web service, a static site and Postgres and never a
+│   │   │                            Key Value store, whose config requires the field. A
+│   │   │                            per-resource value always wins, and an object or an array
+│   │   │                            default is replaced whole rather than merged
 │   │   └── with-defaults.ts         the nestable scope: the frozen per-scope declaration, the
 │                                    outer-to-inner merge, and the provenance each resource carries
 │   ├── blueprint/                   the explicit root and its placement axes
@@ -249,7 +256,7 @@ cycles, no lateral imports inside a layer.
 | `synth/` | `synthesize(blueprint)` | YAML serialization entirely, key order, the generated-file header, the four disjoint schema branches, the `(type, runtime)` discriminator, the env map→list conversion, the keyless `fromGroup` entry, the `previewPlan`/`previews.plan` split, Postgres landing in `databases:` while Key Value lands in `services:`, read-replica name registration |
 | `validation/` | `validate(blueprint)` | ~15 rule families, the traversal that reaches every reference in every env map on every resource in every placement, and the ordering that makes issue output deterministic |
 | `references/` | property access on a resource value | both YAML reference forms, the `property` XOR `envVarKey` split, and the per-source legality table — nobody writes `fromDatabase`, they write `db.connectionString` |
-| `defaults/` | `withDefaults(defaults)` | nesting and the kind × field matrix: region and plan never reach a static site; repo, branch, rootDir, autoDeployTrigger and buildFilter never reach Key Value or Postgres |
+| `defaults/` | `withDefaults(defaults)` | nesting and the kind × field matrix: region and plan never reach a static site; repo, branch, rootDir, autoDeployTrigger and buildFilter never reach a datastore or an image source; ipAllowList reaches a web service, a static site and Postgres, and never a Key Value store |
 | `drift/` | `checkBlueprint(...)` | normalization of the committed file and the classification of changes to Render's immutable fields |
 
 Shallow by design: `enums/`, `json.ts`, `blueprint/`, `cli/`.

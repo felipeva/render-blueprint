@@ -2,6 +2,7 @@ import { Result } from 'better-result';
 import { describe, expect, it } from 'vitest';
 
 import { blueprint, type Blueprint } from '../blueprint/blueprint.js';
+import type { BuildFilter } from '../resources/build-filter.js';
 import { envGroup } from '../resources/env-group.js';
 import { web, type WebConfig } from '../resources/web.js';
 import { synthesize } from '../synth/synthesize.js';
@@ -221,6 +222,124 @@ services:
     expect(provenance?.applied[0]?.scope).toBe(provenance?.scopes[1]);
   });
 
+  it('fills the build filter, the deploy trigger and the allow list a scope declares', () => {
+    const scope = withDefaults({
+      autoDeployTrigger: 'checksPass',
+      buildFilter: { paths: ['apps/**'] },
+      ipAllowList: [{ source: '203.0.113.0/24', description: 'office' }],
+    });
+
+    expect(scope.web('api', { runtime: 'node' }).config).toEqual({
+      runtime: 'node',
+      autoDeployTrigger: 'checksPass',
+      buildFilter: { paths: ['apps/**'] },
+      ipAllowList: [{ source: '203.0.113.0/24', description: 'office' }],
+    });
+  });
+
+  it('writes an object default by reference and replaces it whole', () => {
+    const filter: BuildFilter = { paths: ['apps/**'] };
+    const scope = withDefaults({ buildFilter: filter });
+
+    expect(scope.web('api', { runtime: 'node' }).config.buildFilter).toBe(filter);
+    expect(
+      scope.web('api', { runtime: 'node', buildFilter: { ignoredPaths: ['docs/**'] } }).config
+        .buildFilter,
+    ).toEqual({ ignoredPaths: ['docs/**'] });
+  });
+
+  it('lets an inner scope win on one object key and inherit the other', () => {
+    const team = withDefaults({
+      autoDeployTrigger: 'off',
+      buildFilter: { paths: ['apps/**'] },
+    });
+    const app = team.withDefaults({ buildFilter: { paths: ['apps/checkout/**'] } });
+
+    expect(app.worker('jobs', { runtime: 'node' }).config).toEqual({
+      runtime: 'node',
+      autoDeployTrigger: 'off',
+      buildFilter: { paths: ['apps/checkout/**'] },
+    });
+  });
+
+  it('keeps a build filter and a deploy trigger off an image-sourced service', () => {
+    const scope = withDefaults({
+      autoDeployTrigger: 'checksPass',
+      buildFilter: { paths: ['apps/**'] },
+    });
+
+    const emitted = emit(
+      blueprint({
+        resources: [scope.worker('jobs', { runtime: 'image', image: { url: 'acme/jobs:1.4.0' } })],
+      }),
+    );
+
+    expect(emitted).toContain('url: acme/jobs:1.4.0');
+    expect(emitted).not.toContain('buildFilter');
+    expect(emitted).not.toContain('autoDeployTrigger');
+  });
+
+  it('never raises BuildFilterOnImageSource from a scope default', () => {
+    const scope = withDefaults({ buildFilter: { paths: ['apps/**'] } });
+    const report = synthesize(
+      blueprint({
+        resources: [
+          scope.web('api', { runtime: 'image', image: { url: 'acme/api:1.4.0' } }),
+          scope.privateService('inner', { runtime: 'image', image: { url: 'acme/inner:1' } }),
+          scope.worker('jobs', { runtime: 'image', image: { url: 'acme/jobs:1' } }),
+          scope.cron('nightly', {
+            runtime: 'image',
+            schedule: '0 3 * * *',
+            image: { url: 'acme/nightly:1' },
+          }),
+        ],
+      }),
+    ).unwrap('The blueprint under test must synthesize');
+
+    expect(report.warnings.map((warning) => warning.code)).not.toContain(
+      'BuildFilterOnImageSource',
+    );
+  });
+
+  it('keeps an allow list off the kinds whose schema lacks the field', () => {
+    const scope = withDefaults({ ipAllowList: [{ source: '203.0.113.0/24' }] });
+
+    expect(scope.worker('jobs', { runtime: 'node' }).config).toEqual({ runtime: 'node' });
+    expect(scope.cron('nightly', { runtime: 'node', schedule: '0 3 * * *' }).config).toEqual({
+      runtime: 'node',
+      schedule: '0 3 * * *',
+    });
+  });
+
+  it('leaves the required allow list of a Key Value store to the store', () => {
+    const scope = withDefaults({ ipAllowList: [{ source: '203.0.113.0/24' }] });
+    const store = scope.keyValue('cache', { ipAllowList: [] });
+
+    expect(store.config.ipAllowList).toEqual([]);
+    expect(store.defaults?.eligible).toEqual([]);
+  });
+
+  it('fills the allow list of a static site and of a database', () => {
+    const scope = withDefaults({ ipAllowList: [{ source: '203.0.113.0/24' }] });
+
+    expect(scope.staticSite('site', { buildCommand: 'pnpm build' }).config.ipAllowList).toEqual([
+      { source: '203.0.113.0/24' },
+    ]);
+    expect(scope.postgres('records').config.ipAllowList).toEqual([{ source: '203.0.113.0/24' }]);
+  });
+
+  it('carries the new keys among the eligible and the applied ones', () => {
+    const scope = withDefaults({
+      autoDeployTrigger: 'checksPass',
+      buildFilter: { paths: ['apps/**'] },
+      ipAllowList: [],
+    });
+    const provenance = scope.web('api', { runtime: 'node', autoDeployTrigger: 'off' }).defaults;
+
+    expect(provenance?.eligible).toEqual(['autoDeployTrigger', 'buildFilter', 'ipAllowList']);
+    expect(provenance?.applied.map((entry) => entry.key)).toEqual(['buildFilter', 'ipAllowList']);
+  });
+
   it('leaves no provenance on a resource a bare factory made', () => {
     expect(web('api', { runtime: 'node' }).defaults).toBeUndefined();
   });
@@ -238,6 +357,24 @@ services:
           code: 'InvalidConfig',
           at: { resource: 'api', field: 'region' },
           message: expect.stringContaining('takes "region" from a defaults scope'),
+        },
+      ]);
+    }
+  });
+
+  it('says where the value came from when a default fails inside an object', () => {
+    const scope = withDefaults(unchecked('{ "buildFilter": { "paths": "apps/**" } }'));
+    const result = validate(blueprint({ resources: [scope.web('api', { runtime: 'node' })] }));
+
+    expect(Result.isError(result)).toBe(true);
+
+    if (Result.isError(result)) {
+      expect(BlueprintInvalid.is(result.error)).toBe(true);
+      expect(result.error.issues).toEqual([
+        {
+          code: 'InvalidConfig',
+          at: { resource: 'api', field: 'buildFilter.paths' },
+          message: expect.stringContaining('takes "buildFilter" from a defaults scope'),
         },
       ]);
     }
