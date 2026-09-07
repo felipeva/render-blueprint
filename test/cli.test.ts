@@ -95,6 +95,16 @@ describe('render-blueprint', () => {
     expect(await readFile(join(cwd, 'render.yaml'), 'utf8')).toContain('name: api');
   });
 
+  it('exits 0 and writes the file when the blueprint imports a second .ts file', async () => {
+    const cwd = await seeded('split');
+    const ran = await run(cwd, ['synth']);
+
+    expect(ran.code, ran.stderr).toBe(0);
+    expect(await readFile(join(cwd, 'render.yaml'), 'utf8')).toBe(
+      await readFile(join(seeds, 'split', 'expected.yaml'), 'utf8'),
+    );
+  });
+
   it('exits 0 when check finds the committed file clean', async () => {
     const ran = await run(await seeded('clean'), ['check']);
 
