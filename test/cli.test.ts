@@ -197,7 +197,7 @@ describe('render-blueprint', () => {
     expect(ran.stderr).toContain('No command given');
   });
 
-  it('exits 1 and asks for a command when an unknown flag stands where the command should', async () => {
+  it('exits 1 and asks for a command when the command line names none', async () => {
     const cwd = await seeded('clean');
     const ran = await run(cwd, ['--nope']);
 
