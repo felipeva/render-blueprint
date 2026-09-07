@@ -303,14 +303,7 @@ services:
   it('writes no registryCredential key for a Docker source that names none', () => {
     const jobs = worker('jobs', { runtime: 'docker', dockerfilePath: './Dockerfile.jobs' });
 
-    expect(emit(blueprint({ resources: [jobs] }))).toContain(
-      `services:
-  - type: worker
-    name: jobs
-    runtime: docker
-    dockerfilePath: ./Dockerfile.jobs
-`,
-    );
+    expect(emit(blueprint({ resources: [jobs] }))).not.toContain('registryCredential');
   });
 
   it('emits a reference to a worker and to a cron job with the types Render publishes', () => {
