@@ -19,6 +19,7 @@ export type { PostgresMajorVersion } from './enums/postgres-major-version.js';
 export type { PreviewGeneration } from './enums/preview-generation.js';
 export type { ReferenceableServiceType } from './enums/referenceable-service-type.js';
 export type { RenderProvidedKey } from './enums/render-provided-key.js';
+export type { RenderSubdomainPolicy } from './enums/render-subdomain-policy.js';
 export type { Region } from './enums/region.js';
 export type { RouteType } from './enums/route-type.js';
 export type { ServiceProperty } from './enums/service-property.js';
@@ -70,6 +71,7 @@ export type {
   DockerWebConfig,
   HealthCheckPath,
   ImageWebConfig,
+  MaintenanceMode,
   NativeWebConfig,
   WebConfig,
   WebService,

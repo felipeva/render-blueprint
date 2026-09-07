@@ -23,6 +23,7 @@ import { POSTGRES_MAJOR_VERSIONS } from '../src/enums/postgres-major-version.js'
 import { PREVIEW_GENERATIONS } from '../src/enums/preview-generation.js';
 import { REFERENCEABLE_SERVICE_TYPES } from '../src/enums/referenceable-service-type.js';
 import { REGIONS } from '../src/enums/region.js';
+import { RENDER_SUBDOMAIN_POLICIES } from '../src/enums/render-subdomain-policy.js';
 import { ROUTE_TYPES } from '../src/enums/route-type.js';
 import { NATIVE_RUNTIMES, SERVICE_RUNTIMES } from '../src/enums/runtime.js';
 import { SERVICE_PROPERTIES } from '../src/enums/service-property.js';
@@ -127,6 +128,20 @@ describe('SERVICE_RUNTIMES', () => {
 
   it('starts with every native runtime', () => {
     expect(SERVICE_RUNTIMES.slice(0, NATIVE_RUNTIMES.length)).toEqual([...NATIVE_RUNTIMES]);
+  });
+});
+
+describe('RENDER_SUBDOMAIN_POLICIES', () => {
+  it('holds the renderSubdomainPolicy enum Render publishes on a service', () => {
+    expect(converted(RENDER_SUBDOMAIN_POLICIES)).toEqual(
+      publishedField('serverService', 'renderSubdomainPolicy'),
+    );
+  });
+
+  it('holds the same policies a static site takes', () => {
+    expect(publishedField('staticService', 'renderSubdomainPolicy')).toEqual(
+      publishedField('serverService', 'renderSubdomainPolicy'),
+    );
   });
 });
 

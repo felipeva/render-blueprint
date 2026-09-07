@@ -18,6 +18,8 @@ export const VALIDATION_CODES = [
   'ScalingTargetMissing',
   'DiskPreventsScaling',
   'MountPathDisallowed',
+  'MaintenanceUriNotAbsolute',
+  'SubdomainPolicyNeedsDomain',
 ] as const;
 
 export type ValidationCode = (typeof VALIDATION_CODES)[number];
@@ -33,6 +35,7 @@ export const WARNING_CODES = [
   'InstancesIgnoredByScaling',
   'UnusedDefault',
   'BuildFilterOnImageSource',
+  'MaintenanceModeNeedsPaidPlan',
 ] as const;
 
 export type WarningCode = (typeof WARNING_CODES)[number];

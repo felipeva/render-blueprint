@@ -186,3 +186,20 @@ describe('cron registry credential', () => {
     });
   });
 });
+
+describe('cron job web-only fields', () => {
+  it('rejects a first-deploy hook, which cronService does not list', () => {
+    // @ts-expect-error spec §4.8: cronService carries no initialDeployHook.
+    cron('nightly', { runtime: 'node', schedule: '0 2 * * *', initialDeployHook: './seed.sh' });
+  });
+
+  it('rejects maintenance mode, which cronService does not list', () => {
+    // @ts-expect-error spec §4.8: cronService carries no maintenanceMode.
+    cron('nightly', { runtime: 'node', schedule: '0 2 * * *', maintenanceMode: { enabled: true } });
+  });
+
+  it('rejects a subdomain policy, which cronService does not list', () => {
+    // @ts-expect-error spec §4.8: cronService carries no renderSubdomainPolicy.
+    cron('nightly', { runtime: 'node', schedule: '0 2 * * *', renderSubdomainPolicy: 'disabled' });
+  });
+});

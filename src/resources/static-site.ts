@@ -2,6 +2,10 @@ import * as z from 'zod';
 
 import type { AutoDeployTrigger } from '../enums/auto-deploy-trigger.js';
 import { previewGenerationSchema, type PreviewGeneration } from '../enums/preview-generation.js';
+import {
+  renderSubdomainPolicySchema,
+  type RenderSubdomainPolicy,
+} from '../enums/render-subdomain-policy.js';
 import { routeTypeSchema, type RouteType } from '../enums/route-type.js';
 import { serviceEnvironmentSchema, type ServiceEnvironment } from '../env/self-environment.js';
 import type { Equal, Expect } from '../equal.js';
@@ -15,6 +19,7 @@ import type { DefaultsProvenance } from './defaults-provenance.js';
 import type { EnvironmentGroup } from './env-group.js';
 import { ipAllowListSchema, type IpAllowList } from './ip-allow-list.js';
 import { optionalCommonServiceFields } from './service-fields.js';
+import { raiseSubdomainPolicyNeedsDomain } from './subdomain-policy.js';
 
 export interface Route {
   readonly type: RouteType;
@@ -48,6 +53,7 @@ export interface StaticSiteConfig {
   readonly domains?: readonly string[];
   readonly autoDeployTrigger?: AutoDeployTrigger;
   readonly ipAllowList?: IpAllowList;
+  readonly renderSubdomainPolicy?: RenderSubdomainPolicy;
   readonly env?: ServiceEnvironment<OpaqueServiceReference>;
   readonly envGroups?: readonly EnvironmentGroup[];
   readonly extraFields?: JsonObject;
@@ -79,6 +85,7 @@ export const STATIC_SITE_FIELDS = [
   'autoDeployTrigger',
   'preDeployCommand',
   'ipAllowList',
+  'renderSubdomainPolicy',
 ] as const;
 
 export const HEADER_FIELDS = ['path', 'name', 'value'] as const;
@@ -116,9 +123,11 @@ const staticSiteConfigSchema = z
     headers: z.array(headerSchema).readonly().exactOptional(),
     domains: z.array(z.string()).readonly().exactOptional(),
     ipAllowList: ipAllowListSchema.exactOptional(),
+    renderSubdomainPolicy: renderSubdomainPolicySchema.exactOptional(),
     env: serviceEnvironmentSchema<OpaqueServiceReference>().exactOptional(),
   })
-  .readonly();
+  .readonly()
+  .superRefine(raiseSubdomainPolicyNeedsDomain);
 
 type StaticSiteConfigSchemaMatchesInterface = Expect<
   Equal<z.infer<typeof staticSiteConfigSchema>, StaticSiteConfig>

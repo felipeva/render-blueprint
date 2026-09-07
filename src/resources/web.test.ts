@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { raisedIssuesThrough, type RaisedIssue } from '../../test/raised-issues.js';
 import { parseWebConfig, web, type WebConfig } from './web.js';
 
 // SAFETY: JSON.parse returns any. Every config below stands in for a blueprint the CLI loaded
@@ -12,21 +13,8 @@ const issueCodes = (config: WebConfig): readonly string[] => {
   return result.success ? [] : result.error.issues.map((issue) => String(issue.code));
 };
 
-interface RaisedIssue {
-  readonly validationCode: string;
-  readonly path: readonly PropertyKey[];
-}
-
-const raisedIssues = (config: WebConfig): readonly RaisedIssue[] => {
-  const result = parseWebConfig(config);
-  if (result.success) return [];
-
-  return result.error.issues.flatMap((issue): readonly RaisedIssue[] =>
-    issue.code === 'custom'
-      ? [{ validationCode: String(issue.params?.['validationCode']), path: issue.path }]
-      : [],
-  );
-};
+const raisedIssues: (config: WebConfig) => readonly RaisedIssue[] =
+  raisedIssuesThrough(parseWebConfig);
 
 const DISK: WebConfig['disk'] = { name: 'uploads', mountPath: '/var/data' };
 
@@ -253,5 +241,88 @@ describe('parseWebConfig', () => {
     expect(
       issueCodes(unchecked('{"runtime":"node","ipAllowList":[{"description":"office"}]}')),
     ).toEqual(['invalid_type']);
+  });
+
+  it('accepts a first-deploy hook, maintenance mode and a subdomain policy', () => {
+    expect(
+      issueCodes({
+        runtime: 'node',
+        initialDeployHook: './seed_database.sh',
+        maintenanceMode: { enabled: true, uri: 'https://status.acme.dev/maintenance' },
+        domains: ['acme.dev'],
+        renderSubdomainPolicy: 'disabled',
+      }),
+    ).toEqual([]);
+  });
+
+  it('accepts maintenance mode with no uri, which Render answers with its own page', () => {
+    expect(issueCodes({ runtime: 'node', maintenanceMode: { enabled: true } })).toEqual([]);
+  });
+
+  it('rejects a field the library does not model inside maintenanceMode', () => {
+    expect(
+      issueCodes(unchecked('{"runtime":"node","maintenanceMode":{"bypassPaths":["/healthz"]}}')),
+    ).toEqual(['unrecognized_keys']);
+  });
+
+  it('rejects a maintenance mode written as a boolean', () => {
+    expect(issueCodes(unchecked('{"runtime":"node","maintenanceMode":true}'))).toEqual([
+      'invalid_type',
+    ]);
+  });
+
+  it('rejects a subdomain policy Render does not publish', () => {
+    expect(issueCodes(unchecked('{"runtime":"node","renderSubdomainPolicy":"off"}'))).toEqual([
+      'invalid_value',
+    ]);
+  });
+
+  it('reports a relative maintenance uri on the nested uri field', () => {
+    expect(raisedIssues({ runtime: 'node', maintenanceMode: { uri: '/maintenance' } })).toEqual([
+      { validationCode: 'MaintenanceUriNotAbsolute', path: ['maintenanceMode', 'uri'] },
+    ]);
+  });
+
+  it('reports an empty maintenance uri on the nested uri field', () => {
+    expect(raisedIssues({ runtime: 'node', maintenanceMode: { uri: '' } })).toEqual([
+      { validationCode: 'MaintenanceUriNotAbsolute', path: ['maintenanceMode', 'uri'] },
+    ]);
+  });
+
+  it('accepts an absolute maintenance uri', () => {
+    expect(
+      issueCodes({ runtime: 'node', maintenanceMode: { uri: 'https://acme.dev/down' } }),
+    ).toEqual([]);
+    expect(issueCodes({ runtime: 'node', maintenanceMode: { uri: 'http://acme.dev' } })).toEqual(
+      [],
+    );
+  });
+
+  it('reports a maintenance uri that parses as absolute but addresses no host', () => {
+    expect(raisedIssues({ runtime: 'node', maintenanceMode: { uri: 'localhost:8080' } })).toEqual([
+      { validationCode: 'MaintenanceUriNotAbsolute', path: ['maintenanceMode', 'uri'] },
+    ]);
+    expect(raisedIssues({ runtime: 'node', maintenanceMode: { uri: 'about:blank' } })).toEqual([
+      { validationCode: 'MaintenanceUriNotAbsolute', path: ['maintenanceMode', 'uri'] },
+    ]);
+    expect(
+      raisedIssues({ runtime: 'node', maintenanceMode: { uri: 'mailto:ops@acme.dev' } }),
+    ).toEqual([{ validationCode: 'MaintenanceUriNotAbsolute', path: ['maintenanceMode', 'uri'] }]);
+  });
+
+  it('reports a disabled subdomain policy on a service that lists no domain', () => {
+    expect(raisedIssues({ runtime: 'node', renderSubdomainPolicy: 'disabled' })).toEqual([
+      { validationCode: 'SubdomainPolicyNeedsDomain', path: ['renderSubdomainPolicy'] },
+    ]);
+  });
+
+  it('reports a disabled subdomain policy beside an empty list of domains', () => {
+    expect(
+      raisedIssues({ runtime: 'node', renderSubdomainPolicy: 'disabled', domains: [] }),
+    ).toEqual([{ validationCode: 'SubdomainPolicyNeedsDomain', path: ['renderSubdomainPolicy'] }]);
+  });
+
+  it('accepts an enabled subdomain policy on a service that lists no domain', () => {
+    expect(issueCodes({ runtime: 'node', renderSubdomainPolicy: 'enabled' })).toEqual([]);
   });
 });

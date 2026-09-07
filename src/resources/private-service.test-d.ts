@@ -134,3 +134,20 @@ describe('privateService registry credential', () => {
     });
   });
 });
+
+describe('private service web-only fields', () => {
+  it('rejects a first-deploy hook, which the library models on a web service', () => {
+    // @ts-expect-error spec §4.8: the library gives initialDeployHook to a web service.
+    privateService('auth', { runtime: 'node', initialDeployHook: './seed.sh' });
+  });
+
+  it('rejects maintenance mode, which Render documents for a web service', () => {
+    // @ts-expect-error spec §4.8: maintenanceMode is a web service field.
+    privateService('auth', { runtime: 'node', maintenanceMode: { enabled: true } });
+  });
+
+  it('rejects a subdomain policy, which a private service has no subdomain for', () => {
+    // @ts-expect-error spec §4.8: renderSubdomainPolicy is a web and static site field.
+    privateService('auth', { runtime: 'node', renderSubdomainPolicy: 'disabled' });
+  });
+});

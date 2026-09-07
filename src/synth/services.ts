@@ -18,7 +18,12 @@ import {
   type StaticSite,
   type StaticSitePreviews,
 } from '../resources/static-site.js';
-import { WEB_SERVICE_FIELDS, type WebService } from '../resources/web.js';
+import {
+  MAINTENANCE_MODE_FIELDS,
+  WEB_SERVICE_FIELDS,
+  type MaintenanceMode,
+  type WebService,
+} from '../resources/web.js';
 import { WORKER_FIELDS, type Worker } from '../resources/worker.js';
 import { envVars } from './env-vars.js';
 import { ipAllowList } from './ip-allow-list.js';
@@ -67,6 +72,11 @@ const servicePreviews = (value: ServicePreviews | undefined): YAMLMap | undefine
         undefined,
       );
 
+const maintenanceMode = (value: MaintenanceMode | undefined): YAMLMap | undefined =>
+  value === undefined
+    ? undefined
+    : mapping(MAINTENANCE_MODE_FIELDS, { enabled: value.enabled, uri: value.uri }, undefined);
+
 const staticSitePreviews = (value: StaticSitePreviews | undefined): YAMLMap | undefined =>
   value === undefined
     ? undefined
@@ -101,11 +111,14 @@ const webService = (resource: WebService): YAMLMap => {
       domains: config.domains,
       envVars: envVars(resourceEnv(resource), config.envGroups),
       autoDeployTrigger: config.autoDeployTrigger,
+      initialDeployHook: config.initialDeployHook,
       disk: disk(config.disk),
       buildFilter: buildFilter(config.buildFilter),
       previews: servicePreviews(config.previews),
+      maintenanceMode: maintenanceMode(config.maintenanceMode),
       maxShutdownDelaySeconds: config.maxShutdownDelaySeconds,
       ipAllowList: config.ipAllowList === undefined ? undefined : ipAllowList(config.ipAllowList),
+      renderSubdomainPolicy: config.renderSubdomainPolicy,
     },
     config.extraFields,
   );
@@ -273,6 +286,7 @@ const staticSiteService = (resource: StaticSite): YAMLMap => {
       autoDeployTrigger: config.autoDeployTrigger,
       preDeployCommand: config.preDeployCommand,
       ipAllowList: config.ipAllowList === undefined ? undefined : ipAllowList(config.ipAllowList),
+      renderSubdomainPolicy: config.renderSubdomainPolicy,
     },
     config.extraFields,
   );

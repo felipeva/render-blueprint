@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { raisedIssuesThrough, type RaisedIssue } from '../../test/raised-issues.js';
 import { parseStaticSiteConfig, staticSite, type StaticSiteConfig } from './static-site.js';
 
 // SAFETY: JSON.parse returns any. Every config below stands in for a blueprint the CLI loaded
@@ -11,6 +12,9 @@ const issueCodes = (config: StaticSiteConfig): readonly string[] => {
   const result = parseStaticSiteConfig(config);
   return result.success ? [] : result.error.issues.map((issue) => String(issue.code));
 };
+
+const raisedIssues: (config: StaticSiteConfig) => readonly RaisedIssue[] =
+  raisedIssuesThrough(parseStaticSiteConfig);
 
 describe('staticSite', () => {
   it('returns an inert value carrying the kind, the name, and the config', () => {
@@ -77,5 +81,23 @@ describe('parseStaticSiteConfig', () => {
     expect(issueCodes(unchecked('{"ipAllowList":[{"description":"office"}]}'))).toEqual([
       'invalid_type',
     ]);
+  });
+
+  it('accepts a subdomain policy beside the domains it leaves as the only address', () => {
+    expect(issueCodes({ domains: ['acme.dev'], renderSubdomainPolicy: 'disabled' })).toEqual([]);
+  });
+
+  it('rejects a subdomain policy Render does not publish', () => {
+    expect(issueCodes(unchecked('{"renderSubdomainPolicy":"off"}'))).toEqual(['invalid_value']);
+  });
+
+  it('reports a disabled subdomain policy on a site that lists no domain', () => {
+    expect(raisedIssues({ renderSubdomainPolicy: 'disabled' })).toEqual([
+      { validationCode: 'SubdomainPolicyNeedsDomain', path: ['renderSubdomainPolicy'] },
+    ]);
+  });
+
+  it('accepts an enabled subdomain policy on a site that lists no domain', () => {
+    expect(issueCodes({ renderSubdomainPolicy: 'enabled' })).toEqual([]);
   });
 });

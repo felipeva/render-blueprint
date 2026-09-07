@@ -21,6 +21,23 @@ describe('deprecation', () => {
     });
   });
 
+  it('retires the singular domain on a service, where the list form replaced it', () => {
+    expect(deprecation('domain', 'acme.dev', 'service')).toEqual({
+      key: 'domain',
+      replacement: 'domains',
+    });
+  });
+
+  // spec §4.8: only serverService and staticService carry a domain, so neither a cron job nor a
+  // datastore has the legacy form to retire.
+  it('retires no domain outside a service, where no kind carries one', () => {
+    expect([
+      deprecation('domain', 'acme.dev', 'cron'),
+      deprecation('domain', 'acme.dev', 'datastore'),
+      deprecation('domain', 'acme.dev', 'envGroup'),
+    ]).toEqual([undefined, undefined, undefined]);
+  });
+
   it('retires nothing inside an environment group, which has none of the retired fields', () => {
     expect([
       deprecation('env', 'node', 'envGroup'),
