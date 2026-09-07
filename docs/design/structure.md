@@ -120,7 +120,8 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │                                     service-env-var-key, extra-field-conflict, warnings,
 │                                     env-key-collision, unknown-service-env-var-key,
 │                                     secret-skips-previews, web-only-field,
-│                                     instances-ignored-by-scaling, unused-default. The scaling,
+│                                     instances-ignored-by-scaling, unused-default,
+│                                     build-filter-on-image-source. The scaling,
 │                                     numeric-range and high-availability families are refinements
 │                                     beside their own config instead, because each reads one config
 │                                     and no other
@@ -284,8 +285,8 @@ branch owns on a config whose runtime picked another (issue #10), `OutOfRange` f
 bound the spec sets, and `ScalingTargetMissing` and `DiskPreventsScaling` for the two pairs a
 serverService config may not hold at once (issue #12). `WarningCode` follows the same
 convention one tier down, for a rule that never blocks synthesis — `SecretSkipsPreviews`,
-`UnknownServiceEnvVarKey`, `WebOnlyField`, `InstancesIgnoredByScaling` and `UnusedDefault` among
-them.
+`UnknownServiceEnvVarKey`, `WebOnlyField`, `InstancesIgnoredByScaling`, `UnusedDefault` and
+`BuildFilterOnImageSource` among them.
 
 **Enums.** `erasableSyntaxOnly` bans `enum`. Every closed set is a SCREAMING_SNAKE `as const`
 tuple plus its derived union, in one file; the tuple is exported because validation and tests

@@ -1,0 +1,13 @@
+import { blueprint, web, type Blueprint } from '__RENDER_BLUEPRINT__';
+
+const value: Blueprint = blueprint({
+  resources: [
+    web('api', {
+      runtime: 'image',
+      image: { url: 'docker.io/acme/api:1.0.0' },
+      buildFilter: { paths: ['src/**'] },
+    }),
+  ],
+});
+
+export default value;

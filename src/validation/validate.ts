@@ -10,6 +10,7 @@ import type { ValidationWarning } from './issue.js';
 import { parseConfigs } from './parse-configs.js';
 import { parsePlacement } from './parse-placement.js';
 import { branchDisablesPreviews } from './rules/branch-disables-previews.js';
+import { buildFilterOnImageSource } from './rules/build-filter-on-image-source.js';
 import { danglingReference } from './rules/dangling-reference.js';
 import { deprecatedField } from './rules/deprecated-field.js';
 import { duplicateEnvKey } from './rules/duplicate-env-key.js';
@@ -58,6 +59,7 @@ const WARNING_RULES = [
   webOnlyField,
   instancesIgnoredByScaling,
   unusedDefault,
+  buildFilterOnImageSource,
 ] as const;
 
 export const validate = (value: Blueprint): ResultType<ValidatedBlueprint, BlueprintInvalid> => {

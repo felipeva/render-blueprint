@@ -1054,6 +1054,61 @@ describe('validate', () => {
     ]);
   });
 
+  it('warns about a build filter on every kind an image can source', () => {
+    const image = { url: 'docker.io/acme/api:1.0.0' };
+    const buildFilter = { paths: ['src/**'] };
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', { runtime: 'image', image, buildFilter }),
+          privateService('auth', { runtime: 'image', image, buildFilter }),
+          worker('jobs', { runtime: 'image', image, buildFilter }),
+          cron('nightly', { runtime: 'image', image, schedule: '0 2 * * *', buildFilter }),
+        ],
+      }),
+    );
+
+    expect(Result.isOk(result)).toBe(true);
+    if (!Result.isOk(result)) return;
+    expect(result.value.warnings.map((warning) => warning.code)).toEqual([
+      'BuildFilterOnImageSource',
+      'BuildFilterOnImageSource',
+      'BuildFilterOnImageSource',
+      'BuildFilterOnImageSource',
+    ]);
+    expect(result.value.warnings.map((warning) => warning.at)).toEqual([
+      { resource: 'api', field: 'buildFilter' },
+      { resource: 'auth', field: 'buildFilter' },
+      { resource: 'jobs', field: 'buildFilter' },
+      { resource: 'nightly', field: 'buildFilter' },
+    ]);
+  });
+
+  it('warns about nothing for a build filter on a repository source or an image without one', () => {
+    const buildFilter = { paths: ['src/**'] };
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', {
+            runtime: 'node',
+            buildCommand: 'pnpm build',
+            startCommand: 'pnpm start',
+            buildFilter,
+          }),
+          worker('jobs', { runtime: 'docker', buildFilter }),
+          privateService('auth', {
+            runtime: 'image',
+            image: { url: 'docker.io/acme/auth:1.0.0' },
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isOk(result)).toBe(true);
+    if (!Result.isOk(result)) return;
+    expect(result.value.warnings).toEqual([]);
+  });
+
   it('reports a field the library does not model inside a disk', () => {
     const result = validate(
       blueprint({
