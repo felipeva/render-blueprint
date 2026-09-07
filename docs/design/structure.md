@@ -428,8 +428,11 @@ propagate), `drift/normalize.ts`.
 **6.2 The golden test.** `test/fixtures.test.ts` imports `test/fixtures/canonical/render.ts` — design
 B §3 verbatim, the scenario every design document was judged on — calls `synthesize`, and compares
 with `test/fixtures/canonical/render.yaml` byte for byte, as it does every other fixture directory.
-`pnpm fixtures:update` regenerates them and a human reviews the diff. This is the single regression net for key order, quoting, the header
-and the map→list conversion, and the only file a test may rewrite.
+`test/cli.test.ts` compares each CLI seed's `expected.yaml` against the built binary's own output the
+same way. `pnpm fixtures:update` runs both files under `UPDATE_FIXTURES=1` to regenerate every
+`test/fixtures/*/render.yaml` and every `test/fixtures/cli/*/expected.yaml`, and a human reviews the
+diff by hand; those are the only files a test may rewrite. This is the single regression net for key
+order, quoting, the header and the map→list conversion.
 
 **6.3 JSON Schema conformance.** The same `test/fixtures.test.ts` parses each golden YAML back with
 `yaml.parse` and validates it against `test/schema/render.yaml.schema.json`. Validator: **ajv 8.x**
@@ -592,10 +595,11 @@ whether `KeyValueReference.host`/`.port` survive (§9.3), and `withDefaults` con
   names the exported symbol; `it` states the rule in the present indicative, never "should".
 - Every compile-time row of design B's mistake matrix has a `*.test-d.ts` case using
   `@ts-expect-error`. Adding a compile-time guarantee means adding its type test.
-- `test/fixtures/canonical/render.yaml` is the golden file and the only file a test may rewrite
-  (`vitest -u`). Review its diff by hand. `test/schema/render.yaml.schema.json` is the conformance
-  oracle; refresh it with `pnpm schema:refresh`, never by hand, and never read
-  `docs/research/raw/` from code.
+- `test/fixtures/canonical/render.yaml` is the golden file. A test may rewrite only
+  `test/fixtures/*/render.yaml` and the CLI seeds' `test/fixtures/cli/*/expected.yaml`, only under
+  `UPDATE_FIXTURES=1` through `pnpm fixtures:update`, and a human reviews every diff by hand.
+  `test/schema/render.yaml.schema.json` is the conformance oracle; refresh it with
+  `pnpm schema:refresh`, never by hand, and never read `docs/research/raw/` from code.
 - Run `pnpm check` before claiming done: format, lint, typecheck, tests, type tests.
 - `tools/oxlint/anti-slop/` is vendored output. Never edit it, never lint it, never weaken a rule
   to make lint pass — fix the code. Re-vendor with the `install-anti-slop` skill.
