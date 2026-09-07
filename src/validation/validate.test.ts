@@ -357,6 +357,48 @@ describe('validate', () => {
     expect(result.error.issues[0].at.field).toBe('registryCredential.fromRegistryCreds.id');
   });
 
+  // The credential is a name and nothing else, so an empty one names no credential the workspace
+  // holds. Both sites carry the same schema, so both report it in the same place.
+  it('reports an empty credential name on a Docker source', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          worker(
+            'jobs',
+            uncheckedWorker(
+              '{"runtime":"docker","registryCredential":{"fromRegistryCreds":{"name":""}}}',
+            ),
+          ),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['InvalidConfig']);
+    expect(result.error.issues[0].at.field).toBe('registryCredential.fromRegistryCreds.name');
+  });
+
+  it('reports an empty credential name on the image a prebuilt source pulls', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          worker(
+            'jobs',
+            uncheckedWorker(
+              '{"runtime":"image","image":{"url":"docker.io/a/b:1","creds":{"fromRegistryCreds":{"name":""}}}}',
+            ),
+          ),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['InvalidConfig']);
+    expect(result.error.issues[0].at.field).toBe('image.creds.fromRegistryCreds.name');
+  });
+
   it('reports a field beside fromRegistryCreds, which is the whole of a credential', () => {
     const result = validate(
       blueprint({
