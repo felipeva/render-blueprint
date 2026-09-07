@@ -76,18 +76,34 @@ describe('webOnlyField', () => {
   });
 
   // spec §4.8: the matrix row reaches the whole serverService column.
-  it('warns about a first-deploy hook on a private service, naming the library for it', () => {
+  it('leaves a first-deploy hook on a private service or a worker to the conflict rule', () => {
+    expect(
+      webOnlyField([
+        privateService('auth', {
+          runtime: 'node',
+          extraFields: { initialDeployHook: './seed.sh' },
+        }),
+        worker('jobs', { runtime: 'node', extraFields: { initialDeployHook: './seed.sh' } }),
+      ]),
+    ).toEqual([]);
+  });
+
+  // spec §4.8: neither cronService nor staticService carries the hook serverService does.
+  it('warns about a first-deploy hook on a cron job and on a static site', () => {
     const warnings = webOnlyField([
-      privateService('auth', { runtime: 'node', extraFields: { initialDeployHook: './seed.sh' } }),
+      cron('nightly', {
+        runtime: 'node',
+        schedule: '0 2 * * *',
+        extraFields: { initialDeployHook: './seed.sh' },
+      }),
+      staticSite('marketing', { extraFields: { initialDeployHook: './seed.sh' } }),
     ]);
 
-    expect(warnings).toEqual([
-      {
-        code: 'WebOnlyField',
-        at: { resource: 'auth', field: 'extraFields.initialDeployHook' },
-        message: expect.stringContaining('the library models that field on a web service alone'),
-      },
+    expect(warnings.map((warning) => warning.at)).toEqual([
+      { resource: 'nightly', field: 'extraFields.initialDeployHook' },
+      { resource: 'marketing', field: 'extraFields.initialDeployHook' },
     ]);
+    expect(warnings.map((warning) => warning.code)).toEqual(['WebOnlyField', 'WebOnlyField']);
   });
 
   // spec §4.8: staticService allows no property beyond the ones it lists.

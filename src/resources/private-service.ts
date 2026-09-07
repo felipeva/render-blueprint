@@ -36,6 +36,7 @@ interface PrivateServiceFields {
   readonly startCommand?: string;
   readonly preDeployCommand?: string;
   readonly autoDeployTrigger?: AutoDeployTrigger;
+  readonly initialDeployHook?: string;
   readonly disk?: Disk;
   readonly buildFilter?: BuildFilter;
   readonly previews?: ServicePreviews<PaidServerPlan>;
@@ -85,6 +86,7 @@ export const PRIVATE_SERVICE_FIELDS = [
   'registryCredential',
   'envVars',
   'autoDeployTrigger',
+  'initialDeployHook',
   'disk',
   'buildFilter',
   'previews',

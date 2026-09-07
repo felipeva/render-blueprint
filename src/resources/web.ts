@@ -153,7 +153,6 @@ const webFields = {
     })
     .exactOptional(),
   ipAllowList: ipAllowListSchema.exactOptional(),
-  initialDeployHook: z.string().exactOptional(),
   maintenanceMode: maintenanceModeObject.exactOptional(),
   renderSubdomainPolicy: renderSubdomainPolicySchema.exactOptional(),
   env: serviceEnvironmentSchema<HttpServiceReference>().exactOptional(),

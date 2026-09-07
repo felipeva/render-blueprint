@@ -36,6 +36,7 @@ interface WorkerFields {
   readonly startCommand?: string;
   readonly preDeployCommand?: string;
   readonly autoDeployTrigger?: AutoDeployTrigger;
+  readonly initialDeployHook?: string;
   readonly disk?: Disk;
   readonly buildFilter?: BuildFilter;
   readonly previews?: ServicePreviews<PaidServerPlan>;
@@ -82,6 +83,7 @@ export const WORKER_FIELDS = [
   'registryCredential',
   'envVars',
   'autoDeployTrigger',
+  'initialDeployHook',
   'disk',
   'buildFilter',
   'previews',

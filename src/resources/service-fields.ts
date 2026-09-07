@@ -83,13 +83,14 @@ export const optionalSourcedServiceFields: OptionalSourcedServiceFields = {
   extraFields: optionalCommonServiceFields.extraFields,
 };
 
-// spec §4.8: a disk, an instance count, autoscaling and the shutdown delay sit on the serverService
-// branch alone.
+// spec §4.8: a disk, an instance count, autoscaling, the shutdown delay and the first-deploy hook
+// sit on the serverService branch alone.
 export interface OptionalServerServiceFields {
   readonly disk: z.ZodExactOptional<z.ZodType<Disk>>;
   readonly instances: z.ZodExactOptional<z.ZodInt>;
   readonly scaling: z.ZodExactOptional<z.ZodType<Scaling>>;
   readonly maxShutdownDelaySeconds: z.ZodExactOptional<z.ZodInt>;
+  readonly initialDeployHook: z.ZodExactOptional<z.ZodString>;
 }
 
 export const optionalServerServiceFields: OptionalServerServiceFields = {
@@ -101,4 +102,5 @@ export const optionalServerServiceFields: OptionalServerServiceFields = {
     min: 1,
     max: 300,
   }).exactOptional(),
+  initialDeployHook: z.string().exactOptional(),
 };
