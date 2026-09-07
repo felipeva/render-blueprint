@@ -1,5 +1,5 @@
-// The keys a defaults scope can fill, spelled as the author writes them in the record a
-// withDefaults call takes. A plan is one key per kind, because the plan enums differ per kind.
+// Spelled as the author writes them in the record a withDefaults call takes. A plan is one key per
+// kind, because the plan enums differ per kind.
 export const DEFAULT_KEYS = [
   'region',
   'repo',
@@ -18,8 +18,7 @@ export const DEFAULT_KEYS = [
 
 export type DefaultKey = (typeof DEFAULT_KEYS)[number];
 
-// The config fields those keys land on. Six plan keys land on one field, because a resource holds
-// only its own kind's plan.
+// Six plan keys land on one field, because a resource holds only its own kind's plan.
 export const DEFAULT_FIELDS = [
   'region',
   'plan',
@@ -47,13 +46,10 @@ export interface AppliedDefault {
   readonly scope: DefaultsDeclaration;
 }
 
-// What a defaults scope leaves on a resource it filled: the scopes it was created through, outer
-// first; every declared default this resource's kind and source branch can take, landed or
-// overridden; and the defaults that landed, each attributed to the innermost scope that declared
-// it. Eligibility is what says a default applies to something at all, so a value a resource or an
-// inner scope overrode is still a default that reached a resource that had the field. It is inert,
-// no factory sets it without a scope, and nothing emits it; the unused-default rule and the config
-// issue messages are its only readers.
+// The scopes are outer first, and an applied default names the innermost scope that declared it.
+// Eligibility is what says a default applies to something at all, so a value a resource or an
+// inner scope overrode is still a default that reached a resource that had the field. It is inert:
+// nothing emits it, and the unused-default rule and the config issue messages are its only readers.
 export interface DefaultsProvenance {
   readonly scopes: readonly DefaultsDeclaration[];
   readonly eligible: readonly DefaultKey[];

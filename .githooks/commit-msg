@@ -1,12 +1,7 @@
 #!/usr/bin/env bash
-# Reject commit messages that are not Conventional Commits.
-#
-# Installed by `git config core.hooksPath .githooks`, run once per clone. Hooks are not
-# version-controlled by git itself, so a tracked directory plus a one-line config is the
-# only way a convention survives a fresh clone.
-#
-# Deliberately checks the subject line only. The body is free-form prose and the trailers
-# (Co-Authored-By, Claude-Session) must pass through untouched.
+# Installed by `git config core.hooksPath .githooks`, run once per clone: git does not
+# version-control hooks itself. Checks the subject line alone, so the body and its trailers
+# pass through untouched.
 set -euo pipefail
 
 TYPES='build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test'

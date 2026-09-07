@@ -96,7 +96,6 @@ const unmodeledKeys = (
         .map((key) => `plan.${key}`)),
 ];
 
-// The keys this record declares, as the author spelled them.
 const declaredKeys = (
   record: ResourceDefaults,
   plan: PlanDefaults | undefined,

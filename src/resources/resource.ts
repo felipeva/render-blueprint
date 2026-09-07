@@ -141,9 +141,8 @@ export const resourceEnvIsCallback = (resource: BlueprintResource): boolean => {
   }
 };
 
-// The env a config schema did not parse. A service config takes env as it is written, because a
-// callback hides the map behind a call; a group's own schema parses the narrower map it takes, and
-// no other kind carries one.
+// A service config takes env as it is written, because a callback hides the map behind a call; a
+// group's own schema parses the narrower map it takes, and no other kind carries one.
 const unparsedEnv = (resource: BlueprintResource): EnvironmentMap | undefined => {
   switch (resource.kind) {
     case 'web':
@@ -190,9 +189,8 @@ export const resourceEnvGroups = (
   }
 };
 
-// The runtime a config picked its source with, read as the author wrote it: the config tier reads
-// this before its schema has parsed, so the value is whatever is there. A kind that chooses no
-// source answers with nothing.
+// The config tier reads this before its schema has parsed, so the value is whatever the author
+// wrote. A kind that chooses no source answers with nothing.
 export const sourceRuntime = (resource: BlueprintResource): string | undefined => {
   switch (resource.kind) {
     case 'web':

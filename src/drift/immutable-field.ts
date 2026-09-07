@@ -4,7 +4,7 @@ export const DRIFT_SECTIONS = ['services', 'databases'] as const;
 
 export type DriftSection = (typeof DRIFT_SECTIONS)[number];
 
-// type and region: spec §4.1. runtime: issue #8 and the DX survey appendix, not the spec.
+// type and region: spec §4.1. runtime: the DX survey appendix, not the spec.
 export const IMMUTABLE_SERVICE_FIELDS = ['type', 'runtime', 'region'] as const;
 
 // spec §9

@@ -7,8 +7,8 @@ import {
   type RegistryCredentialReference,
 } from './registry-credential-reference.js';
 
-// A handle for a resource this blueprint does not manage. It carries no kind, so listing one in
-// resources is a compile error, and its references never raise DanglingReference.
+// An external handle carries no kind, so listing one in resources is a compile error, and its
+// references never raise DanglingReference.
 export interface ExternalReferences {
   readonly web: (name: string) => HttpServiceReference;
   readonly privateService: (name: string) => HttpServiceReference;

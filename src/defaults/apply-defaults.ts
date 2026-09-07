@@ -24,8 +24,7 @@ import type { StaticSiteConfig } from '../resources/static-site.js';
 import type { WebConfig } from '../resources/web.js';
 import type { WorkerConfig } from '../resources/worker.js';
 
-// A default value and the innermost scope that declared it. A nested scope resolves attribution
-// once, when it is built, so the merge never walks the chain.
+// A nested scope resolves attribution once, when it is built, so the merge never walks the chain.
 export interface Filled<V> {
   readonly value: V;
   readonly scope: DefaultsDeclaration;
@@ -57,15 +56,14 @@ export interface AppliedConfig<T> {
   readonly applied: readonly AppliedDefault[];
 }
 
-// What one merge learned: every declared default the kind and the source branch can take, and the
-// subset that landed because the resource left the field open. A scope declares a key exactly when
-// the chain holds a value for it, so the value being there is the eligibility test.
+// A scope declares a key exactly when the chain holds a value for it, so the value being there is
+// the eligibility test.
 interface Marks {
   readonly eligible: DefaultKey[];
   readonly applied: AppliedDefault[];
 }
 
-// The three fields a repository-built source takes. A prebuilt image takes none of them.
+// A prebuilt image takes none of these three.
 interface RepoFill {
   repo?: string;
   branch?: string;
@@ -242,7 +240,6 @@ const fillFromRepository = (
   fillBuild(values, config, fill, marks);
 };
 
-// The four kinds that choose a source take region and their own plan whatever branch they pick.
 const fillSourced = <P extends string>(
   values: ScopeValues,
   config: SourcedFields<P> & BuildFields & ServiceSource,

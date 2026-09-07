@@ -701,7 +701,7 @@ describe('validate', () => {
     expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'env.CACHE_URL' });
   });
 
-  // The review's repro: a config that failed elsewhere used to hide every env issue it also had.
+  // A config that failed elsewhere used to hide every env issue it also had.
   it('reports a bad env value beside the field that failed in the same config', () => {
     const result = validate(
       blueprint({

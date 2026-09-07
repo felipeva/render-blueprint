@@ -23,9 +23,8 @@ export interface PlanDefaults {
   readonly postgres?: PostgresPlan;
 }
 
-// issue #44 decides that an object or an array default is written by reference and that a
-// resource's own value replaces it whole, with no paths or entries merged, so the record holds the
-// same BuildFilter and IpAllowList declarations a config field takes.
+// An object or an array default is written by reference and a resource's own value replaces it
+// whole, so the record holds the same declarations a config field takes.
 export interface ResourceDefaults {
   readonly region?: Region;
   readonly repo?: string;
