@@ -127,6 +127,19 @@ describe('render-blueprint', () => {
     expect(strict.stderr).toContain('--strict');
   });
 
+  it('exits 1 under --strict on a build filter an image-sourced service cannot use', async () => {
+    const cwd = await seeded('build-filter-image');
+    const ran = await run(cwd, ['synth']);
+
+    expect(ran.code).toBe(0);
+    expect(ran.stderr).toContain('warning api.buildFilter:');
+
+    const strict = await run(cwd, ['synth', '--strict']);
+
+    expect(strict.code).toBe(1);
+    expect(strict.stderr).toContain('--strict');
+  });
+
   it('exits 1 when there is no blueprint file to find', async () => {
     const ran = await run(await directory(), ['check']);
 

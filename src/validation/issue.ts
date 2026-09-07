@@ -32,6 +32,7 @@ export const WARNING_CODES = [
   'WebOnlyField',
   'InstancesIgnoredByScaling',
   'UnusedDefault',
+  'BuildFilterOnImageSource',
 ] as const;
 
 export type WarningCode = (typeof WARNING_CODES)[number];
