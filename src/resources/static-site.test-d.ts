@@ -101,3 +101,27 @@ describe('staticSite previews and build filter', () => {
     staticSite('marketing', { disk: { name: 'uploads', mountPath: '/var/data' } });
   });
 });
+
+describe('staticSite ipAllowList', () => {
+  it('takes an allow list in the entry form every kind that takes one shares', () => {
+    expectTypeOf(
+      staticSite('marketing', {
+        ipAllowList: [{ source: '203.0.113.4/30', description: 'office' }, { source: '::1' }],
+      }),
+    ).toEqualTypeOf<StaticSite>();
+  });
+
+  it('takes an empty allow list, which blocks every external connection', () => {
+    expectTypeOf(staticSite('marketing', { ipAllowList: [] })).toEqualTypeOf<StaticSite>();
+  });
+
+  it('rejects an entry with no source', () => {
+    // @ts-expect-error spec §7: source is the one field an ipAllowList entry requires.
+    staticSite('marketing', { ipAllowList: [{ description: 'office' }] });
+  });
+
+  it('rejects a field the library does not model on an entry', () => {
+    // @ts-expect-error an entry carries a source and a description, and nothing else.
+    staticSite('marketing', { ipAllowList: [{ source: '::1', label: 'all' }] });
+  });
+});

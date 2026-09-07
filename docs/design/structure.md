@@ -90,9 +90,13 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   │                            for the three kinds that spread it and scaling.ts the two
 │   │   │                            scaling codes; previews.ts holds the serverService previews
 │   │   │                            object alone, because a static site, Postgres and Key Value
-│   │   │                            each take a different one (issue #12). Route and Header are
-│   │   │                            not shared — only a static site takes them (spec §4.8), so
-│   │   │                            they live in static-site.ts with the factory (issue #6)
+│   │   │                            each take a different one (issue #12); ip-allow-list.ts holds
+│   │   │                            the array schema with the entry nested inside it, and the
+│   │   │                            guard over the pair, spread by web services, static sites, Key
+│   │   │                            Value and Postgres and required on Key Value alone (issue
+│   │   │                            #40). Route and Header are not shared — only a static site
+│   │   │                            takes them (spec §4.8), so they live in static-site.ts with
+│   │   │                            the factory (issue #6)
 │   │   ├── web.ts  private-service.ts  worker.ts  cron.ts  static-site.ts  key-value.ts
 │   │   │   postgres.ts  env-group.ts   each: the factory, its Config, and its output type
 │   │   ├── read-replica.ts          referenceable, deliberately outside BlueprintResource

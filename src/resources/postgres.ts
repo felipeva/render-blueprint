@@ -13,7 +13,7 @@ import { jsonObjectSchema, type JsonObject } from '../json.js';
 import { raise } from '../raise.js';
 import { postgresReference, type PostgresReference } from '../references/postgres-reference.js';
 import type { DefaultsProvenance } from './defaults-provenance.js';
-import type { IpAllowList } from './ip-allow-list.js';
+import { ipAllowListSchema, type IpAllowList } from './ip-allow-list.js';
 import { readReplicaSchema, type ReadReplica } from './read-replica.js';
 
 export interface HighAvailability {
@@ -95,12 +95,7 @@ const postgresConfigSchema = z
       .readonly()
       .exactOptional(),
     highAvailability: z.strictObject({ enabled: z.boolean() }).readonly().exactOptional(),
-    ipAllowList: z
-      .array(
-        z.strictObject({ source: z.string(), description: z.string().exactOptional() }).readonly(),
-      )
-      .readonly()
-      .exactOptional(),
+    ipAllowList: ipAllowListSchema.exactOptional(),
     readReplicas: z
       .array(readReplicaSchema)
       .readonly()

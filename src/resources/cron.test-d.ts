@@ -144,6 +144,15 @@ describe('cron disks, scaling and previews', () => {
     // @ts-expect-error spec §4.8: maxShutdownDelaySeconds sits on the serverService branch alone.
     cron('nightly', { runtime: 'node', schedule: '0 2 * * *', maxShutdownDelaySeconds: 30 });
   });
+
+  it('rejects an ipAllowList, which cronService does not carry at all', () => {
+    cron('nightly', {
+      runtime: 'node',
+      schedule: '0 2 * * *',
+      // @ts-expect-error spec §4.8: cronService lists no ipAllowList.
+      ipAllowList: [{ source: '203.0.113.4/30' }],
+    });
+  });
 });
 
 describe('cron registry credential', () => {

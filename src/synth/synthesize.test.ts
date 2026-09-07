@@ -632,6 +632,55 @@ databases:
     );
   });
 
+  it('emits a web service ipAllowList after the shutdown delay the schema puts it behind', () => {
+    const api = web('api', {
+      runtime: 'node',
+      maxShutdownDelaySeconds: 60,
+      ipAllowList: [{ source: '203.0.113.4/30', description: 'office' }, { source: '::1' }],
+    });
+
+    expect(emit(blueprint({ resources: [api] }))).toContain(
+      `    maxShutdownDelaySeconds: 60
+    ipAllowList:
+      - source: 203.0.113.4/30
+        description: office
+      - source: ::1
+`,
+    );
+  });
+
+  it('emits an empty web service ipAllowList as the empty sequence spec §7 reads', () => {
+    expect(emit(blueprint({ resources: [web('api', { runtime: 'node', ipAllowList: [] })] })))
+      .toContain(`    runtime: node
+    ipAllowList: []
+`);
+  });
+
+  it('emits a static site ipAllowList after the pre-deploy command the schema puts it behind', () => {
+    const marketing = staticSite('marketing', {
+      preDeployCommand: 'pnpm sitemap',
+      ipAllowList: [{ source: '203.0.113.4/30', description: 'office' }],
+    });
+
+    expect(emit(blueprint({ resources: [marketing] }))).toContain(
+      `    preDeployCommand: pnpm sitemap
+    ipAllowList:
+      - source: 203.0.113.4/30
+        description: office
+`,
+    );
+  });
+
+  it('emits an empty static site ipAllowList as the empty sequence spec §7 reads', () => {
+    expect(
+      emit(blueprint({ resources: [staticSite('marketing', { ipAllowList: [] })] })),
+    ).toContain(
+      `    runtime: static
+    ipAllowList: []
+`,
+    );
+  });
+
   it('emits a database reference as a fromDatabase entry', () => {
     const elephant = postgres('elephant');
     const api = web('api', { runtime: 'node', env: { DATABASE_URL: elephant.connectionString } });

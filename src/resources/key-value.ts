@@ -11,7 +11,7 @@ import type { Equal, Expect } from '../equal.js';
 import { jsonObjectSchema, type JsonObject } from '../json.js';
 import { keyValueReference, type KeyValueReference } from '../references/key-value-reference.js';
 import type { DefaultsProvenance } from './defaults-provenance.js';
-import type { IpAllowList } from './ip-allow-list.js';
+import { ipAllowListSchema, type IpAllowList } from './ip-allow-list.js';
 
 // spec §5 and §11: a Key Value instance has no previews object on Render, and previewPlan is the
 // current form there rather than a retired one; design B §2.6 renames the field on the way out.
@@ -51,11 +51,7 @@ export const KEY_VALUE_STORE_FIELDS = [
 const keyValueConfigSchema = z
   .strictObject({
     // spec §5: a Key Value instance is the one resource Render requires an ipAllowList on.
-    ipAllowList: z
-      .array(
-        z.strictObject({ source: z.string(), description: z.string().exactOptional() }).readonly(),
-      )
-      .readonly(),
+    ipAllowList: ipAllowListSchema,
     region: regionSchema.exactOptional(),
     plan: keyValuePlanSchema.exactOptional(),
     previews: z
