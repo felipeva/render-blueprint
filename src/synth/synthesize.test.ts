@@ -517,6 +517,24 @@ envVarGroups:
     );
   });
 
+  // spec §12: omitting a key retains the current value on an existing service, so an empty mapping
+  // is not the same document as no maintenanceMode at all.
+  it('emits an empty maintenance mode as an empty mapping, not as an omitted key', () => {
+    const api = web('api', { runtime: 'node', maintenanceMode: {} });
+
+    expect(emit(blueprint({ resources: [api] }))).toContain(
+      `services:
+  - type: web
+    name: api
+    runtime: node
+    maintenanceMode: {}
+`,
+    );
+    expect(emit(blueprint({ resources: [web('api', { runtime: 'node' })] }))).not.toContain(
+      'maintenanceMode',
+    );
+  });
+
   it('merges extraFields after the modeled keys', () => {
     const api = web('api', {
       runtime: 'node',
