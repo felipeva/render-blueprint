@@ -213,6 +213,8 @@ render-blueprint synth    # write the YAML file
 render-blueprint check    # compare the committed YAML file against the blueprint
 ```
 
+Flags follow the command:
+
 - `--file <path>` — the blueprint file, instead of the one the walk finds.
 - `--out <path>` — the YAML file to write or to compare. Defaults to `render.yaml` beside the blueprint file.
 - `--strict` — treat a warning as a failure. `synth` still writes the file, then fails.

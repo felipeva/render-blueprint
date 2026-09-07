@@ -34,14 +34,19 @@ import {
 import { belowNodeFloor, NODE_FLOOR } from './node-floor.js';
 import { packageVersion } from './package-version.js';
 import type { RunConfig } from './run-config.js';
-import { usageTheme } from './usage-theme.js';
+import { usageTheme, type UsageFailure } from './usage-theme.js';
 
 const EXIT_OK = 0;
 const EXIT_FAILED = 1;
 const EXIT_DRIFT = 2;
 
-// argSource is process.argv, whose first two entries are the executable and this script.
+// argSource is process.argv, whose first two entries are the executable and this script. The
+// arguments are sliced off once here, so the theme reads exactly the list brocli parses.
 const ARGV_OFFSET = 2;
+
+const args: readonly string[] = process.argv.slice(ARGV_OFFSET);
+
+const argSource: string[] = [...process.argv.slice(0, ARGV_OFFSET), ...args];
 
 const MANIFEST = join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json');
 
@@ -172,14 +177,31 @@ const showVersion = async (): Promise<void> => {
   say(await packageVersion(MANIFEST, nodeFilePort));
 };
 
+const reportUsage = (usage: UsageFailure): void => {
+  switch (usage.failure) {
+    case 'no-arguments':
+      complain(`No command given. Run ${CLI_NAME} --help.`);
+      break;
+
+    case 'flag-before-command':
+      complain(
+        `'${usage.offender}' is a flag, and flags follow the command. Run ${CLI_NAME} --help.`,
+      );
+      break;
+
+    case 'reported':
+      break;
+  }
+
+  exitCode = EXIT_FAILED;
+};
+
 const config: RunConfig = {
   name: CLI_NAME,
   description: CLI_DESCRIPTION,
-  argSource: process.argv,
+  argSource,
   version: showVersion,
-  theme: usageTheme(() => {
-    exitCode = EXIT_FAILED;
-  }),
+  theme: usageTheme(args, reportUsage),
   noExit: true,
 };
 
@@ -189,13 +211,6 @@ const main = async (): Promise<number> => {
       `render-blueprint needs Node ${NODE_FLOOR} or newer to strip the types from a TypeScript blueprint; this is Node ${process.versions.node}.`,
     );
     return EXIT_FAILED;
-  }
-
-  // brocli answers a bare command line with the generated help; naming no command is still the usage
-  // error it was before brocli, so it keeps exit 1.
-  if (process.argv.length <= ARGV_OFFSET) {
-    complain(`No command given. Run ${CLI_NAME} --help.`);
-    exitCode = EXIT_FAILED;
   }
 
   await run(commands(runner), config);

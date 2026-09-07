@@ -197,14 +197,51 @@ describe('render-blueprint', () => {
     expect(ran.stderr).toContain('No command given');
   });
 
+  it('exits 1 and names the flag when one stands where the command belongs', async () => {
+    const cwd = await seeded('clean');
+
+    for (const [args, offender] of [
+      [['--nope'], '--nope'],
+      [['-x'], '-x'],
+      [['--strict', 'synth'], '--strict'],
+      [['--nope', 'synth'], '--nope'],
+      [['--', '--nope'], '--'],
+      [['--nope', '--version'], '--nope'],
+      [['--nope', '--help'], '--nope'],
+      [['--nope', '-h'], '--nope'],
+      [['--file', '--help'], '--file'],
+      [['--', '--help'], '--'],
+      [['--nope', 'help'], '--nope'],
+    ] as const) {
+      const ran = await run(cwd, args);
+      const line = args.join(' ');
+
+      expect(ran.code, `${line} must exit 1`).toBe(1);
+      expect(ran.stderr, `${line} must name the flag`).toContain(`'${offender}'`);
+      expect(ran.stderr, `${line} must state the rule`).toContain('flags follow the command');
+      expect(ran.stdout, `${line} must still print the usage`).toContain(
+        'render-blueprint [command]',
+      );
+    }
+  });
+
   it('prints the generated help for the cli and for both commands', async () => {
     const cwd = await seeded('clean');
 
-    const cli = await run(cwd, ['--help']);
+    for (const flag of ['--help', '-h']) {
+      const cli = await run(cwd, [flag]);
 
-    expect(cli.code).toBe(0);
-    expect(cli.stdout).toContain('synth');
-    expect(cli.stdout).toContain('check');
+      expect(cli.code).toBe(0);
+      expect(cli.stdout).toContain('synth');
+      expect(cli.stdout).toContain('check');
+    }
+
+    for (const args of [['help'], ['--file=x', 'help']]) {
+      const asked = await run(cwd, args);
+
+      expect(asked.code, `${args.join(' ')} must exit 0`).toBe(0);
+      expect(asked.stdout).toContain('render-blueprint [command]');
+    }
 
     for (const command of ['synth', 'check']) {
       const help = await run(cwd, [command, '--help']);
@@ -221,9 +258,13 @@ describe('render-blueprint', () => {
     // SAFETY: JSON.parse answers any. This is the repository's own package.json, whose "version" npm
     // writes and whose absence would fail the build long before this assertion runs.
     const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')) as Manifest;
-    const ran = await run(await seeded('clean'), ['--version']);
+    const cwd = await seeded('clean');
 
-    expect(ran.code).toBe(0);
-    expect(ran.stdout.trim()).toBe(manifest.version);
+    for (const flag of ['--version', '-v']) {
+      const ran = await run(cwd, [flag]);
+
+      expect(ran.code).toBe(0);
+      expect(ran.stdout.trim()).toBe(manifest.version);
+    }
   });
 });
