@@ -22,7 +22,7 @@
     "url": "git+https://github.com/felipeva/render-blueprint.git"
   },
   "bin": {
-    "render-blueprint": "./dist/cli.js"
+    "render-blueprint": "dist/cli.js"
   },
   "files": [
     "dist"
