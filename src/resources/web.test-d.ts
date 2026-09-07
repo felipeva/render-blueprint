@@ -157,8 +157,11 @@ describe('web registry credential', () => {
   });
 
   it('rejects the credential beside a native runtime, which pulls no base image', () => {
-    // @ts-expect-error spec §4.2: registryCredential authorises a Dockerfile build's base image.
-    web('api', { runtime: 'node', registryCredential: external.registryCredential('acme') });
+    web('api', {
+      runtime: 'node',
+      // @ts-expect-error spec §4.2: registryCredential authorises a Dockerfile build's base image.
+      registryCredential: external.registryCredential('acme'),
+    });
   });
 
   it('rejects the credential beside a prebuilt image, which carries image.creds instead', () => {
