@@ -54,29 +54,10 @@ describe('parsePlacement', () => {
     ]);
   });
 
-  it('reports a project that declares no environment', () => {
-    const issues = parsePlacement(blueprint({ projects: [project('acme', { environments: [] })] }));
-
-    expect(issues).toEqual([
-      {
-        code: 'ProjectWithoutEnvironment',
-        at: { resource: 'acme', field: 'environments' },
-        message: expect.stringContaining('Render requires at least one'),
-      },
-    ]);
-  });
-
   it('reports a project field the library does not model', () => {
     const issues = parsePlacement(
       blueprint({
-        projects: [
-          project(
-            'acme',
-            uncheckedProject(
-              '{"environments":[{"name":"production","resources":[]}],"region":"oregon"}',
-            ),
-          ),
-        ],
+        projects: [project('acme', uncheckedProject('{"environments":[],"region":"oregon"}'))],
       }),
     );
 

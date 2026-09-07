@@ -140,7 +140,8 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │                                     secret-skips-previews, web-only-field,
 │                                     instances-ignored-by-scaling, unused-default,
 │                                     build-filter-on-image-source,
-│                                     maintenance-mode-needs-paid-plan. The scaling,
+│                                     maintenance-mode-needs-paid-plan,
+│                                     project-without-environment. The scaling,
 │                                     numeric-range and high-availability families are refinements
 │                                     beside their own config instead, because each reads one config
 │                                     and no other
@@ -301,19 +302,18 @@ better-result's own `TemplateNotFound` / `RenderTemplateFailed`: `BlueprintInval
 `BlueprintWriteFailed`, `BlueprintFileUnreadable`; `_tag` equals the class name. `ValidationCode`
 literals use the same convention one level down — `DanglingReference`, `DuplicateResourceName`,
 `ResourceInMultipleLocations`, `ScalingRangeInverted`, `HighAvailabilityUnsupported`,
-`ExtraFieldConflict`, `EnvKeyCollision` — one literal per rule, named after the rule file that
-produces it. The config tier mints the few no rule file produces, from the issues a schema raises:
-`UnknownField`, `InvalidConfig`, `RootDirNotRelative`, `ConflictingSource` for a key one source
-branch owns on a config whose runtime picked another (issue #10), `OutOfRange` for every numeric
-bound the spec sets, `ScalingTargetMissing` and `DiskPreventsScaling` for the two pairs a
-serverService config may not hold at once (issue #12), `MaintenanceUriNotAbsolute` for a
-maintenance page the config points at with something other than an absolute URL,
-`SubdomainPolicyNeedsDomain` for a `renderSubdomainPolicy` of `disabled` on a resource that lists
-no custom domain (issue #43), and `ProjectWithoutEnvironment` for a project whose environment list
-is empty, which the spec forbids and the JSON Schema cannot catch (issue #58). `WarningCode`
-follows the same convention one tier down, for a rule that never blocks synthesis —
-`SecretSkipsPreviews`, `UnknownServiceEnvVarKey`, `WebOnlyField`, `InstancesIgnoredByScaling`,
-`UnusedDefault`, `BuildFilterOnImageSource` and `MaintenanceModeNeedsPaidPlan` among them.
+`ExtraFieldConflict`, `EnvKeyCollision`, `ProjectWithoutEnvironment` — one literal per rule, named
+after the rule file that produces it. The config tier mints the few no rule file produces, from
+the issues a schema raises: `UnknownField`, `InvalidConfig`, `RootDirNotRelative`,
+`ConflictingSource` for a key one source branch owns on a config whose runtime picked another
+(issue #10), `OutOfRange` for every numeric bound the spec sets, `ScalingTargetMissing` and
+`DiskPreventsScaling` for the two pairs a serverService config may not hold at once (issue #12),
+`MaintenanceUriNotAbsolute` for a maintenance page the config points at with something other than
+an absolute URL, and `SubdomainPolicyNeedsDomain` for a `renderSubdomainPolicy` of `disabled` on a
+resource that lists no custom domain (issue #43). `WarningCode` follows the same convention one
+tier down, for a rule that never blocks synthesis — `SecretSkipsPreviews`,
+`UnknownServiceEnvVarKey`, `WebOnlyField`, `InstancesIgnoredByScaling`, `UnusedDefault`,
+`BuildFilterOnImageSource` and `MaintenanceModeNeedsPaidPlan` among them.
 
 **Enums.** `erasableSyntaxOnly` bans `enum`. Every closed set is a SCREAMING_SNAKE `as const`
 tuple plus its derived union, in one file; the tuple is exported because validation and tests

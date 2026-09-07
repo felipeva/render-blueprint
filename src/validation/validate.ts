@@ -22,6 +22,7 @@ import { maintenanceModeNeedsPaidPlan } from './rules/maintenance-mode-needs-pai
 import { missingBuildCommand } from './rules/missing-build-command.js';
 import { missingStartCommand } from './rules/missing-start-command.js';
 import { missingStaticPublishPath } from './rules/missing-static-publish-path.js';
+import { projectWithoutEnvironment } from './rules/project-without-environment.js';
 import { resourceInMultipleLocations } from './rules/resource-in-multiple-locations.js';
 import { rootDeprecatedField } from './rules/root-deprecated-field.js';
 import { rootExtraFieldConflict } from './rules/root-extra-field-conflict.js';
@@ -42,6 +43,8 @@ export interface ValidatedBlueprint {
 const ROOT_RULES = [rootExtraFieldConflict, rootDeprecatedField] as const;
 
 const PLACEMENT_RULES = [resourceInMultipleLocations] as const;
+
+const PROJECT_RULES = [projectWithoutEnvironment] as const;
 
 const NAME_RULES = [duplicateResourceName] as const;
 
@@ -67,7 +70,9 @@ const WARNING_RULES = [
 export const validate = (value: Blueprint): ResultType<ValidatedBlueprint, BlueprintInvalid> => {
   // A blueprint whose own structure did not parse cannot be walked; ADR-0003 defers the rest.
   const structure = parsePlacement(value);
-  const placed: readonly PlacedResource[] = structure.length === 0 ? placement(value) : [];
+  const walkable = structure.length === 0;
+  const placed: readonly PlacedResource[] = walkable ? placement(value) : [];
+  const projects: readonly Project[] = walkable ? value.projects : [];
   const parsed = parseConfigs(placed.map((entry) => entry.resource));
 
   const [first, ...rest] = [
@@ -75,6 +80,7 @@ export const validate = (value: Blueprint): ResultType<ValidatedBlueprint, Bluep
     ...parsed.issues,
     ...ROOT_RULES.flatMap((rule) => rule(value)),
     ...PLACEMENT_RULES.flatMap((rule) => rule(placed)),
+    ...PROJECT_RULES.flatMap((rule) => rule(projects)),
     ...NAME_RULES.flatMap((rule) => rule(parsed.named)),
     ...CONFIG_RULES.flatMap((rule) => rule(parsed.accepted)),
     ...danglingReference(parsed),

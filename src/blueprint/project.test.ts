@@ -1,52 +1,32 @@
 import { describe, expect, it } from 'vitest';
 
 import { environment } from './environment.js';
-import { parseProject, project } from './project.js';
+import { parseProject, project, type ProjectConfig } from './project.js';
 
-interface RaisedIssue {
-  readonly validationCode: string;
-  readonly path: readonly PropertyKey[];
-  readonly message: string;
-}
+// SAFETY: JSON.parse returns any. The config below stands in for a blueprint the CLI loaded
+// through Node type stripping, which erases types without checking them, so the annotation is
+// deliberately stronger than the value — the gap ADR-0003 gives the schemas to close.
+const uncheckedProject: (json: string) => ProjectConfig = JSON.parse;
 
-const raisedIssues = (value: ReturnType<typeof project>): readonly RaisedIssue[] => {
+const messages = (value: ReturnType<typeof project>): readonly string[] => {
   const result = parseProject(value);
-  if (result.success) return [];
-
-  return result.error.issues.flatMap((issue): readonly RaisedIssue[] =>
-    issue.code === 'custom'
-      ? [
-          {
-            validationCode: String(issue.params?.['validationCode']),
-            path: issue.path,
-            message: issue.message,
-          },
-        ]
-      : [],
-  );
+  return result.success ? [] : result.error.issues.map((issue) => issue.message);
 };
 
 describe('parseProject', () => {
-  it('raises ProjectWithoutEnvironment on a project that declares no environment', () => {
-    expect(
-      raisedIssues(project('acme', { environments: [] })).map((issue) => [
-        issue.validationCode,
-        issue.path,
-      ]),
-    ).toEqual([['ProjectWithoutEnvironment', ['environments']]]);
-  });
-
-  it('says Render requires at least one environment', () => {
-    const [issue] = raisedIssues(project('acme', { environments: [] }));
-
-    expect(issue?.message).toContain('Render requires at least one');
+  it('says an environments that is not a list is not one', () => {
+    expect(messages(project('acme', uncheckedProject('{"environments":"nope"}')))).toEqual([
+      expect.stringContaining('list of the values environment() returned'),
+    ]);
   });
 
   it('accepts a project that declares one environment', () => {
-    const result = parseProject(
-      project('acme', { environments: [environment('production', { resources: [] })] }),
-    );
+    expect(
+      messages(project('acme', { environments: [environment('production', { resources: [] })] })),
+    ).toEqual([]);
+  });
 
-    expect(result.success).toBe(true);
+  it('leaves an empty environments list to the rule tier', () => {
+    expect(messages(project('acme', { environments: [] }))).toEqual([]);
   });
 });

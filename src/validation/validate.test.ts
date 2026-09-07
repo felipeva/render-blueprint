@@ -86,7 +86,15 @@ describe('validate', () => {
   });
 
   it('reports a project that declares no environment', () => {
-    const result = validate(blueprint({ projects: [project('acme', { environments: [] })] }));
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', { runtime: 'node', buildCommand: 'pnpm build', startCommand: 'pnpm start' }),
+          web('api', { runtime: 'go', buildCommand: 'go build', startCommand: './api' }),
+        ],
+        projects: [project('acme', { environments: [] })],
+      }),
+    );
 
     expect(Result.isError(result)).toBe(true);
     if (!Result.isError(result)) return;
@@ -96,6 +104,11 @@ describe('validate', () => {
         code: 'ProjectWithoutEnvironment',
         at: { resource: 'acme', field: 'environments' },
         message: expect.stringContaining('Render requires at least one'),
+      },
+      {
+        code: 'DuplicateResourceName',
+        at: { resource: 'api', field: 'name' },
+        message: expect.stringContaining('api'),
       },
     ]);
   });
