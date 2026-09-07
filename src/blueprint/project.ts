@@ -23,7 +23,7 @@ const projectSchema = z
       name: z.string({ error: PROJECT_NAME_ERROR }).min(1, { error: PROJECT_NAME_ERROR }),
       environments: z
         .array(environmentValueSchema, {
-          error: 'A project holds a list of its environments; Render requires at least one.',
+          error: 'A project holds its environments in a list of the values environment() returned.',
         })
         .readonly(),
     },

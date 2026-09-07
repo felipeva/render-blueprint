@@ -2,6 +2,7 @@ import { Result } from 'better-result';
 import { describe, expect, it } from 'vitest';
 
 import { blueprint } from '../blueprint/blueprint.js';
+import { project } from '../blueprint/project.js';
 import type { EnvValue } from '../env/env-value.js';
 import { secret } from '../env/secret.js';
 import type { JsonObject } from '../json.js';
@@ -82,6 +83,34 @@ describe('validate', () => {
     if (!Result.isError(result)) return;
     expect(BlueprintInvalid.is(result.error)).toBe(true);
     expect(result.error._tag).toBe('BlueprintInvalid');
+  });
+
+  it('reports a project that declares no environment', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', { runtime: 'node', buildCommand: 'pnpm build', startCommand: 'pnpm start' }),
+          web('api', { runtime: 'go', buildCommand: 'go build', startCommand: './api' }),
+        ],
+        projects: [project('acme', { environments: [] })],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(BlueprintInvalid.is(result.error)).toBe(true);
+    expect(result.error.issues).toEqual([
+      {
+        code: 'ProjectWithoutEnvironment',
+        at: { resource: 'acme', field: 'environments' },
+        message: expect.stringContaining('Render requires at least one'),
+      },
+      {
+        code: 'DuplicateResourceName',
+        at: { resource: 'api', field: 'name' },
+        message: expect.stringContaining('api'),
+      },
+    ]);
   });
 
   it('reports every issue at once, not the first', () => {
