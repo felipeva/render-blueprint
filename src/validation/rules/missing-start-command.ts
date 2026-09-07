@@ -7,8 +7,7 @@ interface StartedFromSource {
   readonly startCommand: string | undefined;
 }
 
-// spec §4.1: a static site is served rather than started, and a Docker source starts with the
-// dockerCommand or the image's own CMD, so only a native runtime has a start command to miss.
+// spec §4.1: a static site is served rather than started.
 const startedFromSource = (resource: BlueprintResource): StartedFromSource | undefined => {
   switch (resource.kind) {
     case 'web':

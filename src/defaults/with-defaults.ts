@@ -29,9 +29,7 @@ import {
 } from './apply-defaults.js';
 import type { PlanDefaults, ResourceDefaults } from './resource-defaults.js';
 
-// design B §2.3: the same factory set with the same signatures. An environment group takes no
-// default, so a scope hands back the bare factory, and `withDefaults` is a member because scopes
-// nest.
+// design B §2.3: the same factory set with the same signatures.
 export interface ResourceFactories {
   readonly web: (name: string, config: WebConfig) => WebService;
   readonly privateService: (name: string, config: PrivateServiceConfig) => PrivateService;
@@ -69,10 +67,7 @@ const PLAN_FIELDS: ReadonlySet<string> = new Set([
   'postgres',
 ]);
 
-// A JavaScript caller can pass anything the CLI's type stripping let through. Only a value that is
-// its own boxed form is a record, so a string, a number and null are not, and neither reaches
-// Object.keys below. spec: a plan default is a record with one key per kind, so a plan that is not
-// one declares the bare `plan` key, which applies to nothing and is reported as unused.
+// A JavaScript caller can pass anything the CLI's type stripping let through.
 const asRecord = <T>(value: T | undefined): T | undefined => {
   const boxed: object = Object(value);
 
@@ -81,8 +76,7 @@ const asRecord = <T>(value: T | undefined): T | undefined => {
 
 const isPresent = <T>(value: T | undefined): boolean => value !== undefined && value !== null;
 
-// A JavaScript caller can write a key the record does not model. Keeping it is what turns a
-// misspelled default into an unused-default warning rather than into silence.
+// A JavaScript caller can write a key the record does not model.
 const unmodeledKeys = (
   record: ResourceDefaults,
   plan: PlanDefaults | undefined,
@@ -96,7 +90,6 @@ const unmodeledKeys = (
         .map((key) => `plan.${key}`)),
 ];
 
-// The keys this record declares, as the author spelled them.
 const declaredKeys = (
   record: ResourceDefaults,
   plan: PlanDefaults | undefined,
@@ -132,10 +125,6 @@ const filled = <V>(
   outer: Filled<V> | undefined,
 ): Filled<V> | undefined => (own === undefined ? outer : { value: own, scope });
 
-// An inner scope wins over an outer one key by key, and a key it wins carries its own declaration,
-// so an applied default names the innermost scope that declared it. A key an inner scope shadowed
-// lands under no applied default, and the unused-default rule still says nothing about it: that
-// rule reads eligibility, which shadowing does not change.
 const scopeValues = (
   outer: ScopeValues | undefined,
   record: ResourceDefaults,
@@ -160,9 +149,7 @@ const scopeValues = (
 });
 
 // The declaration's identity is the scope: every resource a scope fills points at the same object,
-// and the unused-default rule counts by that identity. Freezing it and its keys is what stops a
-// JavaScript caller from declaring a default after the fact, on a scope resources already carry.
-// A record or a plan the caller left out is an empty one, because withDefaults is total.
+// and the unused-default rule counts by that identity.
 const nest = (outer: Scope | undefined, given: ResourceDefaults): Scope => {
   const record: ResourceDefaults = asRecord(given) ?? {};
   const plan = asRecord(record.plan);

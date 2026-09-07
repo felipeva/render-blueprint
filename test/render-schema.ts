@@ -29,6 +29,4 @@ const compileRenderSchema = (): SchemaValidator => {
         }));
 };
 
-// The conformance oracle: the committed Render schema, compiled once, that the fixture harness and
-// the CLI test both hold an emitted document to.
 export const renderSchema: SchemaValidator = compileRenderSchema();

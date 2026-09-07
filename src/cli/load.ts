@@ -69,8 +69,6 @@ const imported = (path: string): Promise<ResultType<BlueprintModule, BlueprintLo
     catch: (cause) => new BlueprintLoadFailed({ path, cause }),
   });
 
-// Issue #7 owns the blueprint root, so this is the structural floor the CLI needs to hand a value
-// to validate, not the root's schema.
 const describe = (value: Blueprint): string => {
   if (Array.isArray(value)) return 'an array';
   if (value instanceof Object) return 'an object with no resources array';

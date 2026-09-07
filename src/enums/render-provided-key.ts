@@ -1,5 +1,5 @@
-// spec §6.6: the environment variables Render sets on a service, which a fromService reference may
-// alias by envVarKey. Render publishes no schema for them, so this list is the prose's.
+// spec §6.6: the environment variables Render sets on a service.
+// Render publishes no schema for them, so this list is the prose's.
 export const RENDER_PROVIDED_KEYS = [
   'IS_PULL_REQUEST',
   'PORT',

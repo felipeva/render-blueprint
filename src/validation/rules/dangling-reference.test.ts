@@ -104,7 +104,6 @@ describe('danglingReference', () => {
     ]);
   });
 
-  // The review's repro: the reference resolves by name alone unless the type is read beside it.
   it('reports a reference whose name a listed service of another kind takes', () => {
     const cache = keyValue('cache', { ipAllowList: [] });
     const decoy = web('cache', { runtime: 'node' });

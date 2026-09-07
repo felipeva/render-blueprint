@@ -212,7 +212,8 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `main` is
   (`Claude Fable 5.1` for the coordinator, `Claude Opus 5` for a dispatched worker), as each
   session's own attribution instruction states.
 - Few comments. Only `SAFETY:` justifications and one-line spec citations (`// spec §16 B`). Never
-  narrate what the code does — the types and the names carry that.
+  narrate what the code does — the types and the names carry that. Never cite an issue or PR number
+  in code, a comment, or a test title; the tracker link belongs in the commit body and the PR.
 
 ## Agent skills
 

@@ -1,5 +1,4 @@
-// docs/research/toolchain.md: the floor is the version where type stripping is unflagged, and
-// package.json's engines.node declares the same number.
+// docs/research/toolchain.md: the floor is the version where type stripping is unflagged.
 export const NODE_FLOOR = '22.18.0';
 
 const parts = (version: string): readonly number[] =>

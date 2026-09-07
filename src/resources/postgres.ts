@@ -20,8 +20,7 @@ export interface HighAvailability {
   readonly enabled: boolean;
 }
 
-// spec §11: a database has no previews object of its own on Render; design B §2.6 keeps the field
-// uniform across the kinds and renames the two keys on the way out.
+// spec §11: a database has no previews object of its own on Render.
 export interface PostgresPreviews {
   readonly plan?: PostgresPlan;
   readonly diskSizeGB?: DiskSizeGB;

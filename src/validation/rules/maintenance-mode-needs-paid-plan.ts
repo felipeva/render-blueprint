@@ -1,12 +1,8 @@
 import type { BlueprintResource } from '../../resources/resource.js';
 import type { ValidationWarning } from '../issue.js';
 
-// spec §4.1: maintenance mode needs a paid web service instance, and `free` is the one plan the
-// serverPlan enum publishes that is not one.
-//
-// A config that writes no plan says nothing about the instance the service runs on: Render adopts a
-// service by name, and an adopted one may already be paid. Only a written `free` is a pair the
-// author can see in the blueprint and change there.
+// spec §4.1: maintenance mode needs a paid web service instance.
+// Render adopts a service by name, and an adopted one may already be paid.
 const maintainsOnAFreePlan = (resource: BlueprintResource): boolean => {
   switch (resource.kind) {
     case 'web':

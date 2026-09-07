@@ -5,8 +5,7 @@ import type { BlueprintResource } from '../resources/resource.js';
 import { envVars } from './env-vars.js';
 import { mapping } from './mapping.js';
 
-// spec §6.1: a group's items take the key-value form only, so the list an env map produces is
-// already the list a group emits.
+// spec §6.1: a group's items take the key-value form only.
 const envVarGroup = (resource: EnvironmentGroup): YAMLMap =>
   mapping(
     ENVIRONMENT_GROUP_FIELDS,

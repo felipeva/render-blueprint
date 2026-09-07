@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
-# Format the staged files with oxfmt, re-stage them, then lint the project with oxlint.
-#
-# Installed by `git config core.hooksPath .githooks`, run once per clone. oxfmt honours the
-# ignore patterns in .oxfmtrc.json for explicit paths; oxlint does not, so it runs over the
-# whole project through its own config, which is fast and matches what `pnpm check` runs.
-#
-# Partially staged files are formatted whole and re-staged whole; stage the full file.
+# Installed by `git config core.hooksPath .githooks`, run once per clone: git does not
+# version-control hooks itself.
 set -euo pipefail
 
 bin=./node_modules/.bin
@@ -18,7 +13,7 @@ for tool in oxfmt oxlint; do
   [ -x "$bin/$tool" ] || { echo "pre-commit: $bin/$tool is missing — run pnpm install" >&2; exit 1; }
 done
 
-# oxfmt exits 1 when every given path is excluded by its ignore patterns. That is not a failure.
+# oxfmt exits 1 when every given path is excluded by its ignore patterns.
 if ! output=$("$bin/oxfmt" "${staged[@]}" 2>&1); then
   case "$output" in
     *"Expected at least one target file"*) ;;

@@ -1,7 +1,8 @@
 import * as z from 'zod';
 
-// spec §9: a database disk size is 1 GB or a multiple of 5 GB. INFERRED: Render documents no
-// ceiling, so the union stops at 4000 GB, well above every published plan tier's default.
+// spec §9: a database disk size is 1 GB or a multiple of 5 GB.
+// INFERRED: Render documents no ceiling, so the union stops at 4000 GB, well above every published
+// plan tier's default.
 export const DISK_SIZES_GB = [
   1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115,
   120, 125, 130, 135, 140, 145, 150, 155, 160, 165, 170, 175, 180, 185, 190, 195, 200, 205, 210,

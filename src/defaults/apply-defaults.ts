@@ -24,8 +24,6 @@ import type { StaticSiteConfig } from '../resources/static-site.js';
 import type { WebConfig } from '../resources/web.js';
 import type { WorkerConfig } from '../resources/worker.js';
 
-// A default value and the innermost scope that declared it. A nested scope resolves attribution
-// once, when it is built, so the merge never walks the chain.
 export interface Filled<V> {
   readonly value: V;
   readonly scope: DefaultsDeclaration;
@@ -57,15 +55,11 @@ export interface AppliedConfig<T> {
   readonly applied: readonly AppliedDefault[];
 }
 
-// What one merge learned: every declared default the kind and the source branch can take, and the
-// subset that landed because the resource left the field open. A scope declares a key exactly when
-// the chain holds a value for it, so the value being there is the eligibility test.
 interface Marks {
   readonly eligible: DefaultKey[];
   readonly applied: AppliedDefault[];
 }
 
-// The three fields a repository-built source takes. A prebuilt image takes none of them.
 interface RepoFill {
   repo?: string;
   branch?: string;
@@ -78,8 +72,7 @@ interface RepoFields {
   readonly rootDir?: string;
 }
 
-// spec §4.1: both fields govern what a push to the repository builds, so a source that names no
-// repository takes neither.
+// spec §4.1: both fields govern what a push to the repository builds.
 interface BuildFill {
   autoDeployTrigger?: AutoDeployTrigger;
   buildFilter?: BuildFilter;
@@ -121,10 +114,6 @@ const appliedDefault = (
   scope: DefaultsDeclaration,
 ): AppliedDefault => ({ key, field, scope });
 
-// A key the author wrote wins, and a key written as undefined is no value at all, so the scope
-// fills it: exactOptionalPropertyTypes makes that unreachable from TypeScript and the merge is what
-// a JavaScript caller meets. Reaching this function is what makes the field eligible, because a
-// kind that does not take it never calls in.
 const fillRegion = (
   values: ScopeValues,
   own: Region | undefined,
@@ -185,8 +174,6 @@ const fillRepo = (values: ScopeValues, own: RepoFields, fill: RepoFill, marks: M
   }
 };
 
-// The scope's value lands by reference and the resource's own value replaces it whole: a filter the
-// resource wrote is exactly the filter it wrote, with neither list joined to the scope's.
 const fillBuild = (values: ScopeValues, own: BuildFields, fill: BuildFill, marks: Marks): void => {
   if (values.autoDeployTrigger !== undefined) {
     marks.eligible.push('autoDeployTrigger');
@@ -209,9 +196,7 @@ const fillBuild = (values: ScopeValues, own: BuildFields, fill: BuildFill, marks
   }
 };
 
-// spec §7: a web service, a static site and a Postgres database take an optional list. A Key Value
-// instance is the one kind Render requires one on, so its config has no open field for a scope to
-// fill and it never calls in.
+// spec §7: a web service, a static site and a Postgres database take an optional list.
 const fillIpAllowList = (
   values: ScopeValues,
   own: IpAllowList | undefined,
@@ -227,8 +212,7 @@ const fillIpAllowList = (
   marks.applied.push(appliedDefault('ipAllowList', 'ipAllowList', values.ipAllowList.scope));
 };
 
-// spec §4.3: an image source names no repository, so `runtime` deciding the branch is what keeps
-// both the three repository fields and the two that govern a build from one off a prebuilt image.
+// spec §4.3: an image source names no repository.
 const fillFromRepository = (
   values: ScopeValues,
   config: BuildFields & ServiceSource,
@@ -242,7 +226,6 @@ const fillFromRepository = (
   fillBuild(values, config, fill, marks);
 };
 
-// The four kinds that choose a source take region and their own plan whatever branch they pick.
 const fillSourced = <P extends string>(
   values: ScopeValues,
   config: SourcedFields<P> & BuildFields & ServiceSource,
@@ -256,8 +239,7 @@ const fillSourced = <P extends string>(
   fillFromRepository(values, config, fill, marks);
 };
 
-// spec §9 and §5: neither a database nor a Key Value instance builds from a repository, so repo,
-// branch, rootDir and the two fields that govern a build from one never reach one.
+// spec §9 and §5: neither a database nor a Key Value instance builds from a repository.
 const fillDatastore = <P extends string>(
   values: ScopeValues,
   config: SourcedFields<P>,
@@ -280,8 +262,7 @@ export const webDefaults = (values: ScopeValues, config: WebConfig): AppliedConf
   return { config: { ...config, ...fill }, eligible: marks.eligible, applied: marks.applied };
 };
 
-// spec §16 F: an allow list sits on the web branch alone among the four sourced kinds, so a private
-// service, a worker and a cron job take every other key and not that one.
+// spec §16 F: an allow list sits on the web branch alone among the four sourced kinds.
 export const privateServiceDefaults = (
   values: ScopeValues,
   config: PrivateServiceConfig,
@@ -318,8 +299,7 @@ export const cronDefaults = (
   return { config: { ...config, ...fill }, eligible: marks.eligible, applied: marks.applied };
 };
 
-// spec §4.8 and §8.1: a static site runs nowhere and takes no plan, so region and plan never reach
-// one; it always builds from a repository, so every field that governs one does.
+// spec §4.8 and §8.1: a static site runs nowhere and takes no plan.
 export const staticSiteDefaults = (
   values: ScopeValues,
   config: StaticSiteConfig,

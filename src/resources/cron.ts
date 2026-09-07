@@ -26,8 +26,7 @@ import {
 const SCHEDULE_ERROR =
   'A cron job runs on a schedule, so `schedule` holds the cron expression Render runs it by.';
 
-// spec §4.8: a cron job has no disk, no scaling, no domains and no previews of its own; the build
-// filter is the one field of this slice its schema branch carries.
+// spec §4.8: a cron job has no disk, no scaling, no domains and no previews of its own.
 interface CronFields {
   readonly schedule: string;
   readonly region?: Region;
@@ -101,8 +100,7 @@ export const CRON_CONFIG_SCHEMA_MATCHES_INTERFACE: true =
 export const parseCronConfig = (config: CronConfig): z.ZodSafeParseResult<CronConfig> =>
   cronConfigSchema.safeParse(config);
 
-// spec §6.2: a cron job answers on no address, so it carries the handle without host, port and
-// hostport.
+// spec §6.2: a cron job answers on no address.
 export const cron = (name: string, config: CronConfig): CronJob => ({
   kind: 'cron',
   name,

@@ -6,7 +6,7 @@ const NAME_ERROR =
   'A registry credential reference names the credential the workspace holds, so the name is not empty.';
 
 // spec §4.2: a registry credential is added in the Dashboard or through the API and is never
-// defined in render.yaml, so the name is the whole of it and there is no property to reach for.
+// defined in render.yaml.
 export interface RegistryCredentialReference {
   readonly fromRegistryCreds: {
     readonly name: string;

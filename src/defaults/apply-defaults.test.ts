@@ -45,7 +45,6 @@ const REPOSITORY = {
   rootDir: 'apps/api',
 };
 
-// The two fields a push to that repository governs, which an image source takes neither of.
 const BUILD = { autoDeployTrigger: 'checksPass', buildFilter: FILTER } as const;
 
 const REPOSITORY_KEYS = ['repo', 'branch', 'rootDir'] as const;

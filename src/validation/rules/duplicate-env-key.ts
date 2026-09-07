@@ -3,7 +3,6 @@ import { describeGroups, envKeyOrigins } from '../env-key-origins.js';
 import type { ValidationIssue } from '../issue.js';
 
 // An environment map cannot repeat a key, so a repeat reaches a service through its group imports.
-// The issue is reported against envGroups, because the resource itself declares no such key.
 export const duplicateEnvKey = (
   resources: readonly BlueprintResource[],
 ): readonly ValidationIssue[] =>

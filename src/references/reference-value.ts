@@ -41,8 +41,7 @@ export interface ServiceEnvVarReferenceValue {
   readonly envVarKey: string;
 }
 
-// spec §6.1 c: Render's schema allows property and envVarKey together; a handle yields one or the
-// other, and the two-member union is what makes the pair unrepresentable.
+// spec §6.1 c: Render's schema allows property and envVarKey together.
 export type ServiceReferenceValue = ServicePropertyReferenceValue | ServiceEnvVarReferenceValue;
 
 const referenceValueSchema = z

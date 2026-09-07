@@ -28,9 +28,7 @@ export type ServerPlan = (typeof SERVER_PLANS)[number];
 
 export const serverPlanSchema: z.ZodEnum<z.core.util.ToEnum<ServerPlan>> = z.enum(SERVER_PLANS);
 
-// spec §8.1: the free instance type is offered to web services and static sites; the [SPEC] tables
-// for private services and background workers are the serverPlan list without it, and both kinds
-// take the same set, so it is named for what it holds rather than for one of the two.
+// spec §8.1: the free instance type is offered to web services and static sites.
 export const PAID_SERVER_PLANS = [
   'starter',
   'standard',

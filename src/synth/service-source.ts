@@ -10,8 +10,7 @@ import {
 import { FROM_REGISTRY_CREDS_KEY_ORDER, REGISTRY_CREDENTIAL_KEY_ORDER } from './key-order.js';
 import { mapping } from './mapping.js';
 
-// The source fields of one service, as the three branches leave them: a field another branch owns
-// is undefined here, and spec §12 makes an omitted key "retain current" rather than "clear".
+// spec §12 makes an omitted key "retain current" rather than "clear".
 export interface SourceValues {
   readonly runtime: ServiceRuntime;
   readonly repo: string | undefined;

@@ -46,9 +46,6 @@ describe('extraFieldConflict', () => {
     ).toEqual([]);
   });
 
-  // A sourced kind's emission tuple lists all nine source keys, because one branch or another
-  // emits each. Telling the author to set a key through a config that has no such field would be
-  // advice they cannot take, so the key names the wrong source instead.
   it('reports a build command beside a Dockerfile as the wrong source', () => {
     const issues = extraFieldConflict([
       worker('jobs', { runtime: 'docker', extraFields: { buildCommand: 'pnpm build' } }),
@@ -94,9 +91,7 @@ describe('extraFieldConflict', () => {
     expect(issues[0]?.message).toContain('already emits');
   });
 
-  // spec §4.2: a registry credential authorises the base image a Dockerfile build pulls, so the two
-  // runtimes that build no Dockerfile name the wrong source. The escape hatch cannot reach past the
-  // branch: only a Docker source has the field, and only a Docker source emits the key.
+  // spec §4.2: a registry credential authorises the base image a Dockerfile build pulls.
   it('reports a registry credential beside a native runtime as the wrong source', () => {
     const issues = extraFieldConflict([
       web('api', {
@@ -136,8 +131,6 @@ describe('extraFieldConflict', () => {
     expect(issues[0]?.message).toContain('already emits');
   });
 
-  // The allow list is a modeled web and static field now, so the escape hatch would overwrite the
-  // key the config emits; on the three kinds that model none of it, webOnlyField still warns.
   it('reports an allow list set through extraFields on a web service', () => {
     const issues = extraFieldConflict([
       web('api', { runtime: 'node', extraFields: { ipAllowList: [{ source: '::1' }] } }),

@@ -253,7 +253,7 @@ services:
   });
 
   // spec §4.2: the credential a Dockerfile build pulls its private base image with sits beside the
-  // service rather than inside an image node, in the same nested form image.creds carries.
+  // service rather than inside an image node.
   it('emits the registry credential a Docker source builds its base image with', () => {
     const jobs = worker('jobs', {
       runtime: 'docker',
@@ -517,8 +517,7 @@ envVarGroups:
     );
   });
 
-  // spec §12: omitting a key retains the current value on an existing service, so an empty mapping
-  // is not the same document as no maintenanceMode at all.
+  // spec §12: omitting a key retains the current value on an existing service.
   it('emits an empty maintenance mode as an empty mapping, not as an omitted key', () => {
     const api = web('api', { runtime: 'node', maintenanceMode: {} });
 

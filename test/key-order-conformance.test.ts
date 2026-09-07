@@ -47,13 +47,9 @@ const publishedOrder = (definition: string, nested?: string): readonly string[] 
   return Object.keys(target?.properties ?? {});
 };
 
-// An ipAllowList is published as an array, so its entry's keys sit under items rather than beside
-// the definition's own name.
 const publishedItemOrder = (definition: string): readonly string[] =>
   Object.keys(renderSchema.definitions[definition]?.items?.properties ?? {});
 
-// A tuple emits a subset of the keys its schema branch carries, in the order that branch lists
-// them, so filtering the published order down to the tuple's keys returns the tuple itself.
 const expectOrder = (tuple: readonly string[], order: readonly string[]): void => {
   expect(order).not.toEqual([]);
   expect(order.filter((key) => tuple.includes(key))).toEqual([...tuple]);

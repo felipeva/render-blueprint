@@ -22,11 +22,7 @@ const databaseTargets = (resources: readonly BlueprintResource[]): ReadonlySet<s
   return names;
 };
 
-// Targets come from the name tier, not the accepted one: a database whose config failed to parse
-// is still declared, and reporting its dependants as dangling would blame the wrong resource.
-// spec §6.2: a fromService node names a type beside the name, and Render resolves the pair. A
-// listed resource of the same name but another kind is a different service, so the reference still
-// resolves to nothing.
+// spec §6.2: a fromService node names a type beside the name, and Render resolves the pair.
 const serviceTargets = (
   resources: readonly BlueprintResource[],
 ): ReadonlyMap<string, ReferenceableServiceType> => {

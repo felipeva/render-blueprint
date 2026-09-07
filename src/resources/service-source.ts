@@ -8,8 +8,7 @@ import {
 } from '../references/registry-credential-reference.js';
 import { optionalCommonServiceFields } from './service-fields.js';
 
-// spec §4.3: the digest or tag lives inside the url, and a private image needs the credential the
-// workspace holds.
+// spec §4.3: the digest or tag lives inside the url.
 export interface ServiceImage {
   readonly url: string;
   readonly creds?: RegistryCredentialReference;
@@ -18,8 +17,7 @@ export interface ServiceImage {
 // Emission order follows the schema's image property order.
 export const SERVICE_IMAGE_FIELDS = ['url', 'creds'] as const;
 
-// spec §3.2 and §4.1: a native runtime builds from the repository, so Render runs the build and
-// start commands the author wrote.
+// spec §3.2 and §4.1: a native runtime builds from the repository.
 export interface NativeSource {
   readonly runtime: NativeRuntime;
   readonly repo?: string;
@@ -28,8 +26,7 @@ export interface NativeSource {
   readonly buildCommand?: string;
 }
 
-// spec §4.2: the Dockerfile is the build, so there is no buildCommand to run beside it, and the
-// registry credential names the workspace credential that pulls the private base image it builds on.
+// spec §4.2: the Dockerfile is the build.
 export interface DockerSource {
   readonly runtime: 'docker';
   readonly repo?: string;
@@ -41,9 +38,7 @@ export interface DockerSource {
   readonly registryCredential?: RegistryCredentialReference;
 }
 
-// spec §4.3: image and repo are the two alternative sources, so a prebuilt image names no
-// repository, no branch and no directory inside one. dockerCommand overrides the CMD the image
-// carries, which is the one command there is to give it.
+// spec §4.3: image and repo are the two alternative sources.
 export interface ImageSource {
   readonly runtime: 'image';
   readonly image: ServiceImage;
@@ -117,9 +112,6 @@ export const imageSourceFields: ImageSourceFields = {
   dockerCommand: z.string().exactOptional(),
 };
 
-// Every key the three branches own between them. A key here on a config whose runtime picked
-// another branch names the wrong source rather than a field the library does not model, and
-// service-source.test.ts holds this tuple to the field maps above.
 const notTheDiscriminator = (key: string): boolean => key !== 'runtime';
 
 export const SOURCE_FIELDS = [
@@ -134,8 +126,6 @@ export const SOURCE_FIELDS = [
   'image',
 ] as const;
 
-// The discriminator carries its own message, which names every runtime the three branches accept;
-// a branch of its own would say less than that list does.
 const sourceSchema = z.discriminatedUnion('runtime', [
   z.strictObject(nativeSourceFields).readonly(),
   z.strictObject(dockerSourceFields).readonly(),
@@ -147,8 +137,6 @@ type SourceSchemaMatchesInterface = Expect<Equal<z.infer<typeof sourceSchema>, S
 export const SERVICE_SOURCE_SCHEMA_MATCHES_INTERFACE: true =
   true satisfies SourceSchemaMatchesInterface;
 
-// Which of SOURCE_FIELDS the branch a runtime picks owns. A factory's emission tuple lists all
-// nine, because one service or another emits each; only the branch says which this config has.
 export const ownedSourceFields = (runtime: string): readonly string[] => {
   if (runtime === 'image') return Object.keys(imageSourceFields).filter(notTheDiscriminator);
   if (runtime === 'docker') return Object.keys(dockerSourceFields).filter(notTheDiscriminator);
@@ -156,13 +144,12 @@ export const ownedSourceFields = (runtime: string): readonly string[] => {
 };
 
 // spec §4.2 and §4.3: Render builds a Dockerfile with the commands inside it and does not build a
-// prebuilt image at all, so a build or start command is only missing from a native source.
+// prebuilt image at all.
 export const nativeSource = (source: ServiceSource): NativeSource | undefined =>
   source.runtime === 'docker' || source.runtime === 'image' ? undefined : source;
 
 export type RepoSource = NativeSource | DockerSource;
 
-// spec §4.3: image and repo are the two alternative sources, so only the other two name a
-// repository, a branch and a directory inside it.
+// spec §4.3: image and repo are the two alternative sources.
 export const repoSource = (source: ServiceSource): RepoSource | undefined =>
   source.runtime === 'image' ? undefined : source;

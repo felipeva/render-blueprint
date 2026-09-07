@@ -3,13 +3,11 @@ import { resolveEnv } from '../../env/resolve-env.js';
 import { resourceEnv, type BlueprintResource } from '../../resources/resource.js';
 import type { ValidationWarning } from '../issue.js';
 
-// Root previews are the only preview switch the library models today. The per-service previews of
-// #7 widen this predicate; every call site reads the answer through it.
+// Root previews are the only preview switch the library models today.
 const previewsAreOn = (previews: RootPreviews | undefined): boolean =>
   previews !== undefined && previews.generation !== 'off';
 
-// spec §6.3: Render never copies a sync: false variable into a preview environment, so a preview
-// built from this blueprint starts with the variable missing.
+// spec §6.3: Render never copies a sync: false variable into a preview environment.
 export const secretSkipsPreviews = (
   previews: RootPreviews | undefined,
   resources: readonly BlueprintResource[],

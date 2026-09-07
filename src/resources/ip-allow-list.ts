@@ -12,8 +12,7 @@ export type IpAllowList = readonly IpAllowListEntry[];
 // Emission order follows the schema's ipAllowList item property order.
 export const IP_ALLOW_LIST_ENTRY_FIELDS = ['source', 'description'] as const;
 
-// spec §7: one entry form serves every kind that takes a list, and an empty list is the value that
-// blocks every external connection, so the array carries no minimum.
+// spec §7: one entry form serves every kind that takes a list.
 const ipAllowListArray = z
   .array(z.strictObject({ source: z.string(), description: z.string().exactOptional() }).readonly())
   .readonly();

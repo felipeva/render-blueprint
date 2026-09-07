@@ -61,9 +61,6 @@ interface MarkedValue {
   readonly reference?: string;
 }
 
-// The literal `sentinel` field is what selects a sentinel's form and the literal `reference` field
-// what selects a reference's, so no value answers to two forms, and a string or a number answers
-// to none.
 const marked = (value: EnvValue): MarkedValue =>
   // SAFETY: Object(x) === x holds for every object and for no primitive, so the assertion reads a
   // field only where one exists, and it claims nothing about the branch — the literals do. The
@@ -94,8 +91,7 @@ const entry = (key: string, value: EnvValue): EnvEntry => {
   return { form: 'plain', key, value };
 };
 
-// spec §6.1: a fromGroup entry carries no key, so it cannot come from the environment map; the
-// groups a resource imports are the second source of entries, and they follow the map's own.
+// spec §6.1: a fromGroup entry carries no key.
 export const resolveEnv = (
   env: EnvironmentMap | undefined,
   groups: readonly string[] | undefined,

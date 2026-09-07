@@ -3,7 +3,7 @@ import type { ServiceReferenceValue } from './reference-value.js';
 import { serviceProperty, type ServiceTarget } from './service-target.js';
 
 // spec §6.2: a web service and a private service are the two kinds that answer on the private
-// network, so they are the two that carry host, port and hostport.
+// network.
 export interface HttpServiceReference extends OpaqueServiceReference {
   readonly host: ServiceReferenceValue;
   readonly port: ServiceReferenceValue;

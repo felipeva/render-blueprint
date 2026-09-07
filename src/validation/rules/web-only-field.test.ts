@@ -47,8 +47,7 @@ describe('webOnlyField', () => {
     ).toEqual([]);
   });
 
-  // spec §4.8: cronService lists none of the six and takes no property beyond the ones it lists, so
-  // the emitted document is one Render's own schema rejects.
+  // spec §4.8: cronService lists none of the six and takes no property beyond the ones it lists.
   it('warns about a web-only field on a cron job, whose schema carries none of them', () => {
     const warnings = webOnlyField([
       cron('nightly', {
@@ -66,8 +65,7 @@ describe('webOnlyField', () => {
     expect(warnings[0]?.code).toBe('WebOnlyField');
   });
 
-  // spec §13: the singular domain is also the retired form, so the deprecated-field rule reports
-  // an issue on the same key; the issue is the one that blocks and this warning rides beside it.
+  // spec §13: the singular domain is also the retired form.
   it('warns about the singular domain on a worker, beside the issue that retires it', () => {
     const warnings = webOnlyField([
       worker('jobs', { runtime: 'node', extraFields: { domain: 'jobs.example.com' } }),
@@ -77,8 +75,7 @@ describe('webOnlyField', () => {
     expect(warnings[0]?.code).toBe('WebOnlyField');
   });
 
-  // spec §4.8: the matrix row reaches the whole serverService column, so the schema accepts the
-  // hook on a private service; the library models it on a web service alone, and says so.
+  // spec §4.8: the matrix row reaches the whole serverService column.
   it('warns about a first-deploy hook on a private service, naming the library for it', () => {
     const warnings = webOnlyField([
       privateService('auth', { runtime: 'node', extraFields: { initialDeployHook: './seed.sh' } }),
@@ -93,8 +90,7 @@ describe('webOnlyField', () => {
     ]);
   });
 
-  // spec §4.8: staticService allows no property beyond the ones it lists, and lists none of these
-  // three, so the emitted document is one the published schema rejects.
+  // spec §4.8: staticService allows no property beyond the ones it lists.
   it('warns about every field staticService lacks, on a static site', () => {
     const warnings = webOnlyField([
       staticSite('marketing', {
@@ -115,8 +111,6 @@ describe('webOnlyField', () => {
     expect(warnings[0]?.message).toContain('static site');
   });
 
-  // The four staticService does carry are the library's own fields there; extraFields setting one
-  // is a conflict the extra-field rule reports, not a field out of reach.
   it('warns about nothing a static site carries, however it was set', () => {
     expect(
       webOnlyField([

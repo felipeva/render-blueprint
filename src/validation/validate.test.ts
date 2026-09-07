@@ -255,7 +255,7 @@ describe('validate', () => {
   });
 
   // spec §4.3: image and repo are the two alternative sources, and the published schema enforces
-  // no exclusivity between them; the source union is what rejects the pair.
+  // no exclusivity between them.
   it('reports a repository beside a prebuilt image as the wrong source', () => {
     const result = validate(
       blueprint({
@@ -291,9 +291,7 @@ describe('validate', () => {
     expect(result.error.issues[0].message).toContain('"node"');
   });
 
-  // spec §4.2: a registry credential authorises the private base image a Dockerfile build pulls, so
-  // it is a Docker-branch key like dockerfilePath, and the two runtimes that build no Dockerfile
-  // name the wrong source rather than a field the library does not model.
+  // spec §4.2: a registry credential authorises the private base image a Dockerfile build pulls.
   it('reports a registry credential beside a native runtime as the wrong source', () => {
     const result = validate(
       blueprint({
@@ -357,8 +355,6 @@ describe('validate', () => {
     expect(result.error.issues[0].at.field).toBe('registryCredential.fromRegistryCreds.id');
   });
 
-  // The credential is a name and nothing else, so an empty one names no credential the workspace
-  // holds. Both sites carry the same schema, so both report it in the same place.
   it('reports an empty credential name on a Docker source', () => {
     const result = validate(
       blueprint({
@@ -419,8 +415,6 @@ describe('validate', () => {
     expect(result.error.issues[0].at.field).toBe('registryCredential.nope');
   });
 
-  // A source key is only the wrong source on the config that picked the runtime; a kind that picks
-  // none, and an object nested inside one, answer with the unknown field they always did.
   it('reports a source key on a kind that picks no source as an unknown field', () => {
     const result = validate(
       blueprint({
@@ -523,8 +517,7 @@ describe('validate', () => {
     expect(result.value.warnings.map((warning) => warning.code)).toEqual(['WebOnlyField']);
   });
 
-  // ADR-0003: the identity guard cannot see strictness, so each strict object needs a runtime test
-  // that it rejects an unknown key. A sourced config is three of them, one per source branch.
+  // ADR-0003: the identity guard cannot see strictness.
   it('reports a field the library does not model on each source branch of a web service', () => {
     const results = [
       '{"runtime":"node","nope":1}',
@@ -629,8 +622,7 @@ describe('validate', () => {
     expect(result.error.issues[0].at).toEqual({ resource: 'cache', field: 'runtime' });
   });
 
-  // spec §6.4: Render keeps a variable the blueprint omits, so the key may be there already. The
-  // blueprint still synthesizes, and the warning rides on the accepted value.
+  // spec §6.4: Render keeps a variable the blueprint omits, so the key may be there already.
   it('warns, rather than fails, on a key the referenced service does not declare', () => {
     const auth = web('auth', { runtime: 'node', buildCommand: 'x', startCommand: 'y' });
     const api = web('api', {
@@ -701,7 +693,6 @@ describe('validate', () => {
     expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'env.CACHE_URL' });
   });
 
-  // The review's repro: a config that failed elsewhere used to hide every env issue it also had.
   it('reports a bad env value beside the field that failed in the same config', () => {
     const result = validate(
       blueprint({
@@ -869,8 +860,7 @@ describe('validate', () => {
     ]);
   });
 
-  // spec §3.2: runtime picks the source, and a value outside the three forms matches no branch of
-  // the config, so there is no branch left to check the other fields against.
+  // spec §3.2: runtime picks the source.
   it('reports the runtime alone when it matches no source the library models', () => {
     const result = validate(
       blueprint({
@@ -1663,8 +1653,6 @@ describe('validate', () => {
     expect(result.error.issues[0].message).toContain('domains');
   });
 
-  // The web-only warning fires on the same field, and a warning reaches the author only on an
-  // accepted blueprint, so the retired form is what blocks here.
   it('lets the retired singular domain block a worker the web-only rule also warns about', () => {
     const result = validate(
       blueprint({
