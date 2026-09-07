@@ -1,0 +1,13 @@
+import {
+  blueprint,
+  withDefaults,
+  type Blueprint,
+  type ResourceFactories,
+} from '__RENDER_BLUEPRINT__';
+import { apiService } from './api-service.ts';
+
+const acme: ResourceFactories = withDefaults({ region: 'oregon', plan: { web: 'starter' } });
+
+const value: Blueprint = blueprint({ resources: [apiService(acme)] });
+
+export default value;
