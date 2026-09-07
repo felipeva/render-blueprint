@@ -102,6 +102,12 @@ describe('parsePostgresConfig', () => {
     ]);
   });
 
+  it('rejects a field the library does not model on an ipAllowList entry', () => {
+    expect(issueCodes(unchecked('{"ipAllowList":[{"source":"::1","label":"all"}]}'))).toEqual([
+      'unrecognized_keys',
+    ]);
+  });
+
   it('reports high availability below PostgreSQL 13 on the highAvailability field', () => {
     expect(
       raisedIssues({ postgresMajorVersion: '12', highAvailability: { enabled: true } }),
