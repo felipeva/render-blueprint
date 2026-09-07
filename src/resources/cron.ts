@@ -69,6 +69,7 @@ export const CRON_JOB_FIELDS = [
   'dockerCommand',
   'dockerfilePath',
   'dockerContext',
+  'registryCredential',
   'repo',
   'branch',
   'image',

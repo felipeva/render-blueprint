@@ -1,5 +1,6 @@
 import { describe, expectTypeOf, it } from 'vitest';
 
+import { external } from '../references/external.js';
 import { cron, CRON_CONFIG_SCHEMA_MATCHES_INTERFACE, type CronJob } from './cron.js';
 import { web } from './web.js';
 
@@ -142,5 +143,37 @@ describe('cron disks, scaling and previews', () => {
   it('rejects a shutdown delay', () => {
     // @ts-expect-error spec §4.8: maxShutdownDelaySeconds sits on the serverService branch alone.
     cron('nightly', { runtime: 'node', schedule: '0 2 * * *', maxShutdownDelaySeconds: 30 });
+  });
+});
+
+describe('cron registry credential', () => {
+  it('takes the workspace credential that pulls the private base image a Dockerfile builds on', () => {
+    expectTypeOf(
+      cron('nightly', {
+        runtime: 'docker',
+        schedule: '0 2 * * *',
+        dockerfilePath: './Dockerfile.report',
+        registryCredential: external.registryCredential('acme-dockerhub'),
+      }),
+    ).toEqualTypeOf<CronJob>();
+  });
+
+  it('rejects the credential beside a native runtime, which pulls no base image', () => {
+    cron('nightly', {
+      runtime: 'node',
+      schedule: '0 2 * * *',
+      // @ts-expect-error spec §4.2: registryCredential authorises a Dockerfile build's base image.
+      registryCredential: external.registryCredential('acme'),
+    });
+  });
+
+  it('rejects the credential beside a prebuilt image, which carries image.creds instead', () => {
+    cron('nightly', {
+      runtime: 'image',
+      schedule: '0 2 * * *',
+      image: { url: 'docker.io/acme/report:1' },
+      // @ts-expect-error spec §4.3: a prebuilt image names its credential through image.creds.
+      registryCredential: external.registryCredential('acme'),
+    });
   });
 });

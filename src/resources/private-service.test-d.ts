@@ -1,5 +1,6 @@
 import { describe, expectTypeOf, it } from 'vitest';
 
+import { external } from '../references/external.js';
 import {
   privateService,
   PRIVATE_SERVICE_CONFIG_SCHEMA_MATCHES_INTERFACE,
@@ -97,5 +98,34 @@ describe('privateService disks, scaling and previews', () => {
   it('rejects custom domains, which the prose gives to web services', () => {
     // @ts-expect-error spec §16 F: domains sits on the shared branch and the prose restricts it.
     privateService('auth', { runtime: 'node', domains: ['auth.acme.dev'] });
+  });
+});
+
+describe('privateService registry credential', () => {
+  it('takes the workspace credential that pulls the private base image a Dockerfile builds on', () => {
+    expectTypeOf(
+      privateService('auth', {
+        runtime: 'docker',
+        dockerfilePath: './Dockerfile',
+        registryCredential: external.registryCredential('acme-dockerhub'),
+      }),
+    ).toEqualTypeOf<PrivateService>();
+  });
+
+  it('rejects the credential beside a native runtime, which pulls no base image', () => {
+    privateService('auth', {
+      runtime: 'node',
+      // @ts-expect-error spec §4.2: registryCredential authorises a Dockerfile build's base image.
+      registryCredential: external.registryCredential('acme'),
+    });
+  });
+
+  it('rejects the credential beside a prebuilt image, which carries image.creds instead', () => {
+    privateService('auth', {
+      runtime: 'image',
+      image: { url: 'docker.io/acme/auth:1' },
+      // @ts-expect-error spec §4.3: a prebuilt image names its credential through image.creds.
+      registryCredential: external.registryCredential('acme'),
+    });
   });
 });

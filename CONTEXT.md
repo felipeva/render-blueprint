@@ -21,6 +21,7 @@ Use these words. Definitions come from `docs/design/structure.md`,
 - **Reference value** — the inert node a handle produces, mapping 1:1 onto a YAML reference form: `DatabaseReferenceValue` (`fromDatabase`) and `ServiceReferenceValue` (`fromService`, `property` XOR `envVarKey`). `src/references/reference-value.ts`.
 - **Reference origin** — the literal every reference value carries saying whether its target is declared here or reached through an external handle: `ReferenceOrigin`, `blueprint` or `external`. It never reaches YAML; the dangling-reference rule reads it to know which references it can resolve at all. `src/references/reference-origin.ts`.
 - **External handle** — `external.web(name)`, `external.postgres(name)` and the rest: a handle for a resource outside this blueprint. It carries no `kind`, so it cannot be listed as a resource. `src/references/external.ts`.
+- **Registry credential** — `external.registryCredential(name)`, the handle naming a credential the workspace holds; it is never defined in `render.yaml`. A prebuilt image names it through `image.creds` and a Dockerfile build through `registryCredential`; a native source takes none. `src/references/registry-credential-reference.ts`.
 - **Self-reference** — the `env: (self) => ({ ... })` callback form, where `self` is the enclosing resource's own handle. No mutation and no cycle.
 
 ## Environment variables

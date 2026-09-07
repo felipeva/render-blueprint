@@ -291,6 +291,134 @@ describe('validate', () => {
     expect(result.error.issues[0].message).toContain('"node"');
   });
 
+  // spec §4.2: a registry credential authorises the private base image a Dockerfile build pulls, so
+  // it is a Docker-branch key like dockerfilePath, and the two runtimes that build no Dockerfile
+  // name the wrong source rather than a field the library does not model.
+  it('reports a registry credential beside a native runtime as the wrong source', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          worker(
+            'jobs',
+            uncheckedWorker(
+              '{"runtime":"node","registryCredential":{"fromRegistryCreds":{"name":"acme"}}}',
+            ),
+          ),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['ConflictingSource']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'jobs', field: 'registryCredential' });
+    expect(result.error.issues[0].message).toContain('"node"');
+  });
+
+  it('reports a registry credential beside a prebuilt image as the wrong source', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          cron(
+            'nightly',
+            uncheckedCron(
+              '{"runtime":"image","schedule":"0 2 * * *","image":{"url":"docker.io/a/b:1"},"registryCredential":{"fromRegistryCreds":{"name":"acme"}}}',
+            ),
+          ),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['ConflictingSource']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'nightly', field: 'registryCredential' });
+    expect(result.error.issues[0].message).toContain('"image"');
+    expect(result.error.issues[0].message).not.toContain('extraFields');
+  });
+
+  it('reports a field the credential a Docker source carries does not define', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          worker(
+            'jobs',
+            uncheckedWorker(
+              '{"runtime":"docker","registryCredential":{"fromRegistryCreds":{"name":"acme","id":1}}}',
+            ),
+          ),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+    expect(result.error.issues[0].at.field).toBe('registryCredential.fromRegistryCreds.id');
+  });
+
+  // The credential is a name and nothing else, so an empty one names no credential the workspace
+  // holds. Both sites carry the same schema, so both report it in the same place.
+  it('reports an empty credential name on a Docker source', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          worker(
+            'jobs',
+            uncheckedWorker(
+              '{"runtime":"docker","registryCredential":{"fromRegistryCreds":{"name":""}}}',
+            ),
+          ),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['InvalidConfig']);
+    expect(result.error.issues[0].at.field).toBe('registryCredential.fromRegistryCreds.name');
+  });
+
+  it('reports an empty credential name on the image a prebuilt source pulls', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          worker(
+            'jobs',
+            uncheckedWorker(
+              '{"runtime":"image","image":{"url":"docker.io/a/b:1","creds":{"fromRegistryCreds":{"name":""}}}}',
+            ),
+          ),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['InvalidConfig']);
+    expect(result.error.issues[0].at.field).toBe('image.creds.fromRegistryCreds.name');
+  });
+
+  it('reports a field beside fromRegistryCreds, which is the whole of a credential', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          worker(
+            'jobs',
+            uncheckedWorker(
+              '{"runtime":"docker","registryCredential":{"fromRegistryCreds":{"name":"acme"},"nope":1}}',
+            ),
+          ),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+    expect(result.error.issues[0].at.field).toBe('registryCredential.nope');
+  });
+
   // A source key is only the wrong source on the config that picked the runtime; a kind that picks
   // none, and an object nested inside one, answer with the unknown field they always did.
   it('reports a source key on a kind that picks no source as an unknown field', () => {

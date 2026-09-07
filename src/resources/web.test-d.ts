@@ -1,5 +1,6 @@
 import { describe, expectTypeOf, it } from 'vitest';
 
+import { external } from '../references/external.js';
 import { envGroup } from './env-group.js';
 import { postgres } from './postgres.js';
 import { web, WEB_CONFIG_SCHEMA_MATCHES_INTERFACE, type WebService } from './web.js';
@@ -141,5 +142,34 @@ describe('web disks, scaling and previews', () => {
   it('rejects a field the schema does not give servicePreviews', () => {
     // @ts-expect-error spec §4.6: servicePreviews carries generation, plan and instances.
     web('api', { runtime: 'node', previews: { expireAfterDays: 7 } });
+  });
+});
+
+describe('web registry credential', () => {
+  it('takes the workspace credential that pulls the private base image a Dockerfile builds on', () => {
+    expectTypeOf(
+      web('api', {
+        runtime: 'docker',
+        dockerfilePath: './Dockerfile',
+        registryCredential: external.registryCredential('acme-dockerhub'),
+      }),
+    ).toEqualTypeOf<WebService>();
+  });
+
+  it('rejects the credential beside a native runtime, which pulls no base image', () => {
+    web('api', {
+      runtime: 'node',
+      // @ts-expect-error spec §4.2: registryCredential authorises a Dockerfile build's base image.
+      registryCredential: external.registryCredential('acme'),
+    });
+  });
+
+  it('rejects the credential beside a prebuilt image, which carries image.creds instead', () => {
+    web('api', {
+      runtime: 'image',
+      image: { url: 'docker.io/acme/api:1' },
+      // @ts-expect-error spec §4.3: a prebuilt image names its credential through image.creds.
+      registryCredential: external.registryCredential('acme'),
+    });
   });
 });

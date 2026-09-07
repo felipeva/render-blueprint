@@ -7,7 +7,7 @@ import { conflictingSource } from '../parse-configs.js';
 const SOURCE_KEYS: ReadonlySet<string> = new Set(SOURCE_FIELDS);
 
 // A resource's emission tuple lists every key its kind can emit, and for a sourced kind that is all
-// eight source keys at once. Only the branch the runtime picked emits any of them, so a key from
+// nine source keys at once. Only the branch the runtime picked emits any of them, so a key from
 // another branch is the wrong source: extraFields could not be overwriting a value the library
 // emits, and the config has no field to set it through either.
 const conflict = (

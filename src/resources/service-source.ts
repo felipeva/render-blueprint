@@ -28,7 +28,8 @@ export interface NativeSource {
   readonly buildCommand?: string;
 }
 
-// spec §4.2: the Dockerfile is the build, so there is no buildCommand to run beside it.
+// spec §4.2: the Dockerfile is the build, so there is no buildCommand to run beside it, and the
+// registry credential names the workspace credential that pulls the private base image it builds on.
 export interface DockerSource {
   readonly runtime: 'docker';
   readonly repo?: string;
@@ -37,6 +38,7 @@ export interface DockerSource {
   readonly dockerfilePath?: string;
   readonly dockerContext?: string;
   readonly dockerCommand?: string;
+  readonly registryCredential?: RegistryCredentialReference;
 }
 
 // spec §4.3: image and repo are the two alternative sources, so a prebuilt image names no
@@ -89,6 +91,7 @@ export interface DockerSourceFields {
   readonly dockerfilePath: z.ZodExactOptional<z.ZodString>;
   readonly dockerContext: z.ZodExactOptional<z.ZodString>;
   readonly dockerCommand: z.ZodExactOptional<z.ZodString>;
+  readonly registryCredential: z.ZodExactOptional<z.ZodType<RegistryCredentialReference>>;
 }
 
 export const dockerSourceFields: DockerSourceFields = {
@@ -99,6 +102,7 @@ export const dockerSourceFields: DockerSourceFields = {
   dockerfilePath: z.string().exactOptional(),
   dockerContext: z.string().exactOptional(),
   dockerCommand: z.string().exactOptional(),
+  registryCredential: registryCredentialReferenceSchema.exactOptional(),
 };
 
 export interface ImageSourceFields {
@@ -126,6 +130,7 @@ export const SOURCE_FIELDS = [
   'dockerfilePath',
   'dockerContext',
   'dockerCommand',
+  'registryCredential',
   'image',
 ] as const;
 
@@ -143,7 +148,7 @@ export const SERVICE_SOURCE_SCHEMA_MATCHES_INTERFACE: true =
   true satisfies SourceSchemaMatchesInterface;
 
 // Which of SOURCE_FIELDS the branch a runtime picks owns. A factory's emission tuple lists all
-// eight, because one service or another emits each; only the branch says which this config has.
+// nine, because one service or another emits each; only the branch says which this config has.
 export const ownedSourceFields = (runtime: string): readonly string[] => {
   if (runtime === 'image') return Object.keys(imageSourceFields).filter(notTheDiscriminator);
   if (runtime === 'docker') return Object.keys(dockerSourceFields).filter(notTheDiscriminator);

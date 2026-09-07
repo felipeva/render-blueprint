@@ -79,6 +79,7 @@ export const WORKER_FIELDS = [
   'buildCommand',
   'startCommand',
   'preDeployCommand',
+  'registryCredential',
   'envVars',
   'autoDeployTrigger',
   'disk',
