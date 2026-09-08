@@ -197,9 +197,9 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   ├── fixtures.test.ts             every test/fixtures/*/render.ts → byte-equal render.yaml, then
 │   │                                parsed and validated against the Render schema (§6.2, §6.3)
 │   ├── enum-conformance.test.ts     every enum tuple against the enum values the schema publishes
-│   ├── raised-issues.ts             not a test: the reader the config tests share for the issues a
+│   ├── support/raised-issues.ts     not a test: the reader the config tests share for the issues a
 │   │                                schema raised through raise(), each with the code it named
-│   ├── render-schema.ts             not a test: the compiled conformance oracle of §6.3, shared by
+│   ├── support/render-schema.ts     not a test: the compiled conformance oracle of §6.3, shared by
 │   │                                the fixture harness and the CLI smoke test
 │   ├── cli.test.ts                  spawn the binary in a temp dir; assert exit codes 0/1/2 (§6.6)
 │   ├── key-order-conformance.test.ts   every emission tuple that names a published definition,

@@ -10,7 +10,7 @@ import { parse } from 'yaml';
 
 import type { JsonValue } from '../src/index.js';
 import { expectation, type ReadText, type WriteText } from './expectation.js';
-import { renderSchema } from './render-schema.js';
+import { renderSchema } from './support/render-schema.js';
 
 interface Ran {
   readonly code: number;

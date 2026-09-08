@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { raisedIssuesThrough, type RaisedIssue } from '../../test/raised-issues.js';
+import { raisedIssuesThrough, type RaisedIssue } from '../../test/support/raised-issues.js';
 import { parseStaticSiteConfig, staticSite, type StaticSiteConfig } from './static-site.js';
 
 // SAFETY: JSON.parse returns any. Every config below stands in for a blueprint the CLI loaded
