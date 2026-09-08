@@ -1,30 +1,16 @@
-import * as z from 'zod';
-
 import type { ReferenceableServiceType } from '../enums/referenceable-service-type.js';
-import { environmentMapSchema, type EnvironmentMap } from '../env/env-value.js';
-import { isSelfEnvironment, selfEnvironment } from '../env/self-environment.js';
+import type { EnvironmentMap } from '../env/env-value.js';
+import { selfEnvironment } from '../env/self-environment.js';
 import type { Equal, Expect } from '../equal.js';
-import { CRON_JOB_FIELDS, parseCronConfig, type CronJob } from './cron.js';
+import { CRON_JOB_FIELDS, type CronJob } from './cron.js';
 import type { DefaultsProvenance } from './defaults-provenance.js';
-import {
-  ENVIRONMENT_GROUP_FIELDS,
-  parseEnvGroupConfig,
-  type EnvironmentGroup,
-} from './env-group.js';
-import { KEY_VALUE_STORE_FIELDS, parseKeyValueConfig, type KeyValueStore } from './key-value.js';
-import {
-  parsePostgresConfig,
-  POSTGRES_DATABASE_FIELDS,
-  type PostgresDatabase,
-} from './postgres.js';
-import {
-  parsePrivateServiceConfig,
-  PRIVATE_SERVICE_FIELDS,
-  type PrivateService,
-} from './private-service.js';
-import { parseStaticSiteConfig, STATIC_SITE_FIELDS, type StaticSite } from './static-site.js';
-import { parseWebConfig, WEB_SERVICE_FIELDS, type WebService } from './web.js';
-import { parseWorkerConfig, WORKER_FIELDS, type Worker } from './worker.js';
+import { ENVIRONMENT_GROUP_FIELDS, type EnvironmentGroup } from './env-group.js';
+import { KEY_VALUE_STORE_FIELDS, type KeyValueStore } from './key-value.js';
+import { POSTGRES_DATABASE_FIELDS, type PostgresDatabase } from './postgres.js';
+import { PRIVATE_SERVICE_FIELDS, type PrivateService } from './private-service.js';
+import { STATIC_SITE_FIELDS, type StaticSite } from './static-site.js';
+import { WEB_SERVICE_FIELDS, type WebService } from './web.js';
+import { WORKER_FIELDS, type Worker } from './worker.js';
 
 export type BlueprintResource =
   | WebService
@@ -117,51 +103,6 @@ export const resourceEnv = (resource: BlueprintResource): EnvironmentMap | undef
   }
 };
 
-// A callback is the author's own code, and resolving it against a config the schema rejected runs
-// it on values it was never written for.
-export const resourceEnvIsCallback = (resource: BlueprintResource): boolean => {
-  switch (resource.kind) {
-    case 'web':
-      return isSelfEnvironment(resource.config?.env);
-    case 'privateService':
-      return isSelfEnvironment(resource.config?.env);
-    case 'worker':
-      return isSelfEnvironment(resource.config?.env);
-    case 'cron':
-      return isSelfEnvironment(resource.config?.env);
-    case 'staticSite':
-      return isSelfEnvironment(resource.config?.env);
-    case 'keyValue':
-    case 'postgres':
-    case 'envGroup':
-      return false;
-  }
-};
-
-const unparsedEnv = (resource: BlueprintResource): EnvironmentMap | undefined => {
-  switch (resource.kind) {
-    case 'web':
-    case 'privateService':
-    case 'worker':
-    case 'cron':
-    case 'staticSite':
-      return resourceEnv(resource);
-    case 'keyValue':
-    case 'postgres':
-    case 'envGroup':
-      return undefined;
-  }
-};
-
-// Resolving the callback first is what puts the failing key, not the whole field, on the issue.
-export const resourceEnvIssues = (resource: BlueprintResource): readonly z.core.$ZodIssue[] => {
-  const env = unparsedEnv(resource);
-  if (env === undefined) return [];
-
-  const result = environmentMapSchema.safeParse(env);
-  return result.success ? [] : result.error.issues;
-};
-
 // spec §6.1: only a service imports a group, and a group never imports another one.
 export const resourceEnvGroups = (
   resource: BlueprintResource,
@@ -219,62 +160,5 @@ export const serviceReferenceType = (
     case 'postgres':
     case 'envGroup':
       return undefined;
-  }
-};
-
-const listedResourceSchema = z.object(
-  { kind: z.enum(RESOURCE_KINDS) },
-  { error: 'A resource is the value a factory returned; this entry in resources is not one.' },
-);
-
-export const resourceEntryIssues = (resource: BlueprintResource): readonly z.core.$ZodIssue[] => {
-  const result = listedResourceSchema.safeParse(resource);
-  return result.success ? [] : result.error.issues;
-};
-
-const RESOURCE_NAME_ERROR =
-  'A resource name is a non-empty string; Render identifies a resource by its name.';
-
-const resourceNameSchema = z
-  .string({ error: RESOURCE_NAME_ERROR })
-  .min(1, { error: RESOURCE_NAME_ERROR });
-
-export const parseResourceName = (name: string): z.ZodSafeParseResult<string> =>
-  resourceNameSchema.safeParse(name);
-
-export const resourceConfigIssues = (resource: BlueprintResource): readonly z.core.$ZodIssue[] => {
-  switch (resource.kind) {
-    case 'web': {
-      const result = parseWebConfig(resource.config);
-      return result.success ? [] : result.error.issues;
-    }
-    case 'privateService': {
-      const result = parsePrivateServiceConfig(resource.config);
-      return result.success ? [] : result.error.issues;
-    }
-    case 'worker': {
-      const result = parseWorkerConfig(resource.config);
-      return result.success ? [] : result.error.issues;
-    }
-    case 'cron': {
-      const result = parseCronConfig(resource.config);
-      return result.success ? [] : result.error.issues;
-    }
-    case 'staticSite': {
-      const result = parseStaticSiteConfig(resource.config);
-      return result.success ? [] : result.error.issues;
-    }
-    case 'keyValue': {
-      const result = parseKeyValueConfig(resource.config);
-      return result.success ? [] : result.error.issues;
-    }
-    case 'postgres': {
-      const result = parsePostgresConfig(resource.config);
-      return result.success ? [] : result.error.issues;
-    }
-    case 'envGroup': {
-      const result = parseEnvGroupConfig(resource.config);
-      return result.success ? [] : result.error.issues;
-    }
   }
 };

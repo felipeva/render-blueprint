@@ -1,5 +1,6 @@
 import type { EnvironmentGroup } from '../resources/env-group.js';
 import { resourceEnv, resourceEnvGroups, type BlueprintResource } from '../resources/resource.js';
+import { describeNames } from './describe-names.js';
 
 export interface EnvKeyOrigin {
   readonly key: string;
@@ -11,14 +12,6 @@ export interface ResourceEnvKeyOrigins {
   readonly resource: BlueprintResource;
   readonly origins: readonly EnvKeyOrigin[];
 }
-
-export const describeNames = (names: readonly string[]): string => {
-  const quoted = names.map((name) => `"${name}"`);
-  const last = quoted.at(-1) ?? '';
-  const rest = quoted.slice(0, -1);
-
-  return rest.length === 0 ? last : `${rest.join(', ')} and ${last}`;
-};
 
 export const describeGroups = (names: readonly string[]): string =>
   `${names.length === 1 ? 'group' : 'groups'} ${describeNames(names)}`;

@@ -1,6 +1,6 @@
 import { DEFAULT_KEYS, type DefaultsDeclaration } from '../../resources/defaults-provenance.js';
 import { resourceDefaults, type BlueprintResource } from '../../resources/resource.js';
-import { describeNames } from '../env-key-origins.js';
+import { describeNames } from '../describe-names.js';
 import type { ValidationWarning } from '../issue.js';
 
 interface ScopeUse {
