@@ -397,7 +397,21 @@ stays outside `src/` — a file under `src/` would ship its Zod types.
 **The gate.** `.oxlintrc.json` encodes every rule above, and `pnpm lint` runs it, so `pnpm check`
 and the `pre-commit` hook both fail on a violation. Each rule is one `overrides[]` block keyed on a
 `files` glob, the blocks run in tier order, and every message names the tier and points back here.
+`test/dependency-policy.test.ts` extends the real config from a temporary directory and asserts
 that each block rejects what it forbids and admits what it allows.
+
+**A module is one flat directory.** `synth/document.ts` and `synth/mapping.ts` import each other
+freely, but `synth/sub/` would not be part of `synth/`: a subdirectory is a sub-tier, and it needs
+its own row in the table above and its own block in the config, the way `validation/rules/` has
+both. Until it has them the tier block refuses its imports, its imports of its own module's root
+included. That refusal is the signal to write the row — never to negate the module root, and never
+to add an exemption.
+
+**A file in no tier is denied by default.** A leading block matching all of `src/**` refuses every
+import that leaves the file's own directory, and every external package, so a directory nobody has
+classified fails the gate instead of passing unexamined; the block after it holds a new file
+directly under `src/` to L0 for the same reason. The fix is a row above and a block in the config,
+in that order.
 
 **How to resolve a violation.** The message names the tier the file is in and the tiers it may
 import. Move the code to the layer that owns it, or give the importer what it needs from a file
@@ -411,15 +425,26 @@ Three notes on how the config encodes this section, so they are not rediscovered
 
 1. `no-restricted-imports` matches the specifier text, so each per-module block denies `../**` and
    negates the tiers below it by name; `validation/rules/`, the only nested directory in `src/`,
-   needs the `../../**` form as well. The blocks are ordered and the last one to match a file wins,
-   which is how the test-file block relaxes the tier blocks above it.
+   needs the `../../**` form as well. Two ordering rules govern the rest. Blocks are ordered and the
+   last one to match a file wins, which is how the block for colocated test files relaxes the tier
+   blocks above it. Inside a block the opposite holds: a negation exempts that specifier from the
+   whole rule, whatever group it sits in. A ban that has to outlive a negation — the ban on
+   importing a test file has to outlive `!../resources/**`, which matches
+   `../resources/web.test.js` — must therefore be the last entry of that same group, never a group
+   of its own.
 2. `import/no-cycle` needs `ignoreTypes` set to false — its default passes a type-only cycle.
+   Naming the `import` plugin also enables `import/default` and `import/namespace`, its two other
+   rules in the `correctness` category; the tree passes both.
 3. `ajv` is imported as `ajv/dist/2020.js`, so a bare `ajv` pattern will not match it.
 
-Two things the gate does not see. The `@drizzle-team/brocli` row is per-directory while the
-test-file block is one flat block, so a test file outside `cli/` could import brocli undetected; no
-test does. And a specifier is matched as text, so a computed `import(variable)` is invisible:
-`cli/load.ts` loads the author's blueprint that way by design, and nothing else in `src/` does.
+What the gate does not see. The block for `src/**/*.test.ts` and `src/**/*.test-d.ts` is one flat
+block, so mechanically it keeps only the `ajv` row and the ban on importing a fixture; every other
+external row stops binding a colocated test file. Of those, `@drizzle-team/brocli` is the only real
+loss, because the rest name a `test/` exemption anyway. Restoring it would mean repeating the
+test-file block once per directory, roughly doubling the config to police one package that no test
+outside `cli/` imports, so it was not paid for. Separately, a specifier is matched as text, so a
+computed `import(variable)` is invisible: `cli/load.ts` loads the author's blueprint that way by
+design, and nothing else in `src/` does.
 
 ### 3.2 Reviewed by hand
 

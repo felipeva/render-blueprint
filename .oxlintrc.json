@@ -60,12 +60,8 @@
           {
             "patterns": [
               {
-                "group": ["../**"],
-                "message": "structure.md §3.1: this file belongs to no tier. Give its directory a row in the tier table and an override block in .oxlintrc.json before importing anything outside it."
-              },
-              {
-                "group": ["./**/*.test.js", "./**/*.test-d.js"],
-                "message": "structure.md §3.1: no source file may import a test file."
+                "group": ["../**", "**/*.test.js", "**/*.test-d.js"],
+                "message": "structure.md §3.1: this file belongs to no tier. Give its directory a row in the tier table and an override block in .oxlintrc.json before importing anything outside it. No source file imports a test file."
               },
               {
                 "group": [
@@ -101,8 +97,8 @@
           {
             "patterns": [
               {
-                "group": ["./**", "../**"],
-                "message": "structure.md §3.1: a file directly under src/ is L0; it imports nothing inside src/."
+                "group": ["./**", "../**", "**/*.test.js", "**/*.test-d.js"],
+                "message": "structure.md §3.1: a file directly under src/ is L0; it imports nothing inside src/. No source file imports a test file."
               },
               {
                 "group": [
@@ -136,8 +132,15 @@
           {
             "patterns": [
               {
-                "group": ["./**", "!./raise.js", "!./equal.js", "../**"],
-                "message": "structure.md §3.1: json.ts and bounded-integer.ts are L1; they import L0 only."
+                "group": [
+                  "./**",
+                  "!./raise.js",
+                  "!./equal.js",
+                  "../**",
+                  "**/*.test.js",
+                  "**/*.test-d.js"
+                ],
+                "message": "structure.md §3.1: json.ts and bounded-integer.ts are L1; they import L0 only. No source file imports a test file."
               },
               {
                 "group": [
@@ -171,12 +174,14 @@
           {
             "patterns": [
               {
-                "group": ["../**", "!../raise.js", "!../equal.js"],
-                "message": "structure.md §3.1: enums/ is L1; it may import L0 and its own files."
-              },
-              {
-                "group": ["./**/*.test.js", "./**/*.test-d.js"],
-                "message": "structure.md §3.1: no source file may import a test file."
+                "group": [
+                  "../**",
+                  "!../raise.js",
+                  "!../equal.js",
+                  "**/*.test.js",
+                  "**/*.test-d.js"
+                ],
+                "message": "structure.md §3.1: enums/ is L1; it may import L0 and its own files. No source file imports a test file."
               },
               {
                 "group": [
@@ -216,13 +221,11 @@
                   "!../equal.js",
                   "!../json.js",
                   "!../bounded-integer.js",
-                  "!../enums/**"
+                  "!../enums/**",
+                  "**/*.test.js",
+                  "**/*.test-d.js"
                 ],
-                "message": "structure.md §3.1: references/ is L2; it may import L0-L1 and its own files."
-              },
-              {
-                "group": ["./**/*.test.js", "./**/*.test-d.js"],
-                "message": "structure.md §3.1: no source file may import a test file."
+                "message": "structure.md §3.1: references/ is L2; it may import L0-L1 and its own files. No source file imports a test file."
               },
               {
                 "group": [
@@ -263,13 +266,11 @@
                   "!../json.js",
                   "!../bounded-integer.js",
                   "!../enums/**",
-                  "!../references/**"
+                  "!../references/**",
+                  "**/*.test.js",
+                  "**/*.test-d.js"
                 ],
-                "message": "structure.md §3.1: env/ is L3; it may import L0-L2 and its own files."
-              },
-              {
-                "group": ["./**/*.test.js", "./**/*.test-d.js"],
-                "message": "structure.md §3.1: no source file may import a test file."
+                "message": "structure.md §3.1: env/ is L3; it may import L0-L2 and its own files. No source file imports a test file."
               },
               {
                 "group": [
@@ -311,13 +312,11 @@
                   "!../bounded-integer.js",
                   "!../enums/**",
                   "!../references/**",
-                  "!../env/**"
+                  "!../env/**",
+                  "**/*.test.js",
+                  "**/*.test-d.js"
                 ],
-                "message": "structure.md §3.1: resources/ is L4; it may import L0-L3 and its own files."
-              },
-              {
-                "group": ["./**/*.test.js", "./**/*.test-d.js"],
-                "message": "structure.md §3.1: no source file may import a test file."
+                "message": "structure.md §3.1: resources/ is L4; it may import L0-L3 and its own files. No source file imports a test file."
               },
               {
                 "group": [
@@ -360,13 +359,11 @@
                   "!../enums/**",
                   "!../references/**",
                   "!../env/**",
-                  "!../resources/**"
+                  "!../resources/**",
+                  "**/*.test.js",
+                  "**/*.test-d.js"
                 ],
-                "message": "structure.md §3.1: defaults/ is L5; it may import L0-L4 and its own files, never its sibling blueprint/."
-              },
-              {
-                "group": ["./**/*.test.js", "./**/*.test-d.js"],
-                "message": "structure.md §3.1: no source file may import a test file."
+                "message": "structure.md §3.1: defaults/ is L5; it may import L0-L4 and its own files, never its sibling blueprint/. No source file imports a test file."
               },
               {
                 "group": [
@@ -409,13 +406,11 @@
                   "!../enums/**",
                   "!../references/**",
                   "!../env/**",
-                  "!../resources/**"
+                  "!../resources/**",
+                  "**/*.test.js",
+                  "**/*.test-d.js"
                 ],
-                "message": "structure.md §3.1: blueprint/ is L5; it may import L0-L4 and its own files, never its sibling defaults/."
-              },
-              {
-                "group": ["./**/*.test.js", "./**/*.test-d.js"],
-                "message": "structure.md §3.1: no source file may import a test file."
+                "message": "structure.md §3.1: blueprint/ is L5; it may import L0-L4 and its own files, never its sibling defaults/. No source file imports a test file."
               },
               {
                 "group": [
@@ -460,13 +455,11 @@
                   "!../env/**",
                   "!../resources/**",
                   "!../defaults/**",
-                  "!../blueprint/**"
+                  "!../blueprint/**",
+                  "**/*.test.js",
+                  "**/*.test-d.js"
                 ],
-                "message": "structure.md §3.1: validation/ is L6; it may import L0-L5 and its own files, rules/ included."
-              },
-              {
-                "group": ["./**/*.test.js", "./**/*.test-d.js"],
-                "message": "structure.md §3.1: no source file may import a test file."
+                "message": "structure.md §3.1: validation/ is L6; it may import L0-L5 and its own files, rules/ included. No source file imports a test file."
               },
               {
                 "group": [
@@ -511,9 +504,11 @@
                   "!../../env/**",
                   "!../../resources/**",
                   "!../../defaults/**",
-                  "!../../blueprint/**"
+                  "!../../blueprint/**",
+                  "**/*.test.js",
+                  "**/*.test-d.js"
                 ],
-                "message": "structure.md §3.1: validation/rules/ is the L6a sub-tier; a rule may import L0-L5 and any non-rule file in validation/, never validate.ts."
+                "message": "structure.md §3.1: validation/rules/ is the L6a sub-tier; a rule may import L0-L5 and any non-rule file in validation/, never validate.ts. No source file imports a test file."
               },
               {
                 "group": ["./**"],
@@ -561,13 +556,11 @@
                   "!../resources/**",
                   "!../defaults/**",
                   "!../blueprint/**",
-                  "!../validation/**"
+                  "!../validation/**",
+                  "**/*.test.js",
+                  "**/*.test-d.js"
                 ],
-                "message": "structure.md §3.1: synth/ is L7; it may import L0-L6 and its own files."
-              },
-              {
-                "group": ["./**/*.test.js", "./**/*.test-d.js"],
-                "message": "structure.md §3.1: no source file may import a test file."
+                "message": "structure.md §3.1: synth/ is L7; it may import L0-L6 and its own files. No source file imports a test file."
               },
               {
                 "group": [
@@ -612,13 +605,11 @@
                   "!../defaults/**",
                   "!../blueprint/**",
                   "!../validation/**",
-                  "!../synth/**"
+                  "!../synth/**",
+                  "**/*.test.js",
+                  "**/*.test-d.js"
                 ],
-                "message": "structure.md §3.1: fs/ is L8; it may import L0-L7 and its own files."
-              },
-              {
-                "group": ["./**/*.test.js", "./**/*.test-d.js"],
-                "message": "structure.md §3.1: no source file may import a test file."
+                "message": "structure.md §3.1: fs/ is L8; it may import L0-L7 and its own files. No source file imports a test file."
               },
               {
                 "group": [
@@ -670,13 +661,11 @@
                   "!../blueprint/**",
                   "!../validation/**",
                   "!../synth/**",
-                  "!../fs/**"
+                  "!../fs/**",
+                  "**/*.test.js",
+                  "**/*.test-d.js"
                 ],
-                "message": "structure.md §3.1: drift/ is L9; it may import L0-L8 and its own files."
-              },
-              {
-                "group": ["./**/*.test.js", "./**/*.test-d.js"],
-                "message": "structure.md §3.1: no source file may import a test file."
+                "message": "structure.md §3.1: drift/ is L9; it may import L0-L8 and its own files. No source file imports a test file."
               },
               {
                 "group": [
@@ -710,12 +699,15 @@
           {
             "patterns": [
               {
-                "group": ["../**", "./cli/**", "./index.js", "./testing.js"],
-                "message": "structure.md §3.1: index.ts and testing.ts are L10; they may import L0-L9, never cli/ and never each other."
-              },
-              {
-                "group": ["./**/*.test.js", "./**/*.test-d.js"],
-                "message": "structure.md §3.1: no source file may import a test file."
+                "group": [
+                  "../**",
+                  "./cli/**",
+                  "./index.js",
+                  "./testing.js",
+                  "**/*.test.js",
+                  "**/*.test-d.js"
+                ],
+                "message": "structure.md §3.1: index.ts and testing.ts are L10; they may import L0-L9, never cli/ and never each other. No source file imports a test file."
               },
               {
                 "group": [
@@ -751,12 +743,8 @@
           {
             "patterns": [
               {
-                "group": ["../**", "!../index.js"],
-                "message": "structure.md §3.1: cli/ is L11; it imports index.ts and its own files, nothing else in src/. If index.ts does not export what you need, export it."
-              },
-              {
-                "group": ["./**/*.test.js", "./**/*.test-d.js"],
-                "message": "structure.md §3.1: no source file may import a test file."
+                "group": ["../**", "!../index.js", "**/*.test.js", "**/*.test-d.js"],
+                "message": "structure.md §3.1: cli/ is L11; it imports index.ts and its own files, nothing else in src/. If index.ts does not export what you need, export it. No source file imports a test file."
               },
               {
                 "group": [

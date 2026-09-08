@@ -358,6 +358,88 @@ describe('.oxlintrc.json', () => {
     expect(codesOf(report, 'src/synth/services.test.ts')).toEqual([RESTRICTED]);
   });
 
+  it('rejects a source file that imports a test file of another module, from a tier and from a rule', () => {
+    const report = linted([
+      file('src/resources/web.test.ts', 'export const helper = () => undefined;\n'),
+      file('src/resources/web.test-d.ts', 'export const typed = () => undefined;\n'),
+      file(
+        'src/synth/services.ts',
+        "import { helper } from '../resources/web.test.js';\nexport const emitted = helper;\n",
+      ),
+      file(
+        'src/synth/document.ts',
+        "import { typed } from '../resources/web.test-d.js';\nexport const written = typed;\n",
+      ),
+      file(
+        'src/validation/rules/web-only-field.ts',
+        "import { helper } from '../../resources/web.test.js';\nexport const webOnlyField = helper;\n",
+      ),
+    ]);
+
+    expect(codesOf(report, 'src/synth/services.ts')).toEqual([RESTRICTED]);
+    expect(codesOf(report, 'src/synth/document.ts')).toEqual([RESTRICTED]);
+    expect(codesOf(report, 'src/validation/rules/web-only-field.ts')).toEqual([RESTRICTED]);
+  });
+
+  it('holds a file directly under src/ to L0 and lets it import zod', () => {
+    const report = linted([
+      file('src/json.ts', 'export const isJson = () => undefined;\n'),
+      file('src/equal.ts', "import { isJson } from './json.js';\nexport const equal = isJson;\n"),
+      file('src/raise.ts', "import { z } from 'zod';\nexport const raise = z;\n"),
+    ]);
+
+    expect(codesOf(report, 'src/equal.ts')).toEqual([RESTRICTED]);
+    expect(codesOf(report, 'src/raise.ts')).toEqual([]);
+  });
+
+  it('allows each module the tiers its own block admits, which no other block would', () => {
+    const report = linted([
+      file('src/resources/web.ts', 'export const web = () => undefined;\n'),
+      file('src/synth/synthesize.ts', 'export const synthesize = () => undefined;\n'),
+      file('src/fs/file-port.ts', 'export const filePort = () => undefined;\n'),
+      file(
+        'src/defaults/with-defaults.ts',
+        "import { web } from '../resources/web.js';\nexport const withDefaults = web;\n",
+      ),
+      file(
+        'src/blueprint/blueprint.ts',
+        "import { web } from '../resources/web.js';\nexport const blueprint = web;\n",
+      ),
+      file(
+        'src/drift/check-blueprint.ts',
+        [
+          "import { Result } from 'better-result';",
+          "import { filePort } from '../fs/file-port.js';",
+          'export const checkBlueprint = [Result, filePort];',
+          '',
+        ].join('\n'),
+      ),
+      file(
+        'src/index.ts',
+        "export { web } from './resources/web.js';\nexport { synthesize } from './synth/synthesize.js';\n",
+      ),
+      file('src/testing.ts', "export { filePort } from './fs/file-port.js';\n"),
+    ]);
+
+    expect(report.diagnostics).toEqual([]);
+  });
+
+  it('keeps ajv inside test/support/ and out of the rest of test/', () => {
+    const report = linted([
+      file(
+        'test/support/render-schema.ts',
+        "import Ajv from 'ajv/dist/2020.js';\nexport const oracle = Ajv;\n",
+      ),
+      file(
+        'test/enum-conformance.test.ts',
+        "import Ajv from 'ajv/dist/2020.js';\nexport const conformance = Ajv;\n",
+      ),
+    ]);
+
+    expect(codesOf(report, 'test/support/render-schema.ts')).toEqual([]);
+    expect(codesOf(report, 'test/enum-conformance.test.ts')).toEqual([RESTRICTED]);
+  });
+
   it('rejects a directory that has no tier row rather than leaving it unrestricted', () => {
     const report = linted([
       file('src/resources/web.ts', 'export const web = () => undefined;\n'),
