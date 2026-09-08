@@ -2,12 +2,12 @@ import { parseBlueprint, ROOT_NAME, type Blueprint } from '../blueprint/blueprin
 import { parseEnvironment } from '../blueprint/environment.js';
 import { parseProject } from '../blueprint/project.js';
 import type { ValidationIssue } from './issue.js';
-import { translate } from './parse-configs.js';
+import { translateSchemaIssue } from './translate-schema-issue.js';
 
 export const parsePlacement = (value: Blueprint): readonly ValidationIssue[] => {
   const onRoot = parseBlueprint(value);
   if (!onRoot.success) {
-    return onRoot.error.issues.flatMap((issue) => translate(ROOT_NAME, [], issue));
+    return onRoot.error.issues.flatMap((issue) => translateSchemaIssue(ROOT_NAME, [], issue));
   }
 
   const issues: ValidationIssue[] = [];
@@ -17,7 +17,8 @@ export const parsePlacement = (value: Blueprint): readonly ValidationIssue[] => 
     const onProject = parseProject(entry);
 
     if (!onProject.success) {
-      for (const issue of onProject.error.issues) issues.push(...translate(projectName, [], issue));
+      for (const issue of onProject.error.issues)
+        issues.push(...translateSchemaIssue(projectName, [], issue));
       continue;
     }
 
@@ -26,7 +27,7 @@ export const parsePlacement = (value: Blueprint): readonly ValidationIssue[] => 
       if (onEnvironment.success) continue;
 
       for (const issue of onEnvironment.error.issues) {
-        issues.push(...translate(String(environment?.name), [], issue));
+        issues.push(...translateSchemaIssue(String(environment?.name), [], issue));
       }
     }
   }

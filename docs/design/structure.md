@@ -82,9 +82,11 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   ├── service-fields.ts        the shared maps of common repo-sourced service fields, required and
 │   │   │                            exact-optional forms; factories spread them (ADR-0003, issue #20)
 
-│   │   ├── resource.ts  service-source.ts   the BlueprintResource union and `kind` discriminator;
-│   │   │                            the repo+branch | dockerfilePath | image source union the four
-│   │   │                            sourced kinds share, and the tuple of keys its branches own
+│   │   ├── resource.ts  service-source.ts   the BlueprintResource union, the `kind` discriminator
+│   │   │                            and the accessors its readers share; it parses nothing and
+│   │   │                            names no schema. The repo+branch | dockerfilePath | image
+│   │   │                            source union the four sourced kinds share, and the tuple of
+│   │   │                            keys its branches own
 │   │   ├── disk.ts  scaling.ts  build-filter.ts  ip-allow-list.ts  previews.ts
 │   │   │   subdomain-policy.ts
 │   │   │                            the sub-configs shared across service kinds, each with its own
@@ -133,6 +135,11 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   ├── validate.ts  issue.ts    THE entry, Blueprint → ok(ValidatedBlueprint) | err(...); plus
 │   │   │                            ValidationIssue, ValidationCode, ResourcePath, ValidationWarning
 │   │   ├── blueprint-invalid.ts     the BlueprintInvalid class — declared at its only producer (§5)
+│   │   ├── parse-resource.ts        every zod issue one resource's entry, name, config and resolved
+│   │   │                            environment produce; the schemas stay beside their factories
+│   │   ├── translate-schema-issue.ts   one zod issue → ValidationIssues: the unknown-field recovery
+│   │   │                            and the source conflict that resource and placement both raise
+│   │   ├── describe-names.ts        the quoted "a", "b" and "c" list a diagnostic message reads
 │   │   └── rules/                   one pure Blueprint → issues[] file per family: duplicate-name,
 │                                     dangling-reference, multiple-locations, env-collision,
 │                                     service-env-var-key, extra-field-conflict, warnings,

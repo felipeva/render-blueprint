@@ -999,6 +999,19 @@ describe('validate', () => {
     expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'kind' });
   });
 
+  it('keeps an entry no factory returned out of the rules that read names', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', { runtime: 'node' }),
+          uncheckedResource('{"name":"api","config":{"runtime":"node"}}'),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['InvalidConfig']);
+  });
+
   it('reports a duplicate name shared by a valid and a schema-invalid resource', () => {
     const result = validate(
       blueprint({

@@ -5,7 +5,7 @@ import { envGroup } from '../resources/env-group.js';
 import { privateService } from '../resources/private-service.js';
 import { web } from '../resources/web.js';
 import { worker } from '../resources/worker.js';
-import { describeGroups, describeNames, envKeyOrigins } from './env-key-origins.js';
+import { describeGroups, envKeyOrigins } from './env-key-origins.js';
 
 const settings = envGroup('shared-settings', { env: { LOG_LEVEL: 'info', REGION_NAME: 'oregon' } });
 
@@ -132,20 +132,6 @@ describe('envKeyOrigins', () => {
       { key: 'LOG_LEVEL', direct: true, groups: [] },
       { key: 'REGION_NAME', direct: false, groups: ['regional'] },
     ]);
-  });
-});
-
-describe('describeNames', () => {
-  it('quotes one name', () => {
-    expect(describeNames(['a'])).toBe('"a"');
-  });
-
-  it('joins two names with and', () => {
-    expect(describeNames(['a', 'b'])).toBe('"a" and "b"');
-  });
-
-  it('separates three names with commas and joins the last with and', () => {
-    expect(describeNames(['a', 'b', 'c'])).toBe('"a", "b" and "c"');
   });
 });
 

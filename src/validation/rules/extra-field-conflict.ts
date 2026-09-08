@@ -2,7 +2,7 @@ import { modeledFields, sourceRuntime, type BlueprintResource } from '../../reso
 import { ownedSourceFields, SOURCE_FIELDS } from '../../resources/service-source.js';
 import { deprecation, deprecationScope } from '../deprecation.js';
 import type { ResourcePath, ValidationIssue } from '../issue.js';
-import { conflictingSource } from '../parse-configs.js';
+import { conflictingSource } from '../translate-schema-issue.js';
 
 const SOURCE_KEYS: ReadonlySet<string> = new Set(SOURCE_FIELDS);
 
