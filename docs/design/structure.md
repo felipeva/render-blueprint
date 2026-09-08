@@ -186,14 +186,21 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │                                declares the error it produces — BlueprintWriteFailed and
 │   │                                BlueprintFileUnreadable (§5). There is no src/errors/.
 │   └── cli/                         nothing in src/ outside this directory may import it
-│       ├── main.ts                  the bin entry; the ONE isPanic boundary; exit codes 0/1/2. It
-│       │                            calls brocli's run() with noExit, so the exit code stays here
+│       ├── main.ts                  the bin entry and startup: argv, the manifest path, brocli's
+│       │                            run() with noExit, the node floor gate, and the ONE isPanic
+│       │                            boundary. The exit code run() discards lives here, beside it
+│       ├── execute.ts               discover → load → writeBlueprint or checkBlueprint, plus the
+│       │                            Outcome it produces and the CliError union it fails with
+│       ├── report.ts                the only writer of stdout and stderr and the only decider of
+│       │                            exit codes 0/1/2: an outcome, a usage failure, the node floor
+│       │                            sentence, the version line, a defect. Stateless — it returns
+│       │                            the status rather than assigning it
 │       ├── commands.ts              synth and check as brocli command() declarations: --file, --out
 │       │                            and --strict as typed option builders, and the help text brocli
 │       │                            generates from them (issue #22 replaced parse-arguments.ts)
 │       ├── usage-theme.ts           the brocli event handler: detects a usage failure — brocli's own, and the
 │       │                            global help it prints for a line that does not ask for help — which
-│       │                            main.ts turns into a message; rethrows a defect past brocli's catch
+│       │                            report.ts turns into a message; rethrows a defect past brocli's catch
 │       ├── run-config.ts            RunConfig extends BroCliConfig with noExit — brocli 0.12.1 reads
 │       │                            it at runtime but does not declare it
 │       ├── package-version.ts       reads the version out of the manifest beside the built binary,
