@@ -410,8 +410,8 @@ describe('postgresDefaults', () => {
   });
 });
 
-describe('DEFAULT_KEYS', () => {
-  it('names only defaults a kind on its repository branch makes eligible', () => {
+describe('apply-defaults', () => {
+  it('makes every key DEFAULT_KEYS names eligible through one of its seven kinds', () => {
     const reached = new Set([
       ...webDefaults(every, { runtime: 'node' }).eligible,
       ...privateServiceDefaults(every, { runtime: 'node' }).eligible,

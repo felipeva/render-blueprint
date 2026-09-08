@@ -38,6 +38,8 @@ const unmodeledKeys = (
         .map((key) => `plan.${key}`)),
 ];
 
+// The record half takes its order from DEFAULT_FIELDS, the plan half from PLAN_KINDS: slicing
+// "plan." off a dotted key yields string, not a PlanDefaults key. resource-defaults.ts guards both.
 const declaredKeys = (
   record: ResourceDefaults,
   plan: PlanDefaults | undefined,
