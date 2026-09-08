@@ -1,7 +1,9 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "unicorn", "oxc"],
-  "categories": { "correctness": "error" },
+  "plugins": ["typescript", "unicorn", "oxc", "import"],
+  "categories": {
+    "correctness": "error"
+  },
   "ignorePatterns": [
     ".agent/**",
     ".agents/**",
@@ -20,8 +22,19 @@
     "test/schema/**",
     "tools/oxlint/anti-slop/**"
   ],
-  "jsPlugins": [{ "name": "anti-slop", "specifier": "./tools/oxlint/anti-slop/index.ts" }],
+  "jsPlugins": [
+    {
+      "name": "anti-slop",
+      "specifier": "./tools/oxlint/anti-slop/index.ts"
+    }
+  ],
   "rules": {
+    "import/no-cycle": [
+      "error",
+      {
+        "ignoreTypes": false
+      }
+    ],
     "anti-slop/no-chained-type-assertions": "error",
     "anti-slop/no-conditional-empty-object-spread": "error",
     "anti-slop/no-known-value-widening": "error",
@@ -37,5 +50,779 @@
     "anti-slop/no-unsafe-dictionary-type": "error",
     "anti-slop/no-widen-then-assert": "error",
     "anti-slop/require-safety-comment-for-type-assertion": "error"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["../**"],
+                "message": "structure.md §3.1: this file belongs to no tier. Give its directory a row in the tier table and an override block in .oxlintrc.json before importing anything outside it."
+              },
+              {
+                "group": ["./**/*.test.js", "./**/*.test-d.js"],
+                "message": "structure.md §3.1: no source file may import a test file."
+              },
+              {
+                "group": [
+                  "zod",
+                  "zod/**",
+                  "better-result",
+                  "better-result/**",
+                  "yaml",
+                  "yaml/**",
+                  "node:*",
+                  "node:*/**",
+                  "@drizzle-team/brocli",
+                  "@drizzle-team/brocli/**",
+                  "ajv",
+                  "ajv/**",
+                  "ajv-formats",
+                  "ajv-formats/**",
+                  "vitest",
+                  "vitest/**"
+                ],
+                "message": "structure.md §3.1: this file belongs to no tier, so it owns no external dependency. Give its directory a row in the external-ownership table and an override block in .oxlintrc.json."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["./**", "../**"],
+                "message": "structure.md §3.1: a file directly under src/ is L0; it imports nothing inside src/."
+              },
+              {
+                "group": [
+                  "better-result",
+                  "better-result/**",
+                  "yaml",
+                  "yaml/**",
+                  "node:*",
+                  "node:*/**",
+                  "@drizzle-team/brocli",
+                  "@drizzle-team/brocli/**",
+                  "ajv",
+                  "ajv/**",
+                  "ajv-formats",
+                  "ajv-formats/**",
+                  "vitest",
+                  "vitest/**"
+                ],
+                "message": "structure.md §3.1: below validation/ the only allowed dependency is zod; better-result, yaml, node: builtins, brocli, ajv and vitest have other owners."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/json.ts", "src/bounded-integer.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["./**", "!./raise.js", "!./equal.js", "../**"],
+                "message": "structure.md §3.1: json.ts and bounded-integer.ts are L1; they import L0 only."
+              },
+              {
+                "group": [
+                  "better-result",
+                  "better-result/**",
+                  "yaml",
+                  "yaml/**",
+                  "node:*",
+                  "node:*/**",
+                  "@drizzle-team/brocli",
+                  "@drizzle-team/brocli/**",
+                  "ajv",
+                  "ajv/**",
+                  "ajv-formats",
+                  "ajv-formats/**",
+                  "vitest",
+                  "vitest/**"
+                ],
+                "message": "structure.md §3.1: below validation/ the only allowed dependency is zod; better-result, yaml, node: builtins, brocli, ajv and vitest have other owners."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/enums/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["../**", "!../raise.js", "!../equal.js"],
+                "message": "structure.md §3.1: enums/ is L1; it may import L0 and its own files."
+              },
+              {
+                "group": ["./**/*.test.js", "./**/*.test-d.js"],
+                "message": "structure.md §3.1: no source file may import a test file."
+              },
+              {
+                "group": [
+                  "better-result",
+                  "better-result/**",
+                  "yaml",
+                  "yaml/**",
+                  "node:*",
+                  "node:*/**",
+                  "@drizzle-team/brocli",
+                  "@drizzle-team/brocli/**",
+                  "ajv",
+                  "ajv/**",
+                  "ajv-formats",
+                  "ajv-formats/**",
+                  "vitest",
+                  "vitest/**"
+                ],
+                "message": "structure.md §3.1: below validation/ the only allowed dependency is zod; better-result, yaml, node: builtins, brocli, ajv and vitest have other owners."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/references/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "../**",
+                  "!../raise.js",
+                  "!../equal.js",
+                  "!../json.js",
+                  "!../bounded-integer.js",
+                  "!../enums/**"
+                ],
+                "message": "structure.md §3.1: references/ is L2; it may import L0-L1 and its own files."
+              },
+              {
+                "group": ["./**/*.test.js", "./**/*.test-d.js"],
+                "message": "structure.md §3.1: no source file may import a test file."
+              },
+              {
+                "group": [
+                  "better-result",
+                  "better-result/**",
+                  "yaml",
+                  "yaml/**",
+                  "node:*",
+                  "node:*/**",
+                  "@drizzle-team/brocli",
+                  "@drizzle-team/brocli/**",
+                  "ajv",
+                  "ajv/**",
+                  "ajv-formats",
+                  "ajv-formats/**",
+                  "vitest",
+                  "vitest/**"
+                ],
+                "message": "structure.md §3.1: below validation/ the only allowed dependency is zod; better-result, yaml, node: builtins, brocli, ajv and vitest have other owners."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/env/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "../**",
+                  "!../raise.js",
+                  "!../equal.js",
+                  "!../json.js",
+                  "!../bounded-integer.js",
+                  "!../enums/**",
+                  "!../references/**"
+                ],
+                "message": "structure.md §3.1: env/ is L3; it may import L0-L2 and its own files."
+              },
+              {
+                "group": ["./**/*.test.js", "./**/*.test-d.js"],
+                "message": "structure.md §3.1: no source file may import a test file."
+              },
+              {
+                "group": [
+                  "better-result",
+                  "better-result/**",
+                  "yaml",
+                  "yaml/**",
+                  "node:*",
+                  "node:*/**",
+                  "@drizzle-team/brocli",
+                  "@drizzle-team/brocli/**",
+                  "ajv",
+                  "ajv/**",
+                  "ajv-formats",
+                  "ajv-formats/**",
+                  "vitest",
+                  "vitest/**"
+                ],
+                "message": "structure.md §3.1: below validation/ the only allowed dependency is zod; better-result, yaml, node: builtins, brocli, ajv and vitest have other owners."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/resources/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "../**",
+                  "!../raise.js",
+                  "!../equal.js",
+                  "!../json.js",
+                  "!../bounded-integer.js",
+                  "!../enums/**",
+                  "!../references/**",
+                  "!../env/**"
+                ],
+                "message": "structure.md §3.1: resources/ is L4; it may import L0-L3 and its own files."
+              },
+              {
+                "group": ["./**/*.test.js", "./**/*.test-d.js"],
+                "message": "structure.md §3.1: no source file may import a test file."
+              },
+              {
+                "group": [
+                  "better-result",
+                  "better-result/**",
+                  "yaml",
+                  "yaml/**",
+                  "node:*",
+                  "node:*/**",
+                  "@drizzle-team/brocli",
+                  "@drizzle-team/brocli/**",
+                  "ajv",
+                  "ajv/**",
+                  "ajv-formats",
+                  "ajv-formats/**",
+                  "vitest",
+                  "vitest/**"
+                ],
+                "message": "structure.md §3.1: below validation/ the only allowed dependency is zod; better-result, yaml, node: builtins, brocli, ajv and vitest have other owners."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/defaults/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "../**",
+                  "!../raise.js",
+                  "!../equal.js",
+                  "!../json.js",
+                  "!../bounded-integer.js",
+                  "!../enums/**",
+                  "!../references/**",
+                  "!../env/**",
+                  "!../resources/**"
+                ],
+                "message": "structure.md §3.1: defaults/ is L5; it may import L0-L4 and its own files, never its sibling blueprint/."
+              },
+              {
+                "group": ["./**/*.test.js", "./**/*.test-d.js"],
+                "message": "structure.md §3.1: no source file may import a test file."
+              },
+              {
+                "group": [
+                  "better-result",
+                  "better-result/**",
+                  "yaml",
+                  "yaml/**",
+                  "node:*",
+                  "node:*/**",
+                  "@drizzle-team/brocli",
+                  "@drizzle-team/brocli/**",
+                  "ajv",
+                  "ajv/**",
+                  "ajv-formats",
+                  "ajv-formats/**",
+                  "vitest",
+                  "vitest/**"
+                ],
+                "message": "structure.md §3.1: below validation/ the only allowed dependency is zod; better-result, yaml, node: builtins, brocli, ajv and vitest have other owners."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/blueprint/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "../**",
+                  "!../raise.js",
+                  "!../equal.js",
+                  "!../json.js",
+                  "!../bounded-integer.js",
+                  "!../enums/**",
+                  "!../references/**",
+                  "!../env/**",
+                  "!../resources/**"
+                ],
+                "message": "structure.md §3.1: blueprint/ is L5; it may import L0-L4 and its own files, never its sibling defaults/."
+              },
+              {
+                "group": ["./**/*.test.js", "./**/*.test-d.js"],
+                "message": "structure.md §3.1: no source file may import a test file."
+              },
+              {
+                "group": [
+                  "better-result",
+                  "better-result/**",
+                  "yaml",
+                  "yaml/**",
+                  "node:*",
+                  "node:*/**",
+                  "@drizzle-team/brocli",
+                  "@drizzle-team/brocli/**",
+                  "ajv",
+                  "ajv/**",
+                  "ajv-formats",
+                  "ajv-formats/**",
+                  "vitest",
+                  "vitest/**"
+                ],
+                "message": "structure.md §3.1: below validation/ the only allowed dependency is zod; better-result, yaml, node: builtins, brocli, ajv and vitest have other owners."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/validation/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "../**",
+                  "!../raise.js",
+                  "!../equal.js",
+                  "!../json.js",
+                  "!../bounded-integer.js",
+                  "!../enums/**",
+                  "!../references/**",
+                  "!../env/**",
+                  "!../resources/**",
+                  "!../defaults/**",
+                  "!../blueprint/**"
+                ],
+                "message": "structure.md §3.1: validation/ is L6; it may import L0-L5 and its own files, rules/ included."
+              },
+              {
+                "group": ["./**/*.test.js", "./**/*.test-d.js"],
+                "message": "structure.md §3.1: no source file may import a test file."
+              },
+              {
+                "group": [
+                  "yaml",
+                  "yaml/**",
+                  "node:*",
+                  "node:*/**",
+                  "@drizzle-team/brocli",
+                  "@drizzle-team/brocli/**",
+                  "ajv",
+                  "ajv/**",
+                  "ajv-formats",
+                  "ajv-formats/**",
+                  "vitest",
+                  "vitest/**"
+                ],
+                "message": "structure.md §3.1: validation/ may import zod and better-result; yaml, node: builtins, brocli, ajv and vitest have other owners."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/validation/rules/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "../**",
+                  "!../*.js",
+                  "../validate.js",
+                  "!../../raise.js",
+                  "!../../equal.js",
+                  "!../../json.js",
+                  "!../../bounded-integer.js",
+                  "!../../enums/**",
+                  "!../../references/**",
+                  "!../../env/**",
+                  "!../../resources/**",
+                  "!../../defaults/**",
+                  "!../../blueprint/**"
+                ],
+                "message": "structure.md §3.1: validation/rules/ is the L6a sub-tier; a rule may import L0-L5 and any non-rule file in validation/, never validate.ts."
+              },
+              {
+                "group": ["./**"],
+                "message": "structure.md §3.1: a rule never imports a sibling rule; validate.ts is the only composer."
+              },
+              {
+                "group": [
+                  "yaml",
+                  "yaml/**",
+                  "node:*",
+                  "node:*/**",
+                  "@drizzle-team/brocli",
+                  "@drizzle-team/brocli/**",
+                  "ajv",
+                  "ajv/**",
+                  "ajv-formats",
+                  "ajv-formats/**",
+                  "vitest",
+                  "vitest/**"
+                ],
+                "message": "structure.md §3.1: validation/ may import zod and better-result; yaml, node: builtins, brocli, ajv and vitest have other owners."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/synth/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "../**",
+                  "!../raise.js",
+                  "!../equal.js",
+                  "!../json.js",
+                  "!../bounded-integer.js",
+                  "!../enums/**",
+                  "!../references/**",
+                  "!../env/**",
+                  "!../resources/**",
+                  "!../defaults/**",
+                  "!../blueprint/**",
+                  "!../validation/**"
+                ],
+                "message": "structure.md §3.1: synth/ is L7; it may import L0-L6 and its own files."
+              },
+              {
+                "group": ["./**/*.test.js", "./**/*.test-d.js"],
+                "message": "structure.md §3.1: no source file may import a test file."
+              },
+              {
+                "group": [
+                  "zod",
+                  "zod/**",
+                  "node:*",
+                  "node:*/**",
+                  "@drizzle-team/brocli",
+                  "@drizzle-team/brocli/**",
+                  "ajv",
+                  "ajv/**",
+                  "ajv-formats",
+                  "ajv-formats/**",
+                  "vitest",
+                  "vitest/**"
+                ],
+                "message": "structure.md §3.1: synth/ owns yaml and may import better-result; zod stops at validation/, and node: builtins, brocli, ajv and vitest have other owners."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/fs/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "../**",
+                  "!../raise.js",
+                  "!../equal.js",
+                  "!../json.js",
+                  "!../bounded-integer.js",
+                  "!../enums/**",
+                  "!../references/**",
+                  "!../env/**",
+                  "!../resources/**",
+                  "!../defaults/**",
+                  "!../blueprint/**",
+                  "!../validation/**",
+                  "!../synth/**"
+                ],
+                "message": "structure.md §3.1: fs/ is L8; it may import L0-L7 and its own files."
+              },
+              {
+                "group": ["./**/*.test.js", "./**/*.test-d.js"],
+                "message": "structure.md §3.1: no source file may import a test file."
+              },
+              {
+                "group": [
+                  "zod",
+                  "zod/**",
+                  "yaml",
+                  "yaml/**",
+                  "node:*",
+                  "node:*/**",
+                  "@drizzle-team/brocli",
+                  "@drizzle-team/brocli/**",
+                  "ajv",
+                  "ajv/**",
+                  "ajv-formats",
+                  "ajv-formats/**",
+                  "vitest",
+                  "vitest/**",
+                  "!node:fs",
+                  "!node:fs/promises",
+                  "!node:path",
+                  "!node:url"
+                ],
+                "message": "structure.md §3.1: fs/ owns node:fs and may import node:path, node:url and better-result; zod, yaml, brocli, ajv, vitest and every other node: builtin have other owners."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/drift/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "../**",
+                  "!../raise.js",
+                  "!../equal.js",
+                  "!../json.js",
+                  "!../bounded-integer.js",
+                  "!../enums/**",
+                  "!../references/**",
+                  "!../env/**",
+                  "!../resources/**",
+                  "!../defaults/**",
+                  "!../blueprint/**",
+                  "!../validation/**",
+                  "!../synth/**",
+                  "!../fs/**"
+                ],
+                "message": "structure.md §3.1: drift/ is L9; it may import L0-L8 and its own files."
+              },
+              {
+                "group": ["./**/*.test.js", "./**/*.test-d.js"],
+                "message": "structure.md §3.1: no source file may import a test file."
+              },
+              {
+                "group": [
+                  "zod",
+                  "zod/**",
+                  "yaml",
+                  "yaml/**",
+                  "node:*",
+                  "node:*/**",
+                  "@drizzle-team/brocli",
+                  "@drizzle-team/brocli/**",
+                  "ajv",
+                  "ajv/**",
+                  "ajv-formats",
+                  "ajv-formats/**",
+                  "vitest",
+                  "vitest/**"
+                ],
+                "message": "structure.md §3.1: drift/ may import better-result only; it receives a JsonValue, never YAML or a file path."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/index.ts", "src/testing.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["../**", "./cli/**", "./index.js", "./testing.js"],
+                "message": "structure.md §3.1: index.ts and testing.ts are L10; they may import L0-L9, never cli/ and never each other."
+              },
+              {
+                "group": ["./**/*.test.js", "./**/*.test-d.js"],
+                "message": "structure.md §3.1: no source file may import a test file."
+              },
+              {
+                "group": [
+                  "zod",
+                  "zod/**",
+                  "better-result",
+                  "better-result/**",
+                  "yaml",
+                  "yaml/**",
+                  "node:*",
+                  "node:*/**",
+                  "@drizzle-team/brocli",
+                  "@drizzle-team/brocli/**",
+                  "ajv",
+                  "ajv/**",
+                  "ajv-formats",
+                  "ajv-formats/**",
+                  "vitest",
+                  "vitest/**"
+                ],
+                "message": "structure.md §3.1: the published entrypoints re-export src/ only; no runtime dependency belongs in them."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/cli/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["../**", "!../index.js"],
+                "message": "structure.md §3.1: cli/ is L11; it imports index.ts and its own files, nothing else in src/. If index.ts does not export what you need, export it."
+              },
+              {
+                "group": ["./**/*.test.js", "./**/*.test-d.js"],
+                "message": "structure.md §3.1: no source file may import a test file."
+              },
+              {
+                "group": [
+                  "zod",
+                  "zod/**",
+                  "yaml",
+                  "yaml/**",
+                  "node:*",
+                  "node:*/**",
+                  "ajv",
+                  "ajv/**",
+                  "ajv-formats",
+                  "ajv-formats/**",
+                  "vitest",
+                  "vitest/**",
+                  "!node:path",
+                  "!node:url"
+                ],
+                "message": "structure.md §3.1: cli/ owns brocli and may import better-result, node:path and node:url; every read and write goes through the FilePort it takes from index.ts."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/**/*.test.ts", "src/**/*.test-d.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["**/test/**", "!**/test/support/**"],
+                "message": "structure.md §3.1: a test file may import anything under src/ and anything under test/support/; a fixture is consumer-style sample code, not a helper."
+              },
+              {
+                "group": ["ajv", "ajv/**", "ajv-formats", "ajv-formats/**"],
+                "message": "structure.md §3.1: ajv and ajv-formats are the conformance oracle in test/support/ and nothing else."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["test/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["ajv", "ajv/**", "ajv-formats", "ajv-formats/**"],
+                "message": "structure.md §3.1: ajv and ajv-formats are the conformance oracle in test/support/ and nothing else."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["test/support/**"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ]
 }

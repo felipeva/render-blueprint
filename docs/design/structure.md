@@ -268,6 +268,8 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │                                against the property order that definition lists them in.
 │   │                                SOURCE_FIELDS is not one of them: it is the set of keys the
 │   │                                source branches own, not an emission order (issue #12)
+│   ├── dependency-policy.test.ts    §3.1 itself: extends the real .oxlintrc.json in a temp
+│   │                                directory and asserts what each row rejects and admits
 │   ├── fixtures/canonical/render.ts   design B §3 verbatim — the scenario every design doc shares
 │   ├── fixtures/canonical/render.yaml the golden output. Every test/fixtures/*/render.yaml is
 │   │                                rewritable, but only through `pnpm fixtures:update` (§6.2)
@@ -392,17 +394,32 @@ stays outside `src/` — a file under `src/` would ship its Zod types.
 **Cycles are rejected everywhere,** source and test, including a cycle that exists only through
 `import type`. There are none today at file granularity.
 
-*The checker that enforces §3.1 is not yet wired into `pnpm lint`.*
+**The gate.** `.oxlintrc.json` encodes every rule above, and `pnpm lint` runs it, so `pnpm check`
+and the `pre-commit` hook both fail on a violation. Each rule is one `overrides[]` block keyed on a
+`files` glob, the blocks run in tier order, and every message names the tier and points back here.
+that each block rejects what it forbids and admits what it allows.
 
-Five notes for whoever wires it, so they are not rediscovered:
+**How to resolve a violation.** The message names the tier the file is in and the tiers it may
+import. Move the code to the layer that owns it, or give the importer what it needs from a file
+that already sits below it: a value two modules share belongs in the lowest tier both can reach,
+and a CLI file that lacks an export asks `index.ts` to export it rather than reaching inside.
+Changing the tiers themselves is a change to this section first and to `.oxlintrc.json` second.
+Never add an exemption to make a violation go away — the deny-lists carry no exception that is not
+written here.
 
-1. `no-restricted-imports` matches the specifier text, so each per-module deny-list needs the `../**`
-   form and the `../../**` form. `validation/rules/` is the only nested directory in `src/`.
-2. The test exemption is a later override setting the rule to `off` for `src/**/*.test.ts` and
-   `src/**/*.test-d.ts`; the last override wins.
-3. `import/no-cycle` needs `ignoreTypes` set to false — its default passes a type-only cycle.
-4. `ajv` is imported as `ajv/dist/2020.js`, so a bare `ajv` pattern will not match it.
-5. The `import` plugin is not in `.oxlintrc.json` `plugins` yet.
+Three notes on how the config encodes this section, so they are not rediscovered:
+
+1. `no-restricted-imports` matches the specifier text, so each per-module block denies `../**` and
+   negates the tiers below it by name; `validation/rules/`, the only nested directory in `src/`,
+   needs the `../../**` form as well. The blocks are ordered and the last one to match a file wins,
+   which is how the test-file block relaxes the tier blocks above it.
+2. `import/no-cycle` needs `ignoreTypes` set to false — its default passes a type-only cycle.
+3. `ajv` is imported as `ajv/dist/2020.js`, so a bare `ajv` pattern will not match it.
+
+Two things the gate does not see. The `@drizzle-team/brocli` row is per-directory while the
+test-file block is one flat block, so a test file outside `cli/` could import brocli undetected; no
+test does. And a specifier is matched as text, so a computed `import(variable)` is invisible:
+`cli/load.ts` loads the author's blueprint that way by design, and nothing else in `src/` does.
 
 ### 3.2 Reviewed by hand
 

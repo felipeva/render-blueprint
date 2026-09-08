@@ -143,7 +143,9 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `main` is
   imports `node:fs*`; in source files `zod` stops at `validation/` and `better-result` never appears
   below it. A test file is exempt from the tier order and from those last two: it may import
   anything under `src/` and anything under `test/support/`. The full policy is
-  `docs/design/structure.md` §3.
+  `docs/design/structure.md` §3. `.oxlintrc.json` enforces §3.1 through `pnpm lint`, so a forbidden
+  import or a cycle fails `pnpm check` and the `pre-commit` hook; resolve it by moving the code or
+  by amending §3.1, never by adding an exemption.
 - Files are kebab-case with one primary export named after the file. Runtime tests are `x.test.ts`
   beside `x.ts`; type tests are `x.test-d.ts` beside `x.ts`. Cross-module tests and fixtures live
   in `test/`, and the helpers those suites share live in `test/support/`.
