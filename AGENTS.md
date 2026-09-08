@@ -7,9 +7,13 @@ bug #31 all landed as squash-merged PRs on `main` (last: #35 on 2026-09-06). v1.
 #40 to #45, bugs #36 to #38) landed the same way, last #54 on 2026-09-07. An adversarial review against the raw spec and schema on 2026-09-07 produced
 bugs #57 to #62, landed as PRs #63 to #68 the same day; its two medium findings (cross-field rules
 suppressed by a type failure, `extraFields` against the schema's per-kind allow-lists) await a v1.2
-spec. New work starts with
+spec. The behaviour-preserving restructuring of spec #69 moved validation parsing, per-kind
+emission, defaults scope capture, the CLI split and the shared test helpers: tickets #71 to #75
+landed as PRs #77 to #81 on 2026-09-08. #70 (this guidance) and #76 (enforcing the dependency
+policy) are what remain of it. New work starts with
 `/to-spec` for a feature or a plain `ready-for-agent` issue for a bug, then a Herdr dispatch.
 
+- `CONTRIBUTING.md` — which files and which tests a given task touches. Read it before changing code.
 - `CONTEXT.md` — the glossary. Read it before exploring.
 - `docs/design/requirements.md` — what the library must do.
 - `docs/design/structure.md` — the layout and the conventions in full.
@@ -125,16 +129,22 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `main` is
 ## Codebase conventions
 
 - One package. The CLI is a `bin` entry in it, never a second package.
-- `src/index.ts` is the only public entry and holds re-exports only. Add an export there rather
-  than importing across a boundary that does not exist.
-- Imports flow strictly upward: `json`/`enums`/`equal` → `references` → `env` → `resources` →
-  `defaults`/`blueprint` → `validation` → `synth` → `fs` → `drift` → `index.ts` → `cli`. No cycles,
-  no lateral imports. Nothing imports `src/cli/`; `src/cli/` imports `src/index.ts` and nothing
-  else in `src/`. `src/synth/` is the only module that imports `yaml`; `src/fs/` the only one that
-  imports `node:fs`.
+- Two published entrypoints, both re-exports only: `src/index.ts` is the library (`.`) and
+  `src/testing.ts` publishes `memoryFilePort` alone (`./testing`). There is no third and no deep
+  import into `dist/`. Add an export there rather than importing across a boundary that does not
+  exist.
+- Imports flow strictly upward: `raise`/`equal` → `json`/`bounded-integer`/`enums` → `references` →
+  `env` → `resources` → `defaults`/`blueprint` → `validation` → `synth` → `fs` → `drift` →
+  `index.ts`/`testing.ts` → `cli`. A module's own files import each other freely; what is banned is
+  an import between two sibling modules in one tier (`defaults/` and `blueprint/` are the only
+  pair) and any import that runs upward. No cycles, `import type` included. Nothing imports
+  `src/cli/`; `src/cli/` imports `src/index.ts` and nothing else in `src/`. Inside `src/`,
+  `src/synth/` is the only module that imports `yaml` and `src/fs/` the only one that imports
+  `node:fs*`; `zod` stops at `validation/` and `better-result` never appears below it. The full
+  policy, and what binds test files, is `docs/design/structure.md` §3.
 - Files are kebab-case with one primary export named after the file. Runtime tests are `x.test.ts`
   beside `x.ts`; type tests are `x.test-d.ts` beside `x.ts`. Cross-module tests and fixtures live
-  in `test/`.
+  in `test/`, and the helpers those suites share live in `test/support/`.
 - Factories are camelCase (`web`, `privateService`, `keyValue`, `withDefaults`, `secret`). Factory
   input types end in `Config`, factory output types are bare domain nouns — `WebConfig` in,
   `WebService` out. Reference handles end in `Reference`, emitted reference nodes in
@@ -146,8 +156,9 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `main` is
   `const XBase: TaggedErrorClass<"X"> = TaggedError("X");` then `class X extends XBase<Props>`.
   TypeScript 7's `isolatedDeclarations` rejects `extends TaggedError("X")<Props>` with TS9021.
 - The ordered list of YAML keys a resource can emit lives beside its factory (`WEB_SERVICE_FIELDS`
-  in the web factory file); `src/synth/key-order.ts` reads it and validation reads it, because
-  validation may not import synth.
+  in the web factory file), because validation reads it and validation may not import synth. That
+  kind's emitter imports the tuple from `src/resources/` directly; `src/synth/key-order.ts` holds
+  only the orders no resource owns — the root, the placement axes and the env-var entry forms.
 - Every resource config has a hand-written public interface and a module-private Zod schema in
   the factory's file, built with `.readonly()` and `.exactOptional()` so the inferred type equals
   the interface. Export a `true` constant typed by an identity guard between the two; never let

@@ -13,6 +13,7 @@ Use these words. Definitions come from `docs/design/structure.md`,
 - **Config** — a factory's input type, always suffixed `Config` (`WebConfig`, `PostgresConfig`).
 - **Output value** — a factory's output type, a bare domain noun (`WebService`, `KeyValueStore`). Never suffixed.
 - **Defaults provenance** — the optional field the seven kinds a scope can fill carry: which defaults scopes created the resource, which of their declared defaults the resource's kind and source branch can take at all, and which landed, each attributed to the scope that declared it. `DefaultsProvenance`. A bare factory never sets it and it never reaches YAML; the unused-default rule reads it, and a config issue on a field a scope filled says so. `src/resources/defaults-provenance.ts`.
+- **Testing entrypoint** — `render-blueprint/testing`, the second published entry. It carries `memoryFilePort` alone, so a consumer's runtime bundle never holds the in-memory port, and it is how a test replaces the filesystem: `src/fs/` is the seam, and nothing here is ever mocked. `src/testing.ts`.
 - **Unused default** — a default a scope declares that applies to nothing: no resource created through it, or through a scope nested inside it, has the field. A value a resource or an inner scope overrode still applies, so it is not unused. `src/validation/rules/unused-default.ts`.
 
 ## References
@@ -46,8 +47,8 @@ Use these words. Definitions come from `docs/design/structure.md`,
 - **BlueprintInvalid** — the tagged error `validate` produces, carrying a non-empty list of every issue found, never the first one only. Declared in `src/validation/blueprint-invalid.ts` and re-exported from `src/index.ts`.
 - **Synthesize** — `synthesize(blueprint)`: validate, build the YAML document, emit. The only code path that knows YAML exists. `src/synth/`.
 - **Synthesis report** — the success payload of `synthesize`: the `yaml` string plus the warnings.
-- **Emission order** — the fixed key order per node kind that makes output byte-stable. Each resource declares its ordered field tuple beside its factory; `src/synth/key-order.ts` holds only the root and env entry orders.
-- **Golden file** — `test/fixtures/canonical/render.yaml`, the byte-equal expectation for the canonical scenario and the only file a test may rewrite (`vitest -u`).
+- **Emission order** — the fixed key order per node kind that makes output byte-stable. Each resource declares its ordered field tuple beside its factory, and that kind's emitter in `src/synth/` reads it; `src/synth/key-order.ts` holds only the orders no resource owns — the root, the placement axes and the env-var entry forms.
+- **Golden file** — `test/fixtures/canonical/render.yaml`, the byte-equal expectation for the canonical scenario. Every `test/fixtures/*/render.yaml` and every `test/fixtures/cli/*/expected.yaml` is rewritable, but only through `pnpm fixtures:update`, and a human reads the diff. No test rewrites anything else.
 
 ## Drift
 

@@ -6,6 +6,10 @@ files), `docs/design/requirements.md`, `docs/research/toolchain.md` Part 3,
 `docs/research/better-result.md` §5. Nothing here reopens an ADR; anything not traceable to those
 documents is marked **INFERRED**.
 
+§2, §3 and §7 describe the repository as it stands and are corrected whenever it moves; the rest is
+the reasoning that put it there. `AGENTS.md` states the conventions in force and `CONTRIBUTING.md`
+maps a task to the files and the tests it touches.
+
 ## 0. Names settled here
 
 ADR-0002 defers the final entry-point names here. Design B §2.5 proposed `synthesize` /
@@ -23,8 +27,9 @@ and the third name aligns with it; every other name in design B §2 is kept verb
 **One package. No pnpm workspace.** The CLI is a `bin` entry in it.
 
 ADR-0002 fixes the CLI at three jobs — discover `render.ts`, load it through Node type stripping,
-map the `Result` to exit codes 0/1/2 — and gives it no logic of its own. Four source files do not
-earn a second package, a `workspace:*` link, a second tsconfig, and a publish ordering constraint.
+map the `Result` to exit codes 0/1/2 — and gives it no logic of its own. A directory that small does
+not earn a second package, a `workspace:*` link, a second tsconfig, and a publish ordering
+constraint.
 Consumers install one thing, so `npx render-blueprint check` works in CI from the dependency they already
 have; splitting forces `render-blueprint` plus `render-blueprint-cli` on everyone. tsdown emits both entries from one
 config, and the toolchain doc's `tsconfig.json` skeleton omits `composite`/`incremental` as
@@ -43,22 +48,31 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   ├── install-anti-slop/           existing; scripts/install.mjs writes tools/oxlint/anti-slop/
 │   └── adopt-better-result/         NEW — vendored from .reference (§2.1)
 ├── .claude/skills/                  symlinks into ../../.agents/skills
-├── .github/workflows/ci.yml         install, `pnpm check`, `pnpm build` — INFERRED, no doc mandates CI
+├── .github/workflows/ci.yml         install, `pnpm check`, `pnpm build`, then `node dist/cli.js --help`
 ├── docs/                            unchanged: adr/ agents/ design/ research/ research/raw/
-├── scripts/refresh-render-schema.mjs  re-downloads the Render JSON Schema into test/schema/ (§6.3)
+├── scripts/                         refresh-render-schema.mjs re-downloads the Render JSON Schema
+│                                    into test/schema/ (§6.3); check-declarations.mjs fails the build
+│                                    if dist/index.d.ts names a Zod type (ADR-0003)
 ├── src/                             the only compiled source root (tsconfig rootDir)
 │   ├── index.ts                     THE public entry — re-exports only, no logic
 │   ├── testing.ts                   the `render-blueprint/testing` subpath — memoryFilePort only,
 │                                    so a consumer's runtime bundle never carries the in-memory port
 │   ├── json.ts                      JsonValue / JsonObject — the escape-hatch types (design B §7)
+│   ├── raise.ts                     the one way a schema refinement raises a custom issue carrying
+│                                    a validationCode, so validation/translate-schema-issue.ts can
+│                                    map it back to a ValidationCode
 │   ├── bounded-integer.ts           z.int() plus the bound the spec sets, raising the one
 │                                    OutOfRange code every bounded number shares (issue #12)
-│   ├── enums/                       `as const` tuples + derived unions, one family per file: region,
-│   │                                runtime, plan, disk-size, auto-deploy-trigger, maxmemory-policy,
-│   │                                preview-generation, service-type, render-provided-key,
-│   │                                service-property, referenceable-service-type,
-│   │                                key-value-persistence-mode, connection-pool,
-│   │                                render-subdomain-policy (spec §6.6)
+│   ├── equal.ts                     Equal / Expect — the identity-guard pair every schema-versus-
+│                                    interface guard is typed by (ADR-0003)
+│   ├── enums/                       `as const` tuples + derived unions, one family per file:
+│   │                                auto-deploy-trigger, connection-pool, database-property,
+│   │                                disk-size, environment-protection, key-value-persistence-mode,
+│   │                                maxmemory-policy, network-isolation, plan,
+│   │                                postgres-major-version, preview-generation,
+│   │                                referenceable-service-type, region, render-provided-key,
+│   │                                render-subdomain-policy, route-type, runtime,
+│   │                                service-property (spec §6.6)
 │   ├── references/                  what a resource exposes; the core of design B
 │   │   ├── reference-value.ts       DatabaseReferenceValue, ServiceReferenceValue (the XOR union)
 │   │   ├── reference-origin.ts      ReferenceOrigin — 'blueprint' | 'external', a target's origin
@@ -135,17 +149,24 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   └── with-defaults.ts         the wiring: each factory applies its rule to the scope's
 │                                    values and returns the resource with that provenance
 │   ├── blueprint/                   the explicit root and its placement axes
-│   │   ├── blueprint.ts  group.ts  project.ts  environment.ts   all total; none validates
+│   │   ├── blueprint.ts  project.ts  environment.ts   all total; none validates
 │   │   └── placement.ts             flattens root / projects[].environments[] / ungrouped into one list
 │   ├── validation/                  every rule the compiler cannot express
 │   │   ├── validate.ts  issue.ts    THE entry, Blueprint → ok(ValidatedBlueprint) | err(...); plus
 │   │   │                            ValidationIssue, ValidationCode, ResourcePath, ValidationWarning
 │   │   ├── blueprint-invalid.ts     the BlueprintInvalid class — declared at its only producer (§5)
+│   │   ├── parse-configs.ts         walks the resource list: which entries are named, which are
+│   │   │                            accepted, and the issues the rest produce
 │   │   ├── parse-resource.ts        every zod issue one resource's entry, name, config and resolved
 │   │   │                            environment produce; the schemas stay beside their factories
+│   │   ├── parse-placement.ts       the root, project and environment schemas, for the placement
+│   │   │                            axes rather than the resources on them
 │   │   ├── translate-schema-issue.ts   one zod issue → ValidationIssues: the unknown-field recovery
 │   │   │                            and the source conflict that resource and placement both raise
 │   │   ├── describe-names.ts        the quoted "a", "b" and "c" list a diagnostic message reads
+│   │   ├── deprecation.ts           the deprecated fields and the sentence each one warns with
+│   │   ├── env-key-origins.ts       resolves an imported group by name the way Render does, so the
+│   │   │                            group/direct collision and the duplicate key have one reader
 │   │   └── rules/                   one pure Blueprint → issues[] file per family: duplicate-name,
 │                                     dangling-reference, multiple-locations, env-collision,
 │                                     service-env-var-key, extra-field-conflict, warnings,
@@ -177,6 +198,9 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   ├── databases.ts             postgres → `databases:`, read-replica registration
 │   │   ├── env-vars.ts              map → `envVars:` list, `fromGroup` entries, the five value forms
 │   │   ├── env-var-groups.ts        envVarGroups() — envGroup resources → an `envVarGroups:` list (root, environment, ungrouped)
+│   │   ├── ip-allow-list.ts         the ipAllowList sequence a web service, a static site,
+│   │   │                            Postgres and Key Value all emit
+│   │   ├── root-previews.ts         the root `previews:` mapping
 │   │   ├── projects.ts  banner.ts   projects[].environments[] and `ungrouped`; the banner
 │   │   └── parse-text.ts  canonical-text.ts   the read direction, for drift/ only: text → JsonValue
 │   │                                under the 1.2 core schema, and JsonValue → key-sorted YAML.
@@ -226,23 +250,38 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   ├── fixtures.test.ts             every test/fixtures/*/render.ts → byte-equal render.yaml, then
 │   │                                parsed and validated against the Render schema (§6.2, §6.3)
 │   ├── enum-conformance.test.ts     every enum tuple against the enum values the schema publishes
-│   ├── support/raised-issues.ts     not a test: the reader the config tests share for the issues a
-│   │                                schema raised through raise(), each with the code it named
-│   ├── support/render-schema.ts     not a test: the compiled conformance oracle of §6.3, shared by
-│   │                                the fixture harness and the CLI smoke test
+│   ├── support/                     not tests: the helpers the suites share
+│   │   ├── raised-issues.ts         the reader the config tests share for the issues a schema
+│   │   │                            raised through raise(), each with the code it named
+│   │   └── render-schema.ts         the compiled conformance oracle of §6.3, shared by the fixture
+│   │                                harness and the CLI smoke test; render-schema.test.ts is its
+│   │                                own test, that the oracle rejects what Render forbids
+│   ├── expectation.ts               not a test: reads a committed expectation, or rewrites it under
+│   │                                UPDATE_FIXTURES=1. The one place the update switch is read
 │   ├── cli.test.ts                  spawn the binary in a temp dir; assert exit codes 0/1/2 (§6.6)
 │   ├── key-order-conformance.test.ts   every emission tuple that names a published definition,
 │   │                                against the property order that definition lists them in.
 │   │                                SOURCE_FIELDS is not one of them: it is the set of keys the
 │   │                                source branches own, not an emission order (issue #12)
 │   ├── fixtures/canonical/render.ts   design B §3 verbatim — the scenario every design doc shares
-│   ├── fixtures/canonical/render.yaml the golden output; the only file `vitest -u` may rewrite
-│   ├── fixtures/cli/                seed directories — clean, drifted, invalid, warned. Each
-│   │                                holds render.ts.seed, whose import specifier is a placeholder
-│   │                                the smoke test rewrites to the built entry's file URL
+│   ├── fixtures/canonical/render.yaml the golden output. Every test/fixtures/*/render.yaml is
+│   │                                rewritable, but only through `pnpm fixtures:update` (§6.2)
+│   ├── fixtures/*/render.ts         one directory per scenario; fixtures.test.ts discovers any
+│   │                                directory holding a render.ts, so adding one needs no wiring
+│   ├── fixtures/cli/                seed directories — build-filter-image, clean, defective,
+│   │                                drifted, invalid, split, v1-1-surface, warned. Each holds
+│   │                                render.ts.seed, whose import specifier is a placeholder the
+│   │                                smoke test rewrites to the built entry's file URL, plus an
+│   │                                expected.yaml where the seed's output is asserted
 │   └── schema/render.yaml.schema.json the conformance oracle, refreshed by script only (§6.3)
 ├── tools/oxlint/anti-slop/          written by the install skill; committed; never linted or edited
-└── .gitignore  .oxfmtrc.json  .oxlintrc.json  CLAUDE.md  package.json  pnpm-lock.yaml
+├── .githooks/                       pre-commit formats and lints the staged files; commit-msg
+│                                    validates the subject. `git config core.hooksPath .githooks`
+├── AGENTS.md                        the conventions in force. CLAUDE.md is a symlink to it
+├── CONTRIBUTING.md                  the contributor entry: the task-to-owner-to-tests map
+├── CONTEXT.md                       the glossary
+├── README.md                        the consumer's document
+└── .gitignore  .oxfmtrc.json  .oxlintrc.json  LICENSE  package.json  pnpm-lock.yaml
     skills-lock.json  tsconfig.check.json  tsconfig.json  tsdown.config.ts  vitest.config.ts
 ```
 
@@ -263,45 +302,122 @@ computed hash. Upstream is `better-result@3.0.1`.
 
 ## 3. Module boundaries and dependency direction
 
-Imports flow strictly up this list. A module may import anything above it and nothing below. No
-cycles, no lateral imports inside a layer.
+Every rule in §3.1 is a rule about an import specifier, so a linter decides it. §3.2 holds the
+boundary rules that are about the *form* of a file rather than what it imports; a reviewer decides
+those. Nothing else about the layout is policy.
+
+### 3.1 Enforced
+
+**The tiers.** A module may import any module in a tier strictly below its own, and may import its
+own files freely. It may not import a module in its own tier, and it may not import anything above
+it.
 
 ```
-  L0  json.ts · enums/ · equal.ts               no internal imports
-  L1  references/                    imports L0
-  L2  env/                           imports L0-L1
-  L3  resources/                     imports L0-L2
-  L4  defaults/                      imports L0-L3
-  L5  blueprint/                     imports L0-L3   (never defaults/)
-  L6  validation/                    imports L0-L5   ← declares BlueprintInvalid
-  L7  synth/                         imports L0-L6   ← the only importer of `yaml`
-  L8  fs/                            imports L0, L6, L7   ← declares the two file errors
-  L9  drift/                         imports L0, L6, L7, L8
-  L10 index.ts                       imports L0-L9; re-exports only
-  L11 cli/                           imports index.ts ONLY
+  L0   raise.ts · equal.ts                     nothing inside src/
+  L1   json.ts · bounded-integer.ts · enums/   imports L0
+  L2   references/                             imports L0-L1
+  L3   env/                                    imports L0-L2
+  L4   resources/                              imports L0-L3
+  L5   defaults/ · blueprint/                  imports L0-L4; siblings, never each other
+  L6   validation/                             imports L0-L5   ← declares BlueprintInvalid
+  L6a  validation/rules/                       a sub-tier: see below
+  L7   synth/                                  imports L0-L6   ← the only importer of `yaml`
+  L8   fs/                                     imports L0-L7   ← declares the two file errors
+  L9   drift/                                  imports L0-L8
+  L10  index.ts · testing.ts                   imports L0-L9; the two published entrypoints
+  L11  cli/                                    imports index.ts and its own files, nothing else
 ```
 
-- **Nothing imports `src/cli/`.** If a CLI file needs something `index.ts` does not export, export
-  it — do not reach inside.
-- **`src/synth/` is the only module that imports `yaml`.** No other file mentions YAML, quoting,
-  indentation, or key order; `drift/` compares strings that `synth/` produced.
-- **`src/fs/` is the only module that imports `node:fs`.** Everything above it is pure.
-- **`src/index.ts` holds no logic** — re-exports only, so the public surface is one readable file.
-- **`validation/rules/*` are pure functions returning `ValidationIssue[]`.** They never import each
-  other and never short-circuit; `validate.ts` runs all of them and concatenates, because
-  `BlueprintInvalid` must carry every problem at once.
+`raise.ts` sits below `json.ts` and `bounded-integer.ts` because both import it; splitting the
+foundation in two is what leaves the table with no internal exceptions.
+
+**A module's own files import each other freely** — that is what makes it a module. What is banned
+is an import between two sibling modules in one tier, and `defaults/` ↔ `blueprint/` is the only
+such pair. `fs/` and `drift/` take a type import of `Blueprint` from L5, and that is legal: it is
+the input type of `writeBlueprint` and `checkBlueprint`, and a factory file owns its own contract
+(§4), so the type does not move.
+
+**`validation/rules/` is a sub-tier of `validation/`.** A rule imports anything below L6 and any
+non-rule file in `validation/`, but never `validate.ts` and never a sibling rule. `validate.ts`
+imports every rule. The `validation/` ↔ `validation/rules/` loop that a directory-level reading
+sees is not a cycle between files, and is expected.
+
+**The two entrypoints.** `index.ts` publishes `.` and `testing.ts` publishes `./testing`; both are
+in `package.json` `exports`. Neither imports the other, and nothing inside `src/` imports either
+one except `cli/`, which imports `index.ts`. If a CLI file needs something `index.ts` does not
+export, export it — do not reach inside.
+
+**External dependencies have owners.**
+
+| Package | Allowed in | Why |
+| --- | --- | --- |
+| `zod` | L0-L6 only | no schema and no Zod type may cross a published entry (ADR-0003). `scripts/check-declarations.mjs` proves the output half by failing the build if `dist/index.d.ts` names Zod; this ban is the input half |
+| `better-result` | `validation/`, `synth/`, `fs/`, `drift/`, `cli/` | banned below `validation/`, which is the mechanical form of "factories are total" |
+| `yaml` | `synth/` | `drift/` receives a `JsonValue`, never a string it must parse itself. `test/` may parse the emitted YAML back, which is what §6.3 does |
+| `node:fs`, `node:fs/promises` | `fs/` | everything above it is pure. `test/` may, for the fixture harness and the CLI smoke test |
+| `node:path`, `node:url` | `fs/`, `cli/` | path arithmetic only. The CLI never touches the disk itself: every read and write goes through the `FilePort` it takes from `index.ts` |
+| any other `node:` builtin | nowhere in `src/` | |
+| `@drizzle-team/brocli` | `cli/` | |
+| `ajv`, `ajv-formats` | `test/support/` | the conformance oracle and nothing else |
+| `vitest` | test files | |
+
+**Test files.** The tier table and the `zod` and `better-result` rows bind source files only. A unit
+test legitimately builds a whole blueprint to exercise its subject, and dozens of tests do:
+`src/fs/write-blueprint.test.ts` builds one, `src/validation/*.test.ts` builds resources through
+`withDefaults`, `src/resources/web.test.ts` reads raised issues through `test/support/`. What still
+binds a `*.test.ts` or a `*.test-d.ts`:
+
+- it may import anything under `src/` and anything under `test/support/`;
+- nothing under `src/` may import `test/fixtures/**` — a fixture is consumer-style sample code, not
+  a helper;
+- no source file may import a test file;
+- every other row of the external table applies, with the `test/` exemptions it names.
+
+The exemption is safe because the tier table exists to keep the *shipped* graph acyclic and the
+published surface clean, and no test file reaches `dist/`: `tsconfig.json` compiles `include:
+["src"]` and tsdown bundles from three entries. It is also why `test/support/raised-issues.ts`
+stays outside `src/` — a file under `src/` would ship its Zod types.
+
+**Cycles are rejected everywhere,** source and test, including a cycle that exists only through
+`import type`. There are none today at file granularity.
+
+*The checker that enforces §3.1 is not yet wired into `pnpm lint`.*
+
+Four notes for whoever wires it, so they are not rediscovered:
+
+1. `no-restricted-imports` matches the specifier text, so each per-module deny-list needs the `../**`
+   form and the `../../**` form. `validation/rules/` is the only nested directory in `src/`.
+2. The test exemption is a later override setting the rule to `off` for `src/**/*.test.ts` and
+   `src/**/*.test-d.ts`; the last override wins.
+3. `import/no-cycle` needs `ignoreTypes` set to false — its default passes a type-only cycle.
+4. The `import` plugin is not in `.oxlintrc.json` `plugins` yet.
+
+### 3.2 Reviewed by hand
+
+These are boundary rules a reviewer decides, because they are about what a file *is*, not about
+what it imports.
+
+- **`index.ts` and `testing.ts` hold no logic** — re-exports only, so the published surface is two
+  readable files.
+- **`validation/rules/*` are pure functions returning `ValidationIssue[]`.** They never
+  short-circuit; `validate.ts` runs all of them and concatenates, because `BlueprintInvalid` must
+  carry every problem at once.
+- **No file outside `synth/` mentions YAML, quoting, indentation or key order.** `drift/` compares
+  values that `synth/` produced.
 
 ### Deep modules
 
 | Module | Surface | What it hides |
 | --- | --- | --- |
-| `synth/` | `synthesize(blueprint)` | YAML serialization entirely, key order, the generated-file header, the four disjoint schema branches, the `(type, runtime)` discriminator, the env map→list conversion, the keyless `fromGroup` entry, the `previewPlan`/`previews.plan` split, Postgres landing in `databases:` while Key Value lands in `services:`, read-replica name registration |
+| `synth/` | `synthesize(blueprint)` | YAML serialization entirely, key order, the generated-file header, the six listable service kinds and the one emitter each, the `(type, runtime)` discriminator, the env map→list conversion, the keyless `fromGroup` entry, the `previewPlan`/`previews.plan` split, Postgres landing in `databases:` while Key Value lands in `services:`, read-replica name registration |
 | `validation/` | `validate(blueprint)` | ~15 rule families, the traversal that reaches every reference in every env map on every resource in every placement, and the ordering that makes issue output deterministic |
 | `references/` | property access on a resource value | both YAML reference forms, the `property` XOR `envVarKey` split, and the per-source legality table — nobody writes `fromDatabase`, they write `db.connectionString` |
 | `defaults/` | `withDefaults(defaults)` | nesting and the kind × field matrix: region and plan never reach a static site; repo, branch, rootDir, autoDeployTrigger and buildFilter never reach a datastore or an image source; ipAllowList reaches a web service, a static site and Postgres, and never a Key Value store |
 | `drift/` | `checkBlueprint(...)` | normalization of the committed file and the classification of changes to Render's immutable fields |
 
-Shallow by design: `enums/`, `json.ts`, `blueprint/`, `cli/`.
+Shallow by design: `enums/`, `json.ts`, `blueprint/`. `cli/` is thin rather than shallow — it
+hides nothing from the library, and its own three files split execution from reporting from
+startup so each is readable alone.
 
 ## 4. Naming conventions
 
@@ -310,8 +426,8 @@ Shallow by design: `enums/`, `json.ts`, `blueprint/`, `cli/`.
 `as const` tuples differing only by resource kind (`enums/plan.ts`), and a factory file owns its
 config and output interfaces — one contract, and splitting it buys an import, not a boundary.
 
-**Factories.** camelCase, exactly as design B §2.3 names them: `web`, `privateService`, `worker`,
-`cron`, `staticSite`, `keyValue`, `postgres`, `envGroup`, `blueprint`, `group`, `project`,
+**Factories.** camelCase, taking the names design B §2.3 gives them: `web`, `privateService`,
+`worker`, `cron`, `staticSite`, `keyValue`, `postgres`, `envGroup`, `blueprint`, `project`,
 `environment`, `withDefaults`, `literal`, `secret`, `generated`, `readReplica`, and `external`.
 
 **Types.** PascalCase, no `I` prefix, no `Type`/`Interface` suffix. Config and output never share
@@ -374,7 +490,7 @@ never "should" — `it("emits fromGroup entries after explicit env vars")`. INFE
 document sets a test naming rule.
 
 **Banned in every identifier: the substring `shape`,** case-insensitive
-(`anti-slop/no-shape-in-symbol-names`). Where "shape" is the natural word — Render's four disjoint
+(`anti-slop/no-shape-in-symbol-names`). Where "shape" is the natural word — Render's disjoint
 service *shapes* — write `branch`, `form`, or `variant`.
 
 ## 5. Code doctrine
@@ -465,13 +581,11 @@ diff by hand; those are the only files a test may rewrite. This is the single re
 order, quoting, the header and the map→list conversion.
 
 **6.3 JSON Schema conformance.** The same `test/fixtures.test.ts` parses each golden YAML back with
-`yaml.parse` and validates it against `test/schema/render.yaml.schema.json`. Validator: **ajv 8.x**
-imported as `ajv/dist/2020` — the schema declares
+`yaml.parse` and validates it against `test/schema/render.yaml.schema.json`. The validator is
+**ajv 8.20.0** with **ajv-formats 3.0.1**, imported as `ajv/dist/2020.js` — the schema declares
 `"$schema": "https://json-schema.org/draft/2020-12/schema"` and ajv 8's `2020` build is its draft
-2020-12 entry point. **INFERRED**: `docs/research/toolchain.md` names no test-time validator (its
-"schema library: none yet" line is about runtime parsing of untrusted input, which this is not) and
-the draft-2020-12 claim is general knowledge, unverified here; confirm before committing, fallback
-`@cfworker/json-schema`. The schema is the conformance *floor*, not the spec — requirements.md lists
+2020-12 entry point. `test/support/render-schema.ts` compiles it once and is the only file that
+imports either package. The schema is the conformance *floor*, not the spec — requirements.md lists
 nine rules it misses — so passing proves the output is not malformed while the unit tests prove it
 is correct. `test/schema/render.yaml.schema.json` is the oracle and the only copy any code reads;
 `docs/research/raw/render.yaml.schema.json` stays frozen as the 2026-09-05 snapshot.
@@ -480,7 +594,8 @@ the file — `https://render.com/schema/render.yaml.json` — and overwrites the
 reviewed commit whose diff is the point. INFERRED: that `$id` is not confirmed to serve the schema
 over HTTP.
 
-**6.4 Type tests.** `src/**/x.test-d.ts`, run by `vitest --typecheck`, `@ts-expect-error` for
+**6.4 Type tests.** `src/**/x.test-d.ts` and `test/**/*.test-d.ts`, run by `vitest run
+--typecheck.only` against `tsconfig.check.json`, `@ts-expect-error` for
 rejection and `expectTypeOf` for acceptance. **Every compile-time row of design B §5 gets one** —
 rows 1-13 plus the compile half of row 21: wrong reference property per source kind, `disk` on a
 cron job, `plan`/`region` on a static site, missing required `schedule`/`ipAllowList`, `secret()`
@@ -502,23 +617,27 @@ when it is read — proves a Panic escapes brocli's catch, is reported, and exit
 `beforeAll`, so it can never pass against a stale `dist/` and `pnpm check` stays self-contained.
 
 **6.6 `pnpm check`** is the one command CI and agents run:
-`oxfmt --check && oxlint && tsc -p tsconfig.check.json && vitest run && vitest run --typecheck`. Format first,
-because it is instant and its failures are noise in every later diff.
+`oxfmt --check && oxlint && tsc -p tsconfig.check.json && vitest run && vitest run
+--typecheck.only`. Format first, because it is instant and its failures are noise in every later
+diff. `pnpm build` runs tsdown and then `scripts/check-declarations.mjs`, which fails if
+`dist/index.d.ts` names a Zod type.
 
 ## 7. Tooling files
 
-Skeletons come from `docs/research/toolchain.md` lines 553-711 and are reused unmodified unless a
-row says otherwise.
+The skeletons came from `docs/research/toolchain.md` lines 553-711. Every row below is the file as
+it stands, and the manifest that follows it is the manifest.
 
 | File | Content |
 | --- | --- |
-| `tsconfig.json` | The skeleton verbatim: `target`/`lib` es2023, `module`/`moduleResolution` nodenext, `types: ["node"]`, `strict`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, `noPropertyAccessFromIndexSignature`, `noImplicitOverride`, `noImplicitReturns`, `noFallthroughCasesInSwitch`, `noUnusedLocals`, `noUnusedParameters`, `useUnknownInCatchVariables`, `noUncheckedSideEffectImports`, `verbatimModuleSyntax`, `isolatedModules`, **`isolatedDeclarations`**, `erasableSyntaxOnly`, `declaration` + `declarationMap` + `sourceMap`, `outDir: "dist"`, `rootDir: "src"`, `skipLibCheck`, `include: ["src"]`. The two UNSURE options (`allowImportingTsExtensions`, `composite`) stay out. |
-| `.oxlintrc.json` | The skeleton verbatim: `plugins: ["typescript","unicorn","oxc"]`, `categories.correctness: "error"`, `ignorePatterns` for `.agents/**`, `.claude/**`, `.reference/**`, `dist/**`, `tools/oxlint/anti-slop/**`, the `jsPlugins` entry pointing at `./tools/oxlint/anti-slop/index.ts`, and all 15 `anti-slop/*` rules at `"error"`. `anti-slop-effect` stays omitted — no direct `effect` dependency. Add `test/fixtures/**`: the fixture `render.ts` is user-style code, not library code. |
-| `.oxfmtrc.json` | The skeleton verbatim: `printWidth` 100, `tabWidth` 2, `semi`, double quotes, `trailingComma: "all"`, `sortImports: true`, `sortPackageJson: true`, `ignorePatterns` for `.reference/**`, `dist/**`, `tools/oxlint/anti-slop/**`. |
-| `vitest.config.ts` | `test.include: ["src/**/*.test.ts","test/**/*.test.ts"]`, `test.typecheck.include: ["src/**/*.test-d.ts"]`, `test.typecheck.tsconfig: "tsconfig.json"`. INFERRED — the toolchain doc verifies vitest 5 with `--typecheck` but ships no config skeleton. |
-| `tsdown.config.ts` | `entry: { index: "src/index.ts", testing: "src/testing.ts", cli: "src/cli/main.ts" }`, `format: "esm"`, `fixedExtension: false`, `dts: true`, `deps: { neverBundle: ["yaml", "better-result"] }`, shebang on the `cli` entry. `fixedExtension: false` is required: tsdown 0.23 defaults it to true on the node platform and emits `.mjs` and `.d.mts`, which `exports`, `bin`, and CI would not find (verified in PR #15). `neverBundle` is mandatory — the default bundles dependencies and the toolchain doc measured 234 kB of `yaml` inlined. `better-result` in that list is INFERRED but forced: its types appear in the public signatures. |
-| `.github/workflows/ci.yml` | `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm build`. INFERRED. |
-| `.gitignore` | Unchanged; already covers `node_modules/`, `dist/`, `coverage/`, `*.tsbuildinfo`, `.reference/`. |
+| `tsconfig.json` | The skeleton verbatim: `target`/`lib` es2023, `module`/`moduleResolution` nodenext, `types: ["node"]`, `strict`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, `noPropertyAccessFromIndexSignature`, `noImplicitOverride`, `noImplicitReturns`, `noFallthroughCasesInSwitch`, `noUnusedLocals`, `noUnusedParameters`, `useUnknownInCatchVariables`, `noUncheckedSideEffectImports`, `verbatimModuleSyntax`, `isolatedModules`, **`isolatedDeclarations`**, `erasableSyntaxOnly`, `declaration` + `declarationMap` + `sourceMap`, `outDir: "dist"`, `rootDir: "src"`, `skipLibCheck`, `include: ["src"]`. The two UNSURE options (`allowImportingTsExtensions`, `composite`) stayed out. |
+| `tsconfig.check.json` | Extends it with `noEmit`, `rootDir: "."` and `include: ["src", "test"]`, so the gate type-checks the tests the build never emits. |
+| `.oxlintrc.json` | `plugins: ["typescript","unicorn","oxc"]`, `categories.correctness: "error"`, the `jsPlugins` entry pointing at `./tools/oxlint/anti-slop/index.ts`, and all 15 `anti-slop/*` rules at `"error"`. `anti-slop-effect` stays omitted — no direct `effect` dependency. `ignorePatterns` covers the agent directories, `.reference/**`, `dist/**`, `docs/**`, `test/schema/**` and `tools/oxlint/anti-slop/**`. `test/fixtures/**` is **not** ignored: the fixtures are consumer-style code, and holding them to the same rules is what proves the rules are livable. |
+| `.oxfmtrc.json` | `printWidth` 100, `tabWidth` 2, `semi`, **single quotes**, `trailingComma: "all"`, `sortImports: true`, `sortPackageJson: true`. `ignorePatterns` covers the agent directories, `.reference/**`, `dist/**`, `docs/**`, `test/fixtures/**/*.yaml`, `test/schema/**`, `tools/oxlint/anti-slop/**`, `pnpm-lock.yaml`, `CLAUDE.md` and `CONTEXT.md`. oxfmt formats Markdown, so `AGENTS.md`, `README.md` and `CONTRIBUTING.md` go through it and the documents under `docs/` do not. |
+| `vitest.config.ts` | `test.include: ["src/**/*.test.ts","test/**/*.test.ts"]`, `test.typecheck.include: ["src/**/*.test-d.ts","test/**/*.test-d.ts"]`, `test.typecheck.tsconfig: "tsconfig.check.json"`. INFERRED — the toolchain doc verifies vitest 5 with `--typecheck` but ships no config skeleton. |
+| `tsdown.config.ts` | `entry: { index: "src/index.ts", testing: "src/testing.ts", cli: "src/cli/main.ts" }`, `format: "esm"`, `fixedExtension: false`, `dts: true`, `treeshake: { moduleSideEffects: false }`, `deps: { neverBundle: ["@drizzle-team/brocli", "yaml", "better-result", "zod"] }`, shebang on the `cli` entry. `fixedExtension: false` is required: tsdown 0.23 defaults it to true on the node platform and emits `.mjs` and `.d.mts`, which `exports`, `bin`, and CI would not find (verified in PR #15). `neverBundle` is mandatory — the default bundles dependencies and the toolchain doc measured 234 kB of `yaml` inlined. |
+| `.github/workflows/ci.yml` | `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm build`, then `node dist/cli.js --help` as a smoke test that the built binary starts. |
+| `.githooks/` | `pre-commit` formats the staged files with oxfmt, re-stages them, and runs oxlint on the staged source. `commit-msg` validates the Conventional Commits subject. Git does not version hooks, so each clone runs `git config core.hooksPath .githooks` once. |
+| `.gitignore` | Covers `node_modules/`, `dist/`, `coverage/`, `*.tsbuildinfo`, `.reference/`. |
 
 ```jsonc
 {
@@ -529,32 +648,37 @@ row says otherwise.
     ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
     "./testing": { "types": "./dist/testing.d.ts", "default": "./dist/testing.js" }
   },
-  "bin": { "render-blueprint": "./dist/cli.js" },
+  "bin": { "render-blueprint": "dist/cli.js" },
   "files": ["dist"],
-  "engines": { "node": ">=22.12.0" },
+  "engines": { "node": ">=22.18.0" },
   "devEngines": { "runtime": { "name": "node", "version": "^22.18.0 || ^24.11.0 || >=26.0.0" } },
   "packageManager": "pnpm@10.33.4",
-  "dependencies": { "better-result": "3.0.1", "yaml": "2.9.0" },
-  "devDependencies": { "@oxlint/plugins": "1.81.0", "@types/node": "26.4.1", "ajv": "8.x",
-    "oxfmt": "0.66.0", "oxlint": "1.81.0", "tsdown": "0.23.0", "typescript": "7.0.2",
-    "vitest": "5.0.0" },
+  "dependencies": { "@drizzle-team/brocli": "0.12.1", "better-result": "3.0.1",
+    "yaml": "2.9.0", "zod": "4.5.4" },
+  "devDependencies": { "@oxlint/plugins": "1.81.0", "@types/node": "26.4.1", "ajv": "8.20.0",
+    "ajv-formats": "3.0.1", "oxfmt": "0.66.0", "oxlint": "1.81.0", "tsdown": "0.23.0",
+    "typescript": "7.0.2", "vitest": "5.0.0" },
   "scripts": {
     "typecheck": "tsc -p tsconfig.check.json",
     "lint": "oxlint",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "test": "vitest run",
-    "test:types": "vitest run --typecheck",
+    "test:types": "vitest run --typecheck.only",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:types",
-    "build": "tsdown",
-    "schema:refresh": "node scripts/refresh-render-schema.mjs"
+    "build": "tsdown && node scripts/check-declarations.mjs",
+    "schema:refresh": "node scripts/refresh-render-schema.mjs",
+    "fixtures:update": "UPDATE_FIXTURES=1 vitest run test/fixtures.test.ts test/cli.test.ts",
+    "prepublishOnly": "pnpm check && pnpm build"
   }
 }
 ```
 
-One export path — deep imports into `dist/` are what an `index.ts`-only surface avoids. Every
-dependency is pinned exactly except `ajv` (INFERRED, not yet chosen); `oxlint` and `@oxlint/plugins`
-must stay equal, and vitest exact because `--typecheck` is experimental.
+**Two export paths, both re-exports only.** `.` is the library and `./testing` publishes
+`memoryFilePort` alone, so a consumer's runtime bundle never carries the in-memory port. There is
+no third: a deep import into `dist/` is what a re-export-only surface avoids, and `bin` is a
+binary, not an import path. Every dependency is pinned exactly; `oxlint` and `@oxlint/plugins` must
+stay equal, and vitest exact because `--typecheck` is experimental.
 
 ## 8. Not settled here
 
@@ -567,69 +691,6 @@ whether `KeyValueReference.host`/`.port` survive (§9.3), and `withDefaults` con
 
 ## Codebase conventions
 
-*Promote this block into `CLAUDE.md` when phase 2 closes.*
-
-- One package. The CLI is a `bin` entry in it, never a second package.
-- `src/index.ts` is the only public entry and holds re-exports only. Add an export there rather
-  than importing across a boundary that does not exist.
-- Imports flow strictly upward: `json`/`enums` → `references` → `env` → `resources` →
-  `defaults`/`blueprint` → `validation` → `synth` → `fs` → `drift` → `index.ts` → `cli`. No cycles,
-  no lateral imports. Nothing imports `src/cli/`; `src/cli/` imports `src/index.ts` and nothing
-  else in `src/`. `src/synth/` is the only module that imports `yaml`; `src/fs/` the only one that
-  imports `node:fs`.
-- Files are kebab-case with one primary export named after the file. Runtime tests are `x.test.ts`
-  beside `x.ts`; type tests are `x.test-d.ts` beside `x.ts`. Cross-module tests and fixtures live
-  in `test/`.
-- Factories are camelCase (`web`, `privateService`, `keyValue`, `withDefaults`, `secret`). Factory
-  input types end in `Config`, factory output types are bare domain nouns — `WebConfig` in,
-  `WebService` out. Reference handles end in `Reference`, emitted reference nodes in
-  `ReferenceValue`. No `I` prefix, no `Type`/`Interface` suffix.
-- Tagged error classes name the failed condition with no `Error` suffix: `BlueprintInvalid`,
-  `BlueprintWriteFailed`, `BlueprintFileUnreadable`. `ValidationCode` literals follow the same
-  rule, one per rule file.
-- Declare a tagged error in the file that produces it, never in a shared errors directory:
-  `BlueprintInvalid` in `src/validation/blueprint-invalid.ts`, `BlueprintWriteFailed` in
-  `src/fs/write-text-file.ts`, `BlueprintFileUnreadable` in `src/fs/read-text-file.ts`. All three
-  are re-exported from `src/index.ts`. Do not create `src/errors/`.
-- No identifier may contain the substring `shape`, in any casing. Say `branch`, `form`, `variant`.
-- No `enum`. A closed set is a SCREAMING_SNAKE `as const` tuple plus a derived `(typeof T)[number]`
-  union in the same file.
-- Emit Render's field names verbatim. The only renames are the nine in `docs/design/structure.md`
-  §4; a tenth needs an ADR. Never inject a Render default — emit what the author wrote.
-- Every exported function has an explicit return type and every exported const an explicit type.
-  `isolatedDeclarations` is load-bearing — never turn it off to make something compile.
-- Only `synthesize`, `writeBlueprint`, `checkBlueprint`, `validate`, `writeTextFile` and
-  `readTextFile` return `Result`. Factories are total. Never wrap a pure, total helper in `Result`.
-- `E` is always a union of `TaggedError` classes. Never `Result<T, string>`, `Result<T, Error>`,
-  or `Result<T, unknown>`.
-- Use `Result.gen` whenever two or more fallible steps compose. Async: `Result.gen(async
-  function* …)` with `yield* Result.await(p)`. `yield* await p` is banned.
-- Wrap throwing Node APIs at `src/fs/` with `Result.tryPromise` in the `{ try, catch }` object
-  form. No `node:fs` error type appears in a signature outside `src/fs/`.
-- `src/cli/main.ts` is the only `isPanic` site: report, then rethrow. Never convert a `Panic` into
-  an `Err`. Never `unwrap()` outside test setup. Match only in `src/cli/`, two-step:
-  `result.match({ ok, err })` then `error.match({ … })`.
-- `BlueprintInvalid` carries every issue, not the first. Rule functions in `src/validation/rules/`
-  are pure, return `readonly ValidationIssue[]`, and never short-circuit.
-- Never emit a YAML key whose value is `undefined` — omission means "retain current" on Render.
-  Build every mapping through `src/synth/mapping.ts`: no object spread, no ad-hoc `doc.set`, no
-  `...(cond ? { k } : {})`.
-- No `unknown` or `object` parameters (`cause` excepted), no `Record<string, unknown>`, no `any`.
-  The escape hatch is `JsonObject` from `src/json.ts`. Every non-const assertion carries a
-  `SAFETY:` comment with real prose on the line above.
-- No `typeof` narrowing for control flow — discriminate on the union's own literal fields. No
-  module mocking; `src/fs/` is the test seam, so pass an in-memory reader/writer.
-- Few comments: only `SAFETY:` justifications and one-line spec citations (`// spec §16 B`).
-- Tests assert the discriminated Result: narrow with `Result.isOk` / `Result.isError`, assert
-  variants with `SomeError.is(...)` and `_tag`. Never assert on a thrown exception. `describe`
-  names the exported symbol; `it` states the rule in the present indicative, never "should".
-- Every compile-time row of design B's mistake matrix has a `*.test-d.ts` case using
-  `@ts-expect-error`. Adding a compile-time guarantee means adding its type test.
-- `test/fixtures/canonical/render.yaml` is the golden file. A test may rewrite only
-  `test/fixtures/*/render.yaml` and the CLI seeds' `test/fixtures/cli/*/expected.yaml`, only under
-  `UPDATE_FIXTURES=1` through `pnpm fixtures:update`, and a human reviews every diff by hand.
-  `test/schema/render.yaml.schema.json` is the conformance oracle; refresh it with
-  `pnpm schema:refresh`, never by hand, and never read `docs/research/raw/` from code.
-- Run `pnpm check` before claiming done: format, lint, typecheck, tests, type tests.
-- `tools/oxlint/anti-slop/` is vendored output. Never edit it, never lint it, never weaken a rule
-  to make lint pass — fix the code. Re-vendor with the `install-anti-slop` skill.
+They live in `AGENTS.md`, which is the file in force; `CLAUDE.md` is a symlink to it. This document
+explains why each one exists, `AGENTS.md` states it, and `CONTRIBUTING.md` says which one a given
+task touches.

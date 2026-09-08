@@ -13,6 +13,16 @@ pnpm add -D render-blueprint
 The package holds the library and the `render-blueprint` binary. The binary needs Node 22.18.0 or
 newer, because it loads your blueprint file through Node's native type stripping.
 
+There is a second entry point for tests:
+
+```ts
+import { memoryFilePort } from 'render-blueprint/testing';
+```
+
+`memoryFilePort()` is an in-memory filesystem. Give it to `writeBlueprint` or `checkBlueprint` and
+your test writes nothing to disk. It ships on its own path, so it never reaches your runtime
+bundle.
+
 ## The scenario
 
 Each app declares its own resources in its own file. The root file assembles them. The two files
@@ -256,7 +266,10 @@ pnpm install
 git config core.hooksPath .githooks   # once per clone: the commit hooks
 pnpm check                            # format, lint, typecheck, tests, type tests
 pnpm build                            # the ESM bundle, the types and the bin, into dist/
+pnpm fixtures:update                  # rewrite the committed YAML expectations, then read the diff
 ```
+
+`CONTRIBUTING.md` says which files and which tests a given change touches.
 
 ## License
 
