@@ -9,8 +9,8 @@ bugs #57 to #62, landed as PRs #63 to #68 the same day; its two medium findings 
 suppressed by a type failure, `extraFields` against the schema's per-kind allow-lists) await a v1.2
 spec. The behaviour-preserving restructuring of spec #69 moved validation parsing, per-kind
 emission, defaults scope capture, the CLI split and the shared test helpers: tickets #71 to #75
-landed as PRs #77 to #81 on 2026-09-08. #70 (this guidance) and #76 (enforcing the dependency
-policy) are what remain of it. New work starts with
+landed as PRs #77 to #81 on 2026-09-08, #70 (this guidance) as #82 and #76 (the dependency gate in
+`.oxlintrc.json`) as #83 the same day; spec #69 is complete. New work starts with
 `/to-spec` for a feature or a plain `ready-for-agent` issue for a bug, then a Herdr dispatch.
 
 - `CONTRIBUTING.md` — which files and which tests a given task touches. Read it before changing code.
