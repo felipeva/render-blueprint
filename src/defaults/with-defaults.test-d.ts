@@ -17,7 +17,11 @@ import type { WebService } from '../resources/web.js';
 import { web } from '../resources/web.js';
 import { worker } from '../resources/worker.js';
 import type { PlanDefaults, ResourceDefaults } from './resource-defaults.js';
-import { RECORD_KEYS_COVER_THE_DEFAULT_KEYS } from './resource-defaults.js';
+import {
+  DEFAULT_FIELDS_COVER_THE_RECORD_KEYS,
+  PLAN_KINDS_COVER_THE_PLAN_DEFAULTS,
+  RECORD_KEYS_COVER_THE_DEFAULT_KEYS,
+} from './resource-defaults.js';
 import { withDefaults } from './with-defaults.js';
 
 const scope = withDefaults({ region: 'oregon' });
@@ -44,6 +48,14 @@ describe('withDefaults', () => {
 
   it('holds the record keys the provenance names', () => {
     expectTypeOf(RECORD_KEYS_COVER_THE_DEFAULT_KEYS).toEqualTypeOf<true>();
+  });
+
+  it('holds the plan kinds the plan record names', () => {
+    expectTypeOf(PLAN_KINDS_COVER_THE_PLAN_DEFAULTS).toEqualTypeOf<true>();
+  });
+
+  it('holds the fields a default lands in equal to the record keys', () => {
+    expectTypeOf(DEFAULT_FIELDS_COVER_THE_RECORD_KEYS).toEqualTypeOf<true>();
   });
 
   it('rejects a default the record does not model', () => {

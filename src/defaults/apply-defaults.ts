@@ -23,29 +23,18 @@ import { repoSource, type ServiceSource } from '../resources/service-source.js';
 import type { StaticSiteConfig } from '../resources/static-site.js';
 import type { WebConfig } from '../resources/web.js';
 import type { WorkerConfig } from '../resources/worker.js';
+import type { PlanDefaults, ResourceDefaults } from './resource-defaults.js';
 
 export interface Filled<V> {
   readonly value: V;
   readonly scope: DefaultsDeclaration;
 }
 
-export interface ScopePlans {
-  readonly web: Filled<ServerPlan> | undefined;
-  readonly privateService: Filled<PaidServerPlan> | undefined;
-  readonly worker: Filled<PaidServerPlan> | undefined;
-  readonly cron: Filled<CronPlan> | undefined;
-  readonly keyValue: Filled<KeyValuePlan> | undefined;
-  readonly postgres: Filled<PostgresPlan> | undefined;
-}
+type Scoped<T> = { readonly [K in keyof T]-?: Filled<NonNullable<T[K]>> | undefined };
 
-export interface ScopeValues {
-  readonly region: Filled<Region> | undefined;
-  readonly repo: Filled<string> | undefined;
-  readonly branch: Filled<string> | undefined;
-  readonly rootDir: Filled<string> | undefined;
-  readonly autoDeployTrigger: Filled<AutoDeployTrigger> | undefined;
-  readonly buildFilter: Filled<BuildFilter> | undefined;
-  readonly ipAllowList: Filled<IpAllowList> | undefined;
+export type ScopePlans = Scoped<PlanDefaults>;
+
+export interface ScopeValues extends Scoped<Omit<ResourceDefaults, 'plan'>> {
   readonly plan: ScopePlans;
 }
 

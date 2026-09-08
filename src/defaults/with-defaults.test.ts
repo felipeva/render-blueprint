@@ -192,6 +192,42 @@ services:
     ]);
   });
 
+  it('declares the keys a scope sets in the order the field inventories name', () => {
+    const declaring = withDefaults({
+      region: 'frankfurt',
+      repo: 'https://github.com/acme/mono',
+      branch: 'main',
+      rootDir: 'apps/api',
+      autoDeployTrigger: 'checksPass',
+      buildFilter: { paths: ['apps/**'] },
+      ipAllowList: [{ source: '203.0.113.0/24' }],
+      plan: {
+        web: 'standard',
+        privateService: 'starter',
+        worker: 'starter',
+        cron: 'starter',
+        keyValue: 'standard',
+        postgres: 'basic-1gb',
+      },
+    });
+
+    expect(declaring.web('api', { runtime: 'node' }).defaults?.scopes[0]?.keys).toEqual([
+      'region',
+      'repo',
+      'branch',
+      'rootDir',
+      'autoDeployTrigger',
+      'buildFilter',
+      'ipAllowList',
+      'plan.web',
+      'plan.privateService',
+      'plan.worker',
+      'plan.cron',
+      'plan.keyValue',
+      'plan.postgres',
+    ]);
+  });
+
   it('freezes the declaration and the keys it holds', () => {
     const declaration = withDefaults({ region: 'frankfurt' }).web('api', { runtime: 'node' })
       .defaults?.scopes[0];

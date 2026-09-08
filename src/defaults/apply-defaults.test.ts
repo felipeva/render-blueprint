@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { BuildFilter } from '../resources/build-filter.js';
-import type { DefaultsDeclaration } from '../resources/defaults-provenance.js';
+import { DEFAULT_KEYS, type DefaultsDeclaration } from '../resources/defaults-provenance.js';
 import type { IpAllowList } from '../resources/ip-allow-list.js';
 import type { WebConfig } from '../resources/web.js';
 import {
@@ -407,5 +407,21 @@ describe('postgresDefaults', () => {
 
     expect(merged.config.ipAllowList).toEqual([]);
     expect(merged.applied.map((entry) => entry.key)).toEqual(['region', 'plan.postgres']);
+  });
+});
+
+describe('apply-defaults', () => {
+  it('makes every key DEFAULT_KEYS names eligible through one of its seven kinds', () => {
+    const reached = new Set([
+      ...webDefaults(every, { runtime: 'node' }).eligible,
+      ...privateServiceDefaults(every, { runtime: 'node' }).eligible,
+      ...workerDefaults(every, { runtime: 'node' }).eligible,
+      ...cronDefaults(every, { runtime: 'node', schedule: '0 * * * *' }).eligible,
+      ...staticSiteDefaults(every, { buildCommand: 'pnpm build' }).eligible,
+      ...keyValueDefaults(every, { ipAllowList: [] }).eligible,
+      ...postgresDefaults(every, {}).eligible,
+    ]);
+
+    expect([...reached].sort()).toEqual([...DEFAULT_KEYS].sort());
   });
 });
