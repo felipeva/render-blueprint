@@ -47,7 +47,7 @@ Use these words. Definitions come from `docs/design/structure.md`,
 - **BlueprintInvalid** — the tagged error `validate` produces, carrying a non-empty list of every issue found, never the first one only. Declared in `src/validation/blueprint-invalid.ts` and re-exported from `src/index.ts`.
 - **Synthesize** — `synthesize(blueprint)`: validate, build the YAML document, emit. The only code path that knows YAML exists. `src/synth/`.
 - **Synthesis report** — the success payload of `synthesize`: the `yaml` string plus the warnings.
-- **Emission order** — the fixed key order per node kind that makes output byte-stable. Each resource declares its ordered field tuple beside its factory, and that kind's emitter in `src/synth/` reads it; `src/synth/key-order.ts` holds only the orders no resource owns — the root, the placement axes and the env-var entry forms.
+- **Emission order** — the fixed key order per node kind that makes output byte-stable. Each resource declares its ordered field tuple beside its factory, and that kind's emitter in `src/synth/` reads it; `src/synth/key-order.ts` holds only the orders no resource owns — the root, the placement axes, the env-var entry forms and the registry-credential nodes.
 - **Golden file** — `test/fixtures/canonical/render.yaml`, the byte-equal expectation for the canonical scenario. Every `test/fixtures/*/render.yaml` and every `test/fixtures/cli/*/expected.yaml` is rewritable, but only through `pnpm fixtures:update`, and a human reads the diff. No test rewrites anything else.
 
 ## Drift

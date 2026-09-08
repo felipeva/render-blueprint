@@ -138,10 +138,12 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `main` is
   `index.ts`/`testing.ts` → `cli`. A module's own files import each other freely; what is banned is
   an import between two sibling modules in one tier (`defaults/` and `blueprint/` are the only
   pair) and any import that runs upward. No cycles, `import type` included. Nothing imports
-  `src/cli/`; `src/cli/` imports `src/index.ts` and nothing else in `src/`. Inside `src/`,
-  `src/synth/` is the only module that imports `yaml` and `src/fs/` the only one that imports
-  `node:fs*`; `zod` stops at `validation/` and `better-result` never appears below it. The full
-  policy, and what binds test files, is `docs/design/structure.md` §3.
+  `src/cli/`; in source files `src/cli/` imports `src/index.ts` and nothing else in `src/`. Inside
+  `src/`, `src/synth/` is the only module that imports `yaml` and `src/fs/` the only one that
+  imports `node:fs*`; in source files `zod` stops at `validation/` and `better-result` never appears
+  below it. A test file is exempt from the tier order and from those last two: it may import
+  anything under `src/` and anything under `test/support/`. The full policy is
+  `docs/design/structure.md` §3.
 - Files are kebab-case with one primary export named after the file. Runtime tests are `x.test.ts`
   beside `x.ts`; type tests are `x.test-d.ts` beside `x.ts`. Cross-module tests and fixtures live
   in `test/`, and the helpers those suites share live in `test/support/`.
@@ -158,7 +160,8 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `main` is
 - The ordered list of YAML keys a resource can emit lives beside its factory (`WEB_SERVICE_FIELDS`
   in the web factory file), because validation reads it and validation may not import synth. That
   kind's emitter imports the tuple from `src/resources/` directly; `src/synth/key-order.ts` holds
-  only the orders no resource owns — the root, the placement axes and the env-var entry forms.
+  only the orders no resource owns — the root, the placement axes, the env-var entry forms and the
+  registry-credential nodes.
 - Every resource config has a hand-written public interface and a module-private Zod schema in
   the factory's file, built with `.readonly()` and `.exactOptional()` so the inferred type equals
   the interface. Export a `true` constant typed by an identity guard between the two; never let

@@ -48,7 +48,9 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   ├── install-anti-slop/           existing; scripts/install.mjs writes tools/oxlint/anti-slop/
 │   └── adopt-better-result/         NEW — vendored from .reference (§2.1)
 ├── .claude/skills/                  symlinks into ../../.agents/skills
-├── .github/workflows/ci.yml         install, `pnpm check`, `pnpm build`, then `node dist/cli.js --help`
+├── .github/workflows/               ci.yml runs install, `pnpm check`, `pnpm build`, then
+│                                    `node dist/cli.js --help`; test.yml runs install, `pnpm test`
+│                                    and `pnpm test:types` on their own
 ├── docs/                            unchanged: adr/ agents/ design/ research/ research/raw/
 ├── scripts/                         refresh-render-schema.mjs re-downloads the Render JSON Schema
 │                                    into test/schema/ (§6.3); check-declarations.mjs fails the build
@@ -167,22 +169,25 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   ├── deprecation.ts           the deprecated fields and the sentence each one warns with
 │   │   ├── env-key-origins.ts       resolves an imported group by name the way Render does, so the
 │   │   │                            group/direct collision and the duplicate key have one reader
-│   │   └── rules/                   one pure Blueprint → issues[] file per family: duplicate-name,
-│                                     dangling-reference, multiple-locations, env-collision,
-│                                     service-env-var-key, extra-field-conflict, warnings,
-│                                     env-key-collision, unknown-service-env-var-key,
-│                                     secret-skips-previews, web-only-field,
-│                                     instances-ignored-by-scaling, unused-default,
-│                                     build-filter-on-image-source,
-│                                     maintenance-mode-needs-paid-plan,
-│                                     project-without-environment. The scaling,
-│                                     numeric-range and high-availability families are refinements
-│                                     beside their own config instead, because each reads one config
-│                                     and no other
+│   │   └── rules/                   one pure Blueprint → issues[] file per rule, 21 of them:
+│                                     branch-disables-previews, build-filter-on-image-source,
+│                                     dangling-reference, deprecated-field, duplicate-env-key,
+│                                     duplicate-resource-name, env-key-collision,
+│                                     extra-field-conflict, instances-ignored-by-scaling,
+│                                     maintenance-mode-needs-paid-plan, missing-build-command,
+│                                     missing-start-command, missing-static-publish-path,
+│                                     project-without-environment, resource-in-multiple-locations,
+│                                     root-deprecated-field, root-extra-field-conflict,
+│                                     secret-skips-previews, unknown-service-env-var-key,
+│                                     unused-default, web-only-field. The scaling, numeric-range and
+│                                     high-availability families are refinements beside their own
+│                                     config instead, because each reads one config and no other
 │   ├── synth/                       the ONLY module that knows YAML exists
 │   │   ├── synthesize.ts  document.ts   validate → document → emit; ValidatedBlueprint → a Document
 │   │   ├── mapping.ts  key-order.ts   the ordered builder that never writes an undefined value (§5),
-│   │   │                            and the root and env-entry key orders; each resource's field order is the tuple beside its factory
+│   │   │                            and the orders no resource owns: the root, the placement axes,
+│   │   │                            the env-var entry forms and the registry-credential nodes. Each
+│   │   │                            resource's own field order is the tuple beside its factory
 │   │   ├── services.ts              dispatch on resource.kind, then the `services:` sequence
 │   │   ├── web-service.ts  private-service.ts  worker-service.ts
 │   │   ├── cron-job.ts  static-site.ts  key-value-store.ts
@@ -268,11 +273,16 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │                                rewritable, but only through `pnpm fixtures:update` (§6.2)
 │   ├── fixtures/*/render.ts         one directory per scenario; fixtures.test.ts discovers any
 │   │                                directory holding a render.ts, so adding one needs no wiring
-│   ├── fixtures/cli/                seed directories — build-filter-image, clean, defective,
-│   │                                drifted, invalid, split, v1-1-surface, warned. Each holds
-│   │                                render.ts.seed, whose import specifier is a placeholder the
-│   │                                smoke test rewrites to the built entry's file URL, plus an
-│   │                                expected.yaml where the seed's output is asserted
+│   ├── fixtures/cli/                eight seed directories, each holding a render.ts.seed whose
+│   │                                import specifier is a placeholder the smoke test rewrites to the
+│   │                                built entry's file URL. What sits beside the seed differs:
+│   │                                split and v1-1-surface add an expected.yaml, the output the run
+│   │                                is compared against; clean, drifted and warned add a render.yaml,
+│   │                                the committed file `check` reads; build-filter-image, defective
+│   │                                and invalid hold the seed alone and are judged on exit code and
+│   │                                streams. export-not-a-blueprint.mjs and
+│   │                                export-without-resources.mjs sit beside the directories, for the
+│   │                                two bad-export paths
 │   └── schema/render.yaml.schema.json the conformance oracle, refreshed by script only (§6.3)
 ├── tools/oxlint/anti-slop/          written by the install skill; committed; never linted or edited
 ├── .githooks/                       pre-commit formats and lints the staged files; commit-msg
@@ -343,9 +353,10 @@ imports every rule. The `validation/` ↔ `validation/rules/` loop that a direct
 sees is not a cycle between files, and is expected.
 
 **The two entrypoints.** `index.ts` publishes `.` and `testing.ts` publishes `./testing`; both are
-in `package.json` `exports`. Neither imports the other, and nothing inside `src/` imports either
-one except `cli/`, which imports `index.ts`. If a CLI file needs something `index.ts` does not
-export, export it — do not reach inside.
+in `package.json` `exports`. Neither imports the other, and no source file inside `src/` imports
+either one except `cli/`, which imports `index.ts`. Test files may, and do: `src/index.test-d.ts`
+type-tests both surfaces and `src/cli/discover.test.ts` takes `memoryFilePort` from `testing.ts`.
+If a CLI file needs something `index.ts` does not export, export it — do not reach inside.
 
 **External dependencies have owners.**
 
@@ -354,9 +365,9 @@ export, export it — do not reach inside.
 | `zod` | L0-L6 only | no schema and no Zod type may cross a published entry (ADR-0003). `scripts/check-declarations.mjs` proves the output half by failing the build if `dist/index.d.ts` names Zod; this ban is the input half |
 | `better-result` | `validation/`, `synth/`, `fs/`, `drift/`, `cli/` | banned below `validation/`, which is the mechanical form of "factories are total" |
 | `yaml` | `synth/` | `drift/` receives a `JsonValue`, never a string it must parse itself. `test/` may parse the emitted YAML back, which is what §6.3 does |
-| `node:fs`, `node:fs/promises` | `fs/` | everything above it is pure. `test/` may, for the fixture harness and the CLI smoke test |
-| `node:path`, `node:url` | `fs/`, `cli/` | path arithmetic only. The CLI never touches the disk itself: every read and write goes through the `FilePort` it takes from `index.ts` |
-| any other `node:` builtin | nowhere in `src/` | |
+| `node:fs`, `node:fs/promises` | `fs/`, and any test file | everything above it is pure. The fixture harness, the CLI smoke test and `src/fs/node-file-port.test.ts` read the disk directly |
+| `node:path`, `node:url` | `fs/`, `cli/`, and any test file | path arithmetic only. The CLI never touches the disk itself: every read and write goes through the `FilePort` it takes from `index.ts`. Five files under `test/` resolve fixture paths this way |
+| any other `node:` builtin | no source file; a test may | `src/fs/node-file-port.test.ts` takes `node:os` for a temp directory |
 | `@drizzle-team/brocli` | `cli/` | |
 | `ajv`, `ajv-formats` | `test/support/` | the conformance oracle and nothing else |
 | `vitest` | test files | |
@@ -383,14 +394,15 @@ stays outside `src/` — a file under `src/` would ship its Zod types.
 
 *The checker that enforces §3.1 is not yet wired into `pnpm lint`.*
 
-Four notes for whoever wires it, so they are not rediscovered:
+Five notes for whoever wires it, so they are not rediscovered:
 
 1. `no-restricted-imports` matches the specifier text, so each per-module deny-list needs the `../**`
    form and the `../../**` form. `validation/rules/` is the only nested directory in `src/`.
 2. The test exemption is a later override setting the rule to `off` for `src/**/*.test.ts` and
    `src/**/*.test-d.ts`; the last override wins.
 3. `import/no-cycle` needs `ignoreTypes` set to false — its default passes a type-only cycle.
-4. The `import` plugin is not in `.oxlintrc.json` `plugins` yet.
+4. `ajv` is imported as `ajv/dist/2020.js`, so a bare `ajv` pattern will not match it.
+5. The `import` plugin is not in `.oxlintrc.json` `plugins` yet.
 
 ### 3.2 Reviewed by hand
 
@@ -410,7 +422,7 @@ what it imports.
 | Module | Surface | What it hides |
 | --- | --- | --- |
 | `synth/` | `synthesize(blueprint)` | YAML serialization entirely, key order, the generated-file header, the six listable service kinds and the one emitter each, the `(type, runtime)` discriminator, the env map→list conversion, the keyless `fromGroup` entry, the `previewPlan`/`previews.plan` split, Postgres landing in `databases:` while Key Value lands in `services:`, read-replica name registration |
-| `validation/` | `validate(blueprint)` | ~15 rule families, the traversal that reaches every reference in every env map on every resource in every placement, and the ordering that makes issue output deterministic |
+| `validation/` | `validate(blueprint)` | 21 rule files, the traversal that reaches every reference in every env map on every resource in every placement, and the ordering that makes issue output deterministic |
 | `references/` | property access on a resource value | both YAML reference forms, the `property` XOR `envVarKey` split, and the per-source legality table — nobody writes `fromDatabase`, they write `db.connectionString` |
 | `defaults/` | `withDefaults(defaults)` | nesting and the kind × field matrix: region and plan never reach a static site; repo, branch, rootDir, autoDeployTrigger and buildFilter never reach a datastore or an image source; ipAllowList reaches a web service, a static site and Postgres, and never a Key Value store |
 | `drift/` | `checkBlueprint(...)` | normalization of the committed file and the classification of changes to Render's immutable fields |
@@ -574,8 +586,9 @@ propagate), `drift/normalize.ts`.
 **6.2 The golden test.** `test/fixtures.test.ts` imports `test/fixtures/canonical/render.ts` — design
 B §3 verbatim, the scenario every design document was judged on — calls `synthesize`, and compares
 with `test/fixtures/canonical/render.yaml` byte for byte, as it does every other fixture directory.
-`test/cli.test.ts` compares each CLI seed's `expected.yaml` against the built binary's own output the
-same way. `pnpm fixtures:update` runs both files under `UPDATE_FIXTURES=1` to regenerate every
+Two CLI seeds, `split` and `v1-1-surface`, carry an `expected.yaml` that `test/cli.test.ts`
+compares against the built binary's own output the same way; the rest are judged on exit code and
+streams, and three of them hold a committed `render.yaml` for `check` to read instead. `pnpm fixtures:update` runs both files under `UPDATE_FIXTURES=1` to regenerate every
 `test/fixtures/*/render.yaml` and every `test/fixtures/cli/*/expected.yaml`, and a human reviews the
 diff by hand; those are the only files a test may rewrite. This is the single regression net for key
 order, quoting, the header and the map→list conversion.
@@ -636,6 +649,7 @@ it stands, and the manifest that follows it is the manifest.
 | `vitest.config.ts` | `test.include: ["src/**/*.test.ts","test/**/*.test.ts"]`, `test.typecheck.include: ["src/**/*.test-d.ts","test/**/*.test-d.ts"]`, `test.typecheck.tsconfig: "tsconfig.check.json"`. INFERRED — the toolchain doc verifies vitest 5 with `--typecheck` but ships no config skeleton. |
 | `tsdown.config.ts` | `entry: { index: "src/index.ts", testing: "src/testing.ts", cli: "src/cli/main.ts" }`, `format: "esm"`, `fixedExtension: false`, `dts: true`, `treeshake: { moduleSideEffects: false }`, `deps: { neverBundle: ["@drizzle-team/brocli", "yaml", "better-result", "zod"] }`, shebang on the `cli` entry. `fixedExtension: false` is required: tsdown 0.23 defaults it to true on the node platform and emits `.mjs` and `.d.mts`, which `exports`, `bin`, and CI would not find (verified in PR #15). `neverBundle` is mandatory — the default bundles dependencies and the toolchain doc measured 234 kB of `yaml` inlined. |
 | `.github/workflows/ci.yml` | `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm build`, then `node dist/cli.js --help` as a smoke test that the built binary starts. |
+| `.github/workflows/test.yml` | `pnpm install --frozen-lockfile`, `pnpm test`, `pnpm test:types` — the two suites on their own, so a failing test is legible without reading past a format or lint failure. |
 | `.githooks/` | `pre-commit` formats the staged files with oxfmt, re-stages them, and runs oxlint on the staged source. `commit-msg` validates the Conventional Commits subject. Git does not version hooks, so each clone runs `git config core.hooksPath .githooks` once. |
 | `.gitignore` | Covers `node_modules/`, `dist/`, `coverage/`, `*.tsbuildinfo`, `.reference/`. |
 
