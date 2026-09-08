@@ -1,9 +1,4 @@
 import { cron, type CronConfig, type CronJob } from '../resources/cron.js';
-import type {
-  DefaultKey,
-  DefaultsDeclaration,
-  DefaultsProvenance,
-} from '../resources/defaults-provenance.js';
 import { envGroup, type EnvGroupConfig, type EnvironmentGroup } from '../resources/env-group.js';
 import { keyValue, type KeyValueConfig, type KeyValueStore } from '../resources/key-value.js';
 import { postgres, type PostgresConfig, type PostgresDatabase } from '../resources/postgres.js';
@@ -16,7 +11,6 @@ import { staticSite, type StaticSite, type StaticSiteConfig } from '../resources
 import { web, type WebConfig, type WebService } from '../resources/web.js';
 import { worker, type Worker, type WorkerConfig } from '../resources/worker.js';
 import {
-  type AppliedConfig,
   cronDefaults,
   keyValueDefaults,
   postgresDefaults,
@@ -24,10 +18,9 @@ import {
   staticSiteDefaults,
   webDefaults,
   workerDefaults,
-  type Filled,
-  type ScopeValues,
 } from './apply-defaults.js';
-import type { PlanDefaults, ResourceDefaults } from './resource-defaults.js';
+import { defaultsScope, scopeProvenance, type DefaultsScope } from './defaults-scope.js';
+import type { ResourceDefaults } from './resource-defaults.js';
 
 // design B §2.3: the same factory set with the same signatures.
 export interface ResourceFactories {
@@ -42,167 +35,38 @@ export interface ResourceFactories {
   readonly withDefaults: (defaults: ResourceDefaults) => ResourceFactories;
 }
 
-interface Scope {
-  readonly values: ScopeValues;
-  readonly declarations: readonly DefaultsDeclaration[];
-}
-
-const RECORD_FIELDS: ReadonlySet<string> = new Set([
-  'region',
-  'repo',
-  'branch',
-  'rootDir',
-  'autoDeployTrigger',
-  'buildFilter',
-  'ipAllowList',
-  'plan',
-]);
-
-const PLAN_FIELDS: ReadonlySet<string> = new Set([
-  'web',
-  'privateService',
-  'worker',
-  'cron',
-  'keyValue',
-  'postgres',
-]);
-
-// A JavaScript caller can pass anything the CLI's type stripping let through.
-const asRecord = <T>(value: T | undefined): T | undefined => {
-  const boxed: object = Object(value);
-
-  return boxed === value ? value : undefined;
-};
-
-const isPresent = <T>(value: T | undefined): boolean => value !== undefined && value !== null;
-
-// A JavaScript caller can write a key the record does not model.
-const unmodeledKeys = (
-  record: ResourceDefaults,
-  plan: PlanDefaults | undefined,
-): readonly string[] => [
-  ...Object.keys(record).filter((key) => !RECORD_FIELDS.has(key)),
-  ...(plan === undefined && isPresent(record.plan) ? ['plan'] : []),
-  ...(plan === undefined
-    ? []
-    : Object.keys(plan)
-        .filter((key) => !PLAN_FIELDS.has(key))
-        .map((key) => `plan.${key}`)),
-];
-
-const declaredKeys = (
-  record: ResourceDefaults,
-  plan: PlanDefaults | undefined,
-): readonly string[] => {
-  const keys: string[] = [];
-  const declare = (key: DefaultKey): void => {
-    keys.push(key);
-  };
-
-  if (record.region !== undefined) declare('region');
-  if (record.repo !== undefined) declare('repo');
-  if (record.branch !== undefined) declare('branch');
-  if (record.rootDir !== undefined) declare('rootDir');
-  if (record.autoDeployTrigger !== undefined) declare('autoDeployTrigger');
-  if (record.buildFilter !== undefined) declare('buildFilter');
-  if (record.ipAllowList !== undefined) declare('ipAllowList');
-
-  if (plan !== undefined) {
-    if (plan.web !== undefined) declare('plan.web');
-    if (plan.privateService !== undefined) declare('plan.privateService');
-    if (plan.worker !== undefined) declare('plan.worker');
-    if (plan.cron !== undefined) declare('plan.cron');
-    if (plan.keyValue !== undefined) declare('plan.keyValue');
-    if (plan.postgres !== undefined) declare('plan.postgres');
-  }
-
-  return [...keys, ...unmodeledKeys(record, plan)];
-};
-
-const filled = <V>(
-  own: V | undefined,
-  scope: DefaultsDeclaration,
-  outer: Filled<V> | undefined,
-): Filled<V> | undefined => (own === undefined ? outer : { value: own, scope });
-
-const scopeValues = (
-  outer: ScopeValues | undefined,
-  record: ResourceDefaults,
-  scope: DefaultsDeclaration,
-  plan: PlanDefaults | undefined,
-): ScopeValues => ({
-  region: filled(record.region, scope, outer?.region),
-  repo: filled(record.repo, scope, outer?.repo),
-  branch: filled(record.branch, scope, outer?.branch),
-  rootDir: filled(record.rootDir, scope, outer?.rootDir),
-  autoDeployTrigger: filled(record.autoDeployTrigger, scope, outer?.autoDeployTrigger),
-  buildFilter: filled(record.buildFilter, scope, outer?.buildFilter),
-  ipAllowList: filled(record.ipAllowList, scope, outer?.ipAllowList),
-  plan: {
-    web: filled(plan?.web, scope, outer?.plan.web),
-    privateService: filled(plan?.privateService, scope, outer?.plan.privateService),
-    worker: filled(plan?.worker, scope, outer?.plan.worker),
-    cron: filled(plan?.cron, scope, outer?.plan.cron),
-    keyValue: filled(plan?.keyValue, scope, outer?.plan.keyValue),
-    postgres: filled(plan?.postgres, scope, outer?.plan.postgres),
+const factories = (scope: DefaultsScope): ResourceFactories => ({
+  web: (name, config) => {
+    const merged = webDefaults(scope.values, config);
+    return { ...web(name, merged.config), defaults: scopeProvenance(scope, merged) };
   },
+  privateService: (name, config) => {
+    const merged = privateServiceDefaults(scope.values, config);
+    return { ...privateService(name, merged.config), defaults: scopeProvenance(scope, merged) };
+  },
+  worker: (name, config) => {
+    const merged = workerDefaults(scope.values, config);
+    return { ...worker(name, merged.config), defaults: scopeProvenance(scope, merged) };
+  },
+  cron: (name, config) => {
+    const merged = cronDefaults(scope.values, config);
+    return { ...cron(name, merged.config), defaults: scopeProvenance(scope, merged) };
+  },
+  staticSite: (name, config) => {
+    const merged = staticSiteDefaults(scope.values, config);
+    return { ...staticSite(name, merged.config), defaults: scopeProvenance(scope, merged) };
+  },
+  keyValue: (name, config) => {
+    const merged = keyValueDefaults(scope.values, config);
+    return { ...keyValue(name, merged.config), defaults: scopeProvenance(scope, merged) };
+  },
+  postgres: (name, config = {}) => {
+    const merged = postgresDefaults(scope.values, config);
+    return { ...postgres(name, merged.config), defaults: scopeProvenance(scope, merged) };
+  },
+  envGroup,
+  withDefaults: (defaults) => factories(defaultsScope(scope, defaults)),
 });
 
-// The declaration's identity is the scope: every resource a scope fills points at the same object,
-// and the unused-default rule counts by that identity.
-const nest = (outer: Scope | undefined, given: ResourceDefaults): Scope => {
-  const record: ResourceDefaults = asRecord(given) ?? {};
-  const plan = asRecord(record.plan);
-  const scope: DefaultsDeclaration = Object.freeze({
-    keys: Object.freeze(declaredKeys(record, plan)),
-  });
-
-  return {
-    values: scopeValues(outer?.values, record, scope, plan),
-    declarations: [...(outer?.declarations ?? []), scope],
-  };
-};
-
-const factories = (scope: Scope): ResourceFactories => {
-  const provenance = <T>(merged: AppliedConfig<T>): DefaultsProvenance => ({
-    scopes: scope.declarations,
-    eligible: merged.eligible,
-    applied: merged.applied,
-  });
-
-  return {
-    web: (name, config) => {
-      const merged = webDefaults(scope.values, config);
-      return { ...web(name, merged.config), defaults: provenance(merged) };
-    },
-    privateService: (name, config) => {
-      const merged = privateServiceDefaults(scope.values, config);
-      return { ...privateService(name, merged.config), defaults: provenance(merged) };
-    },
-    worker: (name, config) => {
-      const merged = workerDefaults(scope.values, config);
-      return { ...worker(name, merged.config), defaults: provenance(merged) };
-    },
-    cron: (name, config) => {
-      const merged = cronDefaults(scope.values, config);
-      return { ...cron(name, merged.config), defaults: provenance(merged) };
-    },
-    staticSite: (name, config) => {
-      const merged = staticSiteDefaults(scope.values, config);
-      return { ...staticSite(name, merged.config), defaults: provenance(merged) };
-    },
-    keyValue: (name, config) => {
-      const merged = keyValueDefaults(scope.values, config);
-      return { ...keyValue(name, merged.config), defaults: provenance(merged) };
-    },
-    postgres: (name, config = {}) => {
-      const merged = postgresDefaults(scope.values, config);
-      return { ...postgres(name, merged.config), defaults: provenance(merged) };
-    },
-    envGroup,
-    withDefaults: (defaults) => factories(nest(scope, defaults)),
-  };
-};
-
 export const withDefaults = (defaults: ResourceDefaults): ResourceFactories =>
-  factories(nest(undefined, defaults));
+  factories(defaultsScope(undefined, defaults));

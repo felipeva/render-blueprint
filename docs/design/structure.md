@@ -115,7 +115,9 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   ├── resource-defaults.ts     ResourceDefaults/PlanDefaults, one plan key per kind that has
 │   │   │                            a plan, the build filter, the deploy trigger and the allow list
 │   │   │                            typed by the same declarations a config field takes (issue
-│   │   │                            #44), and the guard holding those keys equal to DefaultKey
+│   │   │                            #44), the PLAN_KINDS tuple those keys are read by at runtime,
+│   │   │                            and the guards holding both equal to DefaultKey and to
+│   │   │                            DEFAULT_FIELDS
 │   │   ├── apply-defaults.ts        the kind × field matrix: region and plan never reach a static
 │   │   │                            site, no repository field reaches a datastore, and `runtime`
 │   │   │                            keeps one off an image source, which is what also keeps the
@@ -124,8 +126,12 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   │                            Key Value store, whose config requires the field. A
 │   │   │                            per-resource value always wins, and an object or an array
 │   │   │                            default is replaced whole rather than merged
-│   │   └── with-defaults.ts         the nestable scope: the frozen per-scope declaration, the
-│                                    outer-to-inner merge, and the provenance each resource carries
+│   │   ├── defaults-scope.ts        the nestable scope: the frozen per-scope declaration, derived
+│   │   │                            from DEFAULT_FIELDS and PLAN_KINDS so a new default cannot go
+│   │   │                            undeclared, the unknown key a JavaScript caller can write, the
+│   │   │                            outer-to-inner merge, and the provenance a resource carries
+│   │   └── with-defaults.ts         the wiring: each factory applies its rule to the scope's
+│                                    values and returns the resource with that provenance
 │   ├── blueprint/                   the explicit root and its placement axes
 │   │   ├── blueprint.ts  group.ts  project.ts  environment.ts   all total; none validates
 │   │   └── placement.ts             flattens root / projects[].environments[] / ungrouped into one list
