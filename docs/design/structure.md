@@ -149,7 +149,16 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   ├── synthesize.ts  document.ts   validate → document → emit; ValidatedBlueprint → a Document
 │   │   ├── mapping.ts  key-order.ts   the ordered builder that never writes an undefined value (§5),
 │   │   │                            and the root and env-entry key orders; each resource's field order is the tuple beside its factory
-│   │   ├── services.ts              the four disjoint service branches + (type, runtime) discrimination
+│   │   ├── services.ts              dispatch on resource.kind, then the `services:` sequence
+│   │   ├── web-service.ts  private-service.ts  worker-service.ts
+│   │   ├── cron-job.ts  static-site.ts  key-value-store.ts
+│   │   │                            one emitter per listable service kind, each owning the nested
+│   │   │                            branches only it emits — maintenance mode on a web service;
+│   │   │                            previews, headers and routes on a static site, which the
+│   │   │                            (type, runtime) pair discriminates
+│   │   ├── disk.ts  scaling.ts  build-filter.ts  service-previews.ts
+│   │   │                            the nested branches several kinds emit: buildFilter on five,
+│   │   │                            the other three on web service, private service and worker
 │   │   ├── service-source.ts        one source union → the source keys a mapping emits, plus the
 │   │   │                            image and registry-credential nodes
 │   │   ├── databases.ts             postgres → `databases:`, read-replica registration
