@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 
 import { synthesize, type Blueprint, type JsonValue } from '../src/index.js';
-import { renderSchema } from './render-schema.js';
+import { renderSchema } from './support/render-schema.js';
 
 const fixturesPath = fileURLToPath(new URL('fixtures/', import.meta.url));
 const updating = process.env['UPDATE_FIXTURES'] === '1';

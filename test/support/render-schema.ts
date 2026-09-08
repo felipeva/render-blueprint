@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import addFormats from 'ajv-formats';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 
-import type { JsonObject, JsonValue } from '../src/index.js';
+import type { JsonObject, JsonValue } from '../../src/index.js';
 
 export interface SchemaViolation {
   readonly at: string;
@@ -13,7 +13,7 @@ export interface SchemaViolation {
 
 export type SchemaValidator = (value: JsonValue) => readonly SchemaViolation[];
 
-const schemaPath = fileURLToPath(new URL('schema/render.yaml.schema.json', import.meta.url));
+const schemaPath = fileURLToPath(new URL('../schema/render.yaml.schema.json', import.meta.url));
 
 const compileRenderSchema = (): SchemaValidator => {
   // SAFETY: JSON.parse returns any. The file is the committed Render schema, whose root is a JSON
