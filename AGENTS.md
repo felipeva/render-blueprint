@@ -10,7 +10,9 @@ suppressed by a type failure, `extraFields` against the schema's per-kind allow-
 spec. The behaviour-preserving restructuring of spec #69 moved validation parsing, per-kind
 emission, defaults scope capture, the CLI split and the shared test helpers: tickets #71 to #75
 landed as PRs #77 to #81 on 2026-09-08, #70 (this guidance) as #82 and #76 (the dependency gate in
-`.oxlintrc.json`) as #83 the same day; spec #69 is complete. New work starts with
+`.oxlintrc.json`) as #83 the same day; spec #69 is complete. The v1.2 schema-conformance spec #84 (tickets #85 to #92) landed as PRs #93 to #98,
+#101 and #103 on 2026-09-09, each after an adversarial review whose findings the worker applied; follow-ups
+#99, #100 and #102 came out of those reviews. New work starts with
 `/to-spec` for a feature or a plain `ready-for-agent` issue for a bug, then a Herdr dispatch.
 
 - `CONTRIBUTING.md` — which files and which tests a given task touches. Read it before changing code.
