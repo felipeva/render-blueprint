@@ -9,6 +9,7 @@ import { BlueprintInvalid } from './blueprint-invalid.js';
 import type { ValidationWarning } from './issue.js';
 import { parseConfigs } from './parse-configs.js';
 import { parsePlacement } from './parse-placement.js';
+import { autoDeployTriggerOnImageSource } from './rules/auto-deploy-trigger-on-image-source.js';
 import { branchDisablesPreviews } from './rules/branch-disables-previews.js';
 import { buildFilterOnImageSource } from './rules/build-filter-on-image-source.js';
 import { danglingReference } from './rules/dangling-reference.js';
@@ -22,6 +23,8 @@ import { maintenanceModeNeedsPaidPlan } from './rules/maintenance-mode-needs-pai
 import { missingBuildCommand } from './rules/missing-build-command.js';
 import { missingStartCommand } from './rules/missing-start-command.js';
 import { missingStaticPublishPath } from './rules/missing-static-publish-path.js';
+import { persistenceNeedsPaidPlan } from './rules/persistence-needs-paid-plan.js';
+import { previewValueIgnored } from './rules/preview-value-ignored.js';
 import { projectWithoutEnvironment } from './rules/project-without-environment.js';
 import { resourceInMultipleLocations } from './rules/resource-in-multiple-locations.js';
 import { rootDeprecatedField } from './rules/root-deprecated-field.js';
@@ -65,6 +68,9 @@ const WARNING_RULES = [
   unusedDefault,
   buildFilterOnImageSource,
   maintenanceModeNeedsPaidPlan,
+  autoDeployTriggerOnImageSource,
+  previewValueIgnored,
+  persistenceNeedsPaidPlan,
 ] as const;
 
 export const validate = (value: Blueprint): ResultType<ValidatedBlueprint, BlueprintInvalid> => {
