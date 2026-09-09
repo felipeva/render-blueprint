@@ -1219,6 +1219,140 @@ describe('validate', () => {
     expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'disk.mountPath' });
   });
 
+  it('reports every cross-field rule beside a field whose value did not parse', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web(
+            'api',
+            unchecked(
+              '{"runtime":"node","healthCheckPath":"healthz","renderSubdomainPolicy":"disabled","disk":{"name":"uploads","mountPath":"/var/data"},"instances":3}',
+            ),
+          ),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual([
+      'InvalidConfig',
+      'DiskPreventsScaling',
+      'SubdomainPolicyNeedsDomain',
+    ]);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.at.field)).toEqual([
+      'healthCheckPath',
+      'instances',
+      'renderSubdomainPolicy',
+    ]);
+  });
+
+  it('reports the high-availability rule beside a region whose value did not parse', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          postgres(
+            'elephant',
+            uncheckedDatabase(
+              '{"region":"mars","postgresMajorVersion":"12","highAvailability":{"enabled":true}}',
+            ),
+          ),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['InvalidConfig', 'HighAvailabilityUnsupported']);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.at.field)).toEqual([
+      'region',
+      'highAvailability',
+    ]);
+  });
+
+  it('reports nothing from the disk rule when the instance count it reads did not parse', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web(
+            'api',
+            unchecked(
+              '{"runtime":"node","disk":{"name":"uploads","mountPath":"/var/data"},"instances":"three"}',
+            ),
+          ),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['InvalidConfig']);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'instances' });
+  });
+
+  it('reports both cross-field rules beside a key the library does not model', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web(
+            'api',
+            unchecked(
+              '{"runtime":"node","zone":"iad","renderSubdomainPolicy":"disabled","disk":{"name":"uploads","mountPath":"/var/data"},"instances":3}',
+            ),
+          ),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual([
+      'UnknownField',
+      'DiskPreventsScaling',
+      'SubdomainPolicyNeedsDomain',
+    ]);
+  });
+
+  it('reports the subdomain rule beside a mount path Render reserves', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', {
+            runtime: 'node',
+            disk: { name: 'uploads', mountPath: '/etc' },
+            renderSubdomainPolicy: 'disabled',
+          }),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['MountPathDisallowed', 'SubdomainPolicyNeedsDomain']);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.at.field)).toEqual([
+      'disk.mountPath',
+      'renderSubdomainPolicy',
+    ]);
+  });
+
+  it('reports nothing from the branch rules when the source runtime did not parse', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web(
+            'api',
+            unchecked(
+              '{"runtime":"mars","renderSubdomainPolicy":"disabled","disk":{"name":"uploads","mountPath":"/var/data"},"instances":3}',
+            ),
+          ),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['InvalidConfig']);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'runtime' });
+  });
+
   it('reports a scaling target above 90 as out of range', () => {
     const result = validate(
       blueprint({

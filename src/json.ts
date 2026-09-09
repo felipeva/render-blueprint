@@ -1,6 +1,6 @@
 import * as z from 'zod';
 
-import { raise } from './raise.js';
+import { raise, whenValueParsed } from './raise.js';
 
 export type JsonValue = string | number | boolean | null | readonly JsonValue[] | JsonObject;
 
@@ -68,4 +68,4 @@ export const jsonObjectSchema: z.ZodType<JsonObject> = z
         cycle,
       );
     }
-  });
+  }, whenValueParsed);

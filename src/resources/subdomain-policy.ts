@@ -1,7 +1,7 @@
 import type * as z from 'zod';
 
 import type { RenderSubdomainPolicy } from '../enums/render-subdomain-policy.js';
-import { raise } from '../raise.js';
+import { raise, whenFieldsParsed, type RefinementOptions } from '../raise.js';
 
 // spec §4.8 gives both fields to web services and static sites.
 export interface SubdomainFields {
@@ -24,3 +24,9 @@ export const raiseSubdomainPolicyNeedsDomain = <T extends SubdomainFields>(
     ['renderSubdomainPolicy'],
   );
 };
+
+export const WHEN_SUBDOMAIN_POLICY_NEEDS_DOMAIN: RefinementOptions = whenFieldsParsed([
+  'runtime',
+  'renderSubdomainPolicy',
+  'domains',
+]);

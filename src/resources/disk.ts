@@ -2,7 +2,7 @@ import * as z from 'zod';
 
 import { boundedInteger } from '../bounded-integer.js';
 import type { Equal, Expect } from '../equal.js';
-import { raise } from '../raise.js';
+import { raise, whenFieldsParsed, type RefinementOptions } from '../raise.js';
 import type { Scaling } from './scaling.js';
 
 // spec §4.4: a disk needs a name and a mount path.
@@ -35,16 +35,19 @@ const diskObject = z
     sizeGB: boundedInteger({ subject: 'A disk size in GB', min: 1 }).exactOptional(),
   })
   .readonly()
-  .superRefine((value, ctx) => {
-    if (DISALLOWED_MOUNT_PATHS.has(value.mountPath)) {
-      raise(
-        ctx,
-        'MountPathDisallowed',
-        `Render reserves "${value.mountPath}" and mounts no disk there; a directory under it is allowed.`,
-        ['mountPath'],
-      );
-    }
-  });
+  .superRefine(
+    (value, ctx) => {
+      if (DISALLOWED_MOUNT_PATHS.has(value.mountPath)) {
+        raise(
+          ctx,
+          'MountPathDisallowed',
+          `Render reserves "${value.mountPath}" and mounts no disk there; a directory under it is allowed.`,
+          ['mountPath'],
+        );
+      }
+    },
+    whenFieldsParsed(['mountPath']),
+  );
 
 type DiskSchemaMatchesInterface = Expect<Equal<z.infer<typeof diskObject>, Disk>>;
 
@@ -83,3 +86,10 @@ export const raiseDiskPreventsScaling = <T extends ScalableFields>(
     );
   }
 };
+
+export const WHEN_DISK_PREVENTS_SCALING: RefinementOptions = whenFieldsParsed([
+  'runtime',
+  'disk',
+  'scaling',
+  'instances',
+]);

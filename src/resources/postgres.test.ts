@@ -191,6 +191,28 @@ describe('parsePostgresConfig', () => {
     ]);
   });
 
+  it('reports high availability below PostgreSQL 13 beside a region that did not parse', () => {
+    expect(
+      raisedIssues(
+        unchecked(
+          '{"region":"mars","postgresMajorVersion":"12","highAvailability":{"enabled":true}}',
+        ),
+      ),
+    ).toEqual([{ validationCode: 'HighAvailabilityUnsupported', path: ['highAvailability'] }]);
+  });
+
+  it('reports nothing from the high-availability rule when the version it reads did not parse', () => {
+    expect(
+      raisedIssues(unchecked('{"postgresMajorVersion":12,"highAvailability":{"enabled":true}}')),
+    ).toEqual([]);
+  });
+
+  it('reports a sixth read replica beside a replica that did not parse', () => {
+    expect(raisedIssues(unchecked('{"readReplicas":["a","b","c","d","e","f"]}'))).toEqual([
+      { validationCode: 'TooManyReadReplicas', path: ['readReplicas'] },
+    ]);
+  });
+
   it('reports a sixth read replica on the readReplicas field', () => {
     expect(raisedIssues({ readReplicas: ['a', 'b', 'c', 'd', 'e', 'f'].map(readReplica) })).toEqual(
       [{ validationCode: 'TooManyReadReplicas', path: ['readReplicas'] }],

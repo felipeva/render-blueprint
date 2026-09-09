@@ -12,7 +12,7 @@ import {
 } from '../references/opaque-service-reference.js';
 import type { BuildFilter } from './build-filter.js';
 import type { DefaultsProvenance } from './defaults-provenance.js';
-import { raiseDiskPreventsScaling, type Disk } from './disk.js';
+import { raiseDiskPreventsScaling, WHEN_DISK_PREVENTS_SCALING, type Disk } from './disk.js';
 import type { EnvironmentGroup } from './env-group.js';
 import { servicePreviewsSchema, type ServicePreviews } from './previews.js';
 import type { Scaling } from './scaling.js';
@@ -104,7 +104,7 @@ const workerConfigSchema = z
     z.strictObject({ ...workerFields, ...dockerSourceFields }).readonly(),
     z.strictObject({ ...workerFields, ...imageSourceFields }).readonly(),
   ])
-  .superRefine(raiseDiskPreventsScaling);
+  .superRefine(raiseDiskPreventsScaling, WHEN_DISK_PREVENTS_SCALING);
 
 type WorkerConfigSchemaMatchesInterface = Expect<
   Equal<z.infer<typeof workerConfigSchema>, WorkerConfig>

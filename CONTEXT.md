@@ -42,7 +42,7 @@ Use these words. Definitions come from `docs/design/structure.md`,
 ## Validation and synthesis
 
 - **Validation issue** — one problem found by a rule: a `code`, a `ResourcePath` (`{ resource, field }`), and a message. `src/validation/issue.ts`.
-- **Validation code** — the literal naming the rule that produced an issue (`DanglingReference`, `DuplicateResourceName`, `ScalingRangeInverted`), one per file in `src/validation/rules/`.
+- **Validation code** — the literal naming the rule that produced an issue (`DanglingReference`, `DuplicateResourceName`, `ScalingRangeInverted`), one per rule: from a rule file in `src/validation/rules/`, or from a refinement beside the factory that owns the fields it reads.
 - **Validation warning** — a non-blocking finding carried on a successful synthesis report, never in an error.
 - **BlueprintInvalid** — the tagged error `validate` produces, carrying a non-empty list of every issue found, never the first one only. Declared in `src/validation/blueprint-invalid.ts` and re-exported from `src/index.ts`.
 - **Synthesize** — `synthesize(blueprint)`: validate, build the YAML document, emit. The only code path that knows YAML exists. `src/synth/`.
