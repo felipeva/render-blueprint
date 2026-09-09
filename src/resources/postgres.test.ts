@@ -88,12 +88,49 @@ describe('parsePostgresConfig', () => {
     expect(issueCodes(unchecked('{"storageAutoscalingEnabled":"true"}'))).toEqual(['invalid_type']);
   });
 
-  it('rejects a disk size that is neither 1 nor a multiple of 5', () => {
-    expect(issueCodes(unchecked('{"diskSizeGB":33}'))).toEqual(['invalid_value']);
+  it('reports a disk size that is neither 1 nor a multiple of 5 on the diskSizeGB field', () => {
+    expect(raisedIssues({ diskSizeGB: 7 })).toEqual([
+      { validationCode: 'DiskSizeDisallowed', path: ['diskSizeGB'] },
+    ]);
   });
 
-  it('rejects a preview disk size that is neither 1 nor a multiple of 5', () => {
-    expect(issueCodes(unchecked('{"previews":{"diskSizeGB":33}}'))).toEqual(['invalid_value']);
+  it('reports a preview disk size that breaks the same rule at its own path', () => {
+    expect(raisedIssues({ previews: { diskSizeGB: 7 } })).toEqual([
+      { validationCode: 'DiskSizeDisallowed', path: ['previews', 'diskSizeGB'] },
+    ]);
+  });
+
+  it('accepts 1 and every multiple of 5, however large', () => {
+    expect([1, 5, 4000, 4005, 10000].flatMap((diskSizeGB) => issueCodes({ diskSizeGB }))).toEqual(
+      [],
+    );
+  });
+
+  it('accepts a preview disk size above the ceiling the library once spelled', () => {
+    expect(issueCodes({ previews: { diskSizeGB: 4005 } })).toEqual([]);
+  });
+
+  it('reports a disk size below 1 the way every bounded integer reports one', () => {
+    expect(raisedIssues({ diskSizeGB: 0 })).toEqual([
+      { validationCode: 'OutOfRange', path: ['diskSizeGB'] },
+    ]);
+    expect(raisedIssues({ diskSizeGB: -5 })).toEqual([
+      { validationCode: 'OutOfRange', path: ['diskSizeGB'] },
+    ]);
+  });
+
+  it('reports a fractional disk size as an integer failure and nothing else', () => {
+    expect(issueCodes({ diskSizeGB: 2.5 })).toEqual(['invalid_type']);
+    expect(raisedIssues({ diskSizeGB: 2.5 })).toEqual([]);
+  });
+
+  it('reports the disk-size rule beside a value another field refuses', () => {
+    const config = unchecked('{"region":"dublin","diskSizeGB":7}');
+
+    expect(issueCodes(config)).toEqual(['invalid_value', 'custom']);
+    expect(raisedIssues(config)).toEqual([
+      { validationCode: 'DiskSizeDisallowed', path: ['diskSizeGB'] },
+    ]);
   });
 
   it('rejects a field the library does not model inside previews', () => {

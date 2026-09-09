@@ -69,7 +69,7 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │                                    interface guard is typed by (ADR-0003)
 │   ├── enums/                       `as const` tuples + derived unions, one family per file:
 │   │                                auto-deploy-trigger, connection-pool, database-property,
-│   │                                disk-size, environment-protection, key-value-persistence-mode,
+│   │                                environment-protection, key-value-persistence-mode,
 │   │                                maxmemory-policy, network-isolation, plan,
 │   │                                postgres-major-version, preview-generation,
 │   │                                referenceable-service-type, region, render-provided-key,

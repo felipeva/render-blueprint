@@ -21,6 +21,7 @@ export const VALIDATION_CODES = [
   'MaintenanceUriNotAbsolute',
   'SubdomainPolicyNeedsDomain',
   'ProjectWithoutEnvironment',
+  'DiskSizeDisallowed',
 ] as const;
 
 export type ValidationCode = (typeof VALIDATION_CODES)[number];
