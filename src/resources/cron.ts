@@ -31,8 +31,8 @@ const SCHEDULE_ERROR =
 const notCronMessage = (value: string): string =>
   `A schedule is a cron expression of five fields — minute, hour, day of month, month and day of week, as in "0 2 * * *" — and "${value}" is not one.`;
 
-// spec §4.1: five fields split on whitespace, each a comma list of "*", a value or a range, with
-// an optional /step. INFERRED: names, weekday 7, outer space pass; "@", a 6th field and ?LW# fail.
+// spec §4.1: five fields split on space or tab, each a comma list of "*", a value or a range, each
+// with an optional /step. INFERRED: names, weekday 7, outer space ok; "@", a 6th field, ?LW# fail.
 const scheduleSchema: z.ZodString = z
   .string({ error: SCHEDULE_ERROR })
   .superRefine((value, ctx) => {

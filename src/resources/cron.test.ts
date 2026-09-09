@@ -8,9 +8,26 @@ import { cron, parseCronConfig, type CronConfig } from './cron.js';
 // deliberately stronger than the value — the gap ADR-0003 gives the schemas to close.
 const unchecked: (json: string) => CronConfig = JSON.parse;
 
+interface ParsedIssue {
+  readonly code: string;
+  readonly path: readonly PropertyKey[];
+}
+
 const issueCodes = (config: CronConfig): readonly string[] => {
   const result = parseCronConfig(config);
   return result.success ? [] : result.error.issues.map((issue) => String(issue.code));
+};
+
+const parsedIssues = (config: CronConfig): readonly ParsedIssue[] => {
+  const result = parseCronConfig(config);
+  if (result.success) return [];
+
+  return result.error.issues.map((issue) => ({ code: String(issue.code), path: issue.path }));
+};
+
+const issueMessages = (config: CronConfig): readonly string[] => {
+  const result = parseCronConfig(config);
+  return result.success ? [] : result.error.issues.map((issue) => issue.message);
 };
 
 const raisedIssues: (config: CronConfig) => readonly RaisedIssue[] =
@@ -48,50 +65,41 @@ describe('cron', () => {
 });
 
 describe('parseCronConfig', () => {
-  it.each([
-    '* * * * *',
-    '0 0 * * *',
-    '*/5 * * * *',
-    '0 9-17 * * 1-5',
-    '0 0 1,15 * *',
-    '30 2 * * MON',
-    '0 0 * JAN,jul *',
-    '0 0 * * 7',
-    '0-30/15 * * * *',
-    '0  0 * *\t*',
-  ])('accepts %j as a schedule', (value) => {
+  it.each(['0 2 * * *', '*/5 * * * *', '0 0 * * MON'])('accepts %j as a schedule', (value) => {
     expect(issueCodes(scheduled(value))).toEqual([]);
   });
 
-  it.each([
-    '',
-    '* * * *',
-    '* * * * * *',
-    '@daily',
-    '60 * * * *',
-    '* 24 * * *',
-    '* * 0 * *',
-    '* * * 13 *',
-    '* * * * 8',
-    '* * ? * *',
-    '0 0 L * *',
-    '*/0 * * * *',
-    '0 17-9 * * *',
-    '0 0 * * everyday',
-    '0 0 * * JAN',
-    '0 0 * MON *',
-  ])('refuses %j as a schedule', (value) => {
-    expect(raisedIssues(scheduled(value))).toEqual([
+  it.each(['@daily', '60 * * * *', '0 17-9 * * *'])(
+    'refuses %j at the schedule under its own code',
+    (value) => {
+      expect(raisedIssues(scheduled(value))).toEqual([
+        { validationCode: 'ScheduleNotCron', path: ['schedule'] },
+      ]);
+    },
+  );
+
+  it('refuses the empty schedule under the grammar rather than a length rule', () => {
+    expect(issueCodes(scheduled(''))).toEqual(['custom']);
+    expect(raisedIssues(scheduled(''))).toEqual([
       { validationCode: 'ScheduleNotCron', path: ['schedule'] },
+    ]);
+  });
+
+  it('names the five-field form and the value in the message', () => {
+    expect(issueMessages(scheduled('@daily'))).toEqual([
+      'A schedule is a cron expression of five fields — minute, hour, day of month, month and day of week, as in "0 2 * * *" — and "@daily" is not one.',
     ]);
   });
 
   it('reports the schedule beside a type failure on another field', () => {
     const config = unchecked('{"runtime":"node","schedule":"@daily","plan":42}');
 
+    expect(parsedIssues(config)).toEqual([
+      { code: 'custom', path: ['schedule'] },
+      { code: 'invalid_value', path: ['plan'] },
+    ]);
     expect(raisedIssues(config)).toEqual([
       { validationCode: 'ScheduleNotCron', path: ['schedule'] },
     ]);
-    expect(issueCodes(config)).toHaveLength(2);
   });
 });

@@ -31,9 +31,18 @@ const CRON_FIELD_GRAMMARS: readonly CronFieldGrammar[] = [
 
 const DIGITS = /^[0-9]+$/u;
 
+const NAME = /^[A-Za-z]{3}$/u;
+
+const SEPARATOR = /[ \t]+/u;
+
+const OUTER_SEPARATOR = /^[ \t]+|[ \t]+$/gu;
+
 const fieldValue = (token: string, grammar: CronFieldGrammar): number | undefined => {
-  const named = grammar.names.indexOf(token.toUpperCase());
-  if (named !== -1) return named + grammar.min;
+  if (NAME.test(token)) {
+    const named = grammar.names.indexOf(token.toUpperCase());
+    return named === -1 ? undefined : named + grammar.min;
+  }
+
   if (!DIGITS.test(token)) return undefined;
 
   const value = Number(token);
@@ -66,7 +75,7 @@ const fieldMatches = (token: string, grammar: CronFieldGrammar): boolean =>
   token.split(',').every((item) => itemMatches(item, grammar));
 
 export const isCronExpression = (value: string): boolean => {
-  const fields = value.trim().split(/\s+/u);
+  const fields = value.replaceAll(OUTER_SEPARATOR, '').split(SEPARATOR);
 
   return (
     fields.length === CRON_FIELD_GRAMMARS.length &&
