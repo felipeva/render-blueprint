@@ -1,12 +1,15 @@
 import { Result } from 'better-result';
 import { describe, expect, it } from 'vitest';
+import { parse } from 'yaml';
 
+import { renderSchema } from '../../test/support/render-schema.js';
 import { blueprint, type Blueprint } from '../blueprint/blueprint.js';
 import { environment } from '../blueprint/environment.js';
 import { project } from '../blueprint/project.js';
 import { generated } from '../env/generated.js';
 import { literal } from '../env/literal.js';
 import { secret } from '../env/secret.js';
+import type { JsonValue } from '../json.js';
 import { external } from '../references/external.js';
 import { cron } from '../resources/cron.js';
 import { envGroup } from '../resources/env-group.js';
@@ -662,6 +665,31 @@ databases:
       - name: elephant-replica
 `,
     );
+  });
+
+  it('emits a disk size above the ceiling the library once spelled, on both database keys', () => {
+    const emitted = emit(
+      blueprint({
+        resources: [postgres('elephant', { diskSizeGB: 4005, previews: { diskSizeGB: 4005 } })],
+      }),
+    );
+
+    expect(emitted).toContain('diskSizeGB: 4005');
+    expect(emitted).toContain('previewDiskSizeGB: 4005');
+  });
+
+  it('emits a document the published schema accepts for a disk size above that ceiling', () => {
+    // SAFETY: yaml's parse returns any. Its input is the text synthesize just produced, whose
+    // leaves are all JsonValue, so it round-trips into JsonValue.
+    const parsed: JsonValue = parse(
+      emit(
+        blueprint({
+          resources: [postgres('elephant', { diskSizeGB: 4005, previews: { diskSizeGB: 4005 } })],
+        }),
+      ),
+    );
+
+    expect(renderSchema(parsed)).toEqual([]);
   });
 
   it('emits neither the connection pool nor storage autoscaling when the config omits them', () => {

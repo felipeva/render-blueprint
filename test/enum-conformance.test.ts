@@ -7,7 +7,6 @@ import * as z from 'zod';
 import { AUTO_DEPLOY_TRIGGERS } from '../src/enums/auto-deploy-trigger.js';
 import { CONNECTION_POOLS } from '../src/enums/connection-pool.js';
 import { DATABASE_PROPERTIES } from '../src/enums/database-property.js';
-import { DISK_SIZES_GB } from '../src/enums/disk-size.js';
 import { ENVIRONMENT_PROTECTIONS } from '../src/enums/environment-protection.js';
 import { KEY_VALUE_PERSISTENCE_MODES } from '../src/enums/key-value-persistence-mode.js';
 import { MAXMEMORY_POLICIES } from '../src/enums/maxmemory-policy.js';
@@ -39,6 +38,7 @@ interface RenderSchemaDefinition {
   readonly enum?: readonly string[];
   readonly type?: string;
   readonly minimum?: number;
+  readonly maximum?: number;
   readonly properties?: { readonly [name: string]: RenderSchemaProperty };
   readonly allOf?: readonly RenderSchemaProperty[];
 }
@@ -197,23 +197,15 @@ describe('POSTGRES_MAJOR_VERSIONS', () => {
   });
 });
 
-describe('DISK_SIZES_GB', () => {
-  it('holds sizes the published diskSizeGB definition accepts', () => {
+describe('diskSizeGB', () => {
+  it('is an integer of at least 1 with no enum, so the library carries the rule alone', () => {
+    // spec §8.3: the "1 or a multiple of 5" rule is prose-only, so the schema cannot check it.
     const definition = renderSchema.definitions['diskSizeGB'];
 
     expect(definition?.type).toBe('integer');
+    expect(definition?.minimum).toBe(1);
+    expect(definition?.maximum).toBeUndefined();
     expect(definition?.enum).toBeUndefined();
-    expect(
-      DISK_SIZES_GB.filter((size) => !Number.isInteger(size) || size < (definition?.minimum ?? 1)),
-    ).toEqual([]);
-  });
-
-  it('holds 1 and every multiple of 5 up to its ceiling, in ascending order', () => {
-    // spec §8.3: the "1 or a multiple of 5" rule is prose-only, so the schema cannot check it.
-    const [first, ...rest] = DISK_SIZES_GB;
-
-    expect(first).toBe(1);
-    expect(rest.filter((size, index) => size !== (index + 1) * 5)).toEqual([]);
   });
 });
 

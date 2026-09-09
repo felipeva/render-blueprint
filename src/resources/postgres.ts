@@ -1,7 +1,7 @@
 import * as z from 'zod';
 
+import { boundedInteger, type IntegerBounds } from '../bounded-integer.js';
 import { connectionPoolSchema, type ConnectionPool } from '../enums/connection-pool.js';
-import { diskSizeGBSchema, type DiskSizeGB } from '../enums/disk-size.js';
 import { postgresPlanSchema, type PostgresPlan } from '../enums/plan.js';
 import {
   postgresMajorVersionSchema,
@@ -23,7 +23,7 @@ export interface HighAvailability {
 // spec §11: a database has no previews object of its own on Render.
 export interface PostgresPreviews {
   readonly plan?: PostgresPlan;
-  readonly diskSizeGB?: DiskSizeGB;
+  readonly diskSizeGB?: number;
 }
 
 export interface PostgresConfig {
@@ -32,7 +32,7 @@ export interface PostgresConfig {
   readonly databaseName?: string;
   readonly user?: string;
   readonly postgresMajorVersion?: PostgresMajorVersion;
-  readonly diskSizeGB?: DiskSizeGB;
+  readonly diskSizeGB?: number;
   readonly storageAutoscalingEnabled?: boolean;
   readonly connectionPool?: ConnectionPool;
   readonly previews?: PostgresPreviews;
@@ -75,6 +75,22 @@ const FIRST_HIGH_AVAILABILITY_VERSION = 13;
 
 // spec §9: a Postgres instance takes at most five read replicas.
 const MAX_READ_REPLICAS = 5;
+
+// spec §9: a database disk size is 1 GB or a multiple of 5 GB, and Render never shrinks one.
+const DISK_SIZE_STEP_GB = 5;
+
+const DISK_SIZE_BOUNDS: IntegerBounds = { subject: 'A database disk size in GB', min: 1 };
+
+const diskSizeGBSchema: z.ZodInt = boundedInteger(DISK_SIZE_BOUNDS).superRefine((size, ctx) => {
+  if (size !== 1 && size % DISK_SIZE_STEP_GB !== 0) {
+    raise(
+      ctx,
+      'DiskSizeDisallowed',
+      'A database disk size is 1 GB or a multiple of 5 GB, and Render never shrinks one.',
+      [],
+    );
+  }
+});
 
 const postgresConfigSchema = z
   .strictObject({

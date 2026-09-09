@@ -69,7 +69,7 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │                                    interface guard is typed by (ADR-0003)
 │   ├── enums/                       `as const` tuples + derived unions, one family per file:
 │   │                                auto-deploy-trigger, connection-pool, database-property,
-│   │                                disk-size, environment-protection, key-value-persistence-mode,
+│   │                                environment-protection, key-value-persistence-mode,
 │   │                                maxmemory-policy, network-isolation, plan,
 │   │                                postgres-major-version, preview-generation,
 │   │                                referenceable-service-type, region, render-provided-key,
@@ -508,8 +508,9 @@ the issues a schema raises: `UnknownField`, `InvalidConfig`, `RootDirNotRelative
 (issue #10), `OutOfRange` for every numeric bound the spec sets, `ScalingTargetMissing` and
 `DiskPreventsScaling` for the two pairs a serverService config may not hold at once (issue #12),
 `MaintenanceUriNotAbsolute` for a maintenance page the config points at with something other than
-an absolute URL, and `SubdomainPolicyNeedsDomain` for a `renderSubdomainPolicy` of `disabled` on a
-resource that lists no custom domain (issue #43). `WarningCode` follows the same convention one
+an absolute URL, `SubdomainPolicyNeedsDomain` for a `renderSubdomainPolicy` of `disabled` on a
+resource that lists no custom domain (issue #43), and `DiskSizeDisallowed` for a database disk size
+that is neither 1 nor a multiple of 5. `WarningCode` follows the same convention one
 tier down, for a rule that never blocks synthesis — `SecretSkipsPreviews`,
 `UnknownServiceEnvVarKey`, `WebOnlyField`, `InstancesIgnoredByScaling`, `UnusedDefault`,
 `BuildFilterOnImageSource`, `MaintenanceModeNeedsPaidPlan`, `AutoDeployTriggerOnImageSource`, `PreviewValueIgnored` and `PersistenceNeedsPaidPlan` among them.

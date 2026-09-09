@@ -38,6 +38,13 @@ Three elements are borrowed from the other designs:
 - From D: a synth error when a group import and a direct env value collide on one key.
 - From D: no env merge is ever last-write-wins; duplicates are a synth error.
 
+**2026-09-09.** The first of those three is withdrawn. `diskSizeGB` and the preview disk size on a
+Postgres config are `number`, and "1 GB or a multiple of 5 GB" is a validation issue raised by a
+refinement on the field's own schema. The literal union stopped at 4000 GB, a ceiling nothing
+documents: Render's schema states an integer with a minimum of 1, and its prose states only the
+multiple-of-5 rule and that a disk never shrinks, so a legal 4005 GB was a compile error. The other
+two borrowings stand.
+
 Names are user-chosen literals and emitted verbatim. The duplication between the variable
 name and the name string is accepted.
 

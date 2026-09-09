@@ -23,9 +23,10 @@ describe('postgres', () => {
     postgres('elephant', { nope: true });
   });
 
-  it('rejects a disk size outside the sizes Render accepts', () => {
-    // @ts-expect-error `diskSizeGB` is the literal union of 1 and the multiples of 5.
-    postgres('elephant', { diskSizeGB: 33 });
+  it('takes any number as a disk size, because the rule runs at validation', () => {
+    expectTypeOf(
+      postgres('elephant', { diskSizeGB: 4005, previews: { diskSizeGB: 4005 } }),
+    ).toEqualTypeOf<PostgresDatabase>();
   });
 
   it('rejects a plan from another resource kind', () => {
@@ -111,10 +112,5 @@ describe('postgres previews', () => {
     expectTypeOf(
       postgres('elephant', { previews: { plan: 'basic-1gb', diskSizeGB: 5 } }),
     ).toEqualTypeOf<PostgresDatabase>();
-  });
-
-  it('rejects a preview disk size that is neither 1 nor a multiple of 5', () => {
-    // @ts-expect-error spec §9: a database disk size is 1 GB or a multiple of 5 GB.
-    postgres('elephant', { previews: { diskSizeGB: 7 } });
   });
 });

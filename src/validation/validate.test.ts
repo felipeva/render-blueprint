@@ -1072,6 +1072,55 @@ describe('validate', () => {
     });
   });
 
+  it('reports a disk size that is neither 1 nor a multiple of 5 under its own code', () => {
+    const result = validate(blueprint({ resources: [postgres('elephant', { diskSizeGB: 7 })] }));
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['DiskSizeDisallowed']);
+    expect(result.error.issues[0].at).toEqual({ resource: 'elephant', field: 'diskSizeGB' });
+  });
+
+  it('reports a preview disk size that breaks the same rule at its own field path', () => {
+    const result = validate(
+      blueprint({ resources: [postgres('elephant', { previews: { diskSizeGB: 7 } })] }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['DiskSizeDisallowed']);
+    expect(result.error.issues[0].at).toEqual({
+      resource: 'elephant',
+      field: 'previews.diskSizeGB',
+    });
+  });
+
+  it('reports the disk-size rule beside a region Render does not publish', () => {
+    const result = validate(
+      blueprint({
+        resources: [postgres('elephant', uncheckedDatabase('{"region":"dublin","diskSizeGB":7}'))],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['InvalidConfig', 'DiskSizeDisallowed']);
+  });
+
+  it('reports a bad disk size and the high-availability rule from one database', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          postgres('elephant', {
+            postgresMajorVersion: '12',
+            diskSizeGB: 7,
+            highAvailability: { enabled: true },
+          }),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['DiskSizeDisallowed', 'HighAvailabilityUnsupported']);
+  });
+
   it('reports a sixth read replica under its own code', () => {
     const result = validate(
       blueprint({
