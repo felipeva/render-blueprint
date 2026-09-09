@@ -190,6 +190,70 @@ describe('parseWebConfig', () => {
     expect(issueCodes({ runtime: 'node', disk: DISK, instances: 1 })).toEqual([]);
   });
 
+  it('reports the missing scaling target beside a bound whose value did not parse', () => {
+    expect(
+      raisedIssues(
+        unchecked('{"runtime":"node","scaling":{"minInstances":"one","maxInstances":3}}'),
+      ),
+    ).toEqual([{ validationCode: 'ScalingTargetMissing', path: ['scaling'] }]);
+  });
+
+  it('reports a reserved mount path beside a disk size whose value did not parse', () => {
+    expect(
+      raisedIssues(
+        unchecked('{"runtime":"node","disk":{"name":"uploads","mountPath":"/etc","sizeGB":"big"}}'),
+      ),
+    ).toEqual([{ validationCode: 'MountPathDisallowed', path: ['disk', 'mountPath'] }]);
+  });
+
+  it('reports a relative maintenance uri beside a flag whose value did not parse', () => {
+    expect(
+      raisedIssues(
+        unchecked('{"runtime":"node","maintenanceMode":{"enabled":"yes","uri":"/status"}}'),
+      ),
+    ).toEqual([{ validationCode: 'MaintenanceUriNotAbsolute', path: ['maintenanceMode', 'uri'] }]);
+  });
+
+  it('reports a disk beside more than one instance when scaling did not parse', () => {
+    expect(
+      raisedIssues(
+        unchecked(
+          '{"runtime":"node","disk":{"name":"uploads","mountPath":"/var/data"},"scaling":"nope","instances":3}',
+        ),
+      ),
+    ).toEqual([{ validationCode: 'DiskPreventsScaling', path: ['instances'] }]);
+  });
+
+  it('reports a disk beside autoscaling when the instance count did not parse', () => {
+    expect(
+      raisedIssues(
+        unchecked(
+          '{"runtime":"node","disk":{"name":"uploads","mountPath":"/var/data"},"scaling":{"minInstances":1,"maxInstances":3,"targetCPUPercent":70},"instances":"three"}',
+        ),
+      ),
+    ).toEqual([{ validationCode: 'DiskPreventsScaling', path: ['scaling'] }]);
+  });
+
+  it('reports nothing from the disk rule when the instance count it reads did not parse', () => {
+    expect(
+      raisedIssues(
+        unchecked(
+          '{"runtime":"node","disk":{"name":"uploads","mountPath":"/var/data"},"instances":"three"}',
+        ),
+      ),
+    ).toEqual([]);
+  });
+
+  it('reports nothing from the branch rules when the source runtime did not parse', () => {
+    expect(
+      raisedIssues(
+        unchecked(
+          '{"runtime":"mars","renderSubdomainPolicy":"disabled","disk":{"name":"uploads","mountPath":"/var/data"},"instances":3}',
+        ),
+      ),
+    ).toEqual([]);
+  });
+
   it('rejects a field the library does not model inside a disk', () => {
     expect(
       issueCodes(unchecked('{"runtime":"node","disk":{"name":"d","mountPath":"/d","label":"x"}}')),

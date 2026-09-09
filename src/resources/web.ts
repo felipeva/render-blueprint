@@ -10,14 +10,20 @@ import {
 import { serviceEnvironmentSchema, type ServiceEnvironment } from '../env/self-environment.js';
 import type { Equal, Expect } from '../equal.js';
 import type { JsonObject } from '../json.js';
-import { raise } from '../raise.js';
+import { raise, whenFieldsParsed } from '../raise.js';
 import {
   httpServiceReference,
   type HttpServiceReference,
 } from '../references/http-service-reference.js';
 import type { BuildFilter } from './build-filter.js';
 import type { DefaultsProvenance } from './defaults-provenance.js';
-import { raiseDiskPreventsScaling, type Disk } from './disk.js';
+import {
+  raiseDiskPreventsAutoscaling,
+  raiseDiskPreventsMultipleInstances,
+  WHEN_DISK_PREVENTS_AUTOSCALING,
+  WHEN_DISK_PREVENTS_MULTIPLE_INSTANCES,
+  type Disk,
+} from './disk.js';
 import type { EnvironmentGroup } from './env-group.js';
 import { ipAllowListSchema, type IpAllowList } from './ip-allow-list.js';
 import { servicePreviewsSchema, type ServicePreviews } from './previews.js';
@@ -31,7 +37,10 @@ import {
   type ImageSource,
   type NativeSource,
 } from './service-source.js';
-import { raiseSubdomainPolicyNeedsDomain } from './subdomain-policy.js';
+import {
+  raiseSubdomainPolicyNeedsDomain,
+  WHEN_SUBDOMAIN_POLICY_NEEDS_DOMAIN,
+} from './subdomain-policy.js';
 
 export type HealthCheckPath = `/${string}`;
 
@@ -130,16 +139,19 @@ const isAbsolutePageUrl = (value: string): boolean => {
 const maintenanceModeObject = z
   .strictObject({ enabled: z.boolean().exactOptional(), uri: z.string().exactOptional() })
   .readonly()
-  .superRefine((value, ctx) => {
-    if (value.uri !== undefined && !isAbsolutePageUrl(value.uri)) {
-      raise(
-        ctx,
-        'MaintenanceUriNotAbsolute',
-        `Render serves a maintenance page from an absolute URL with a host, and "${value.uri}" is not one.`,
-        ['uri'],
-      );
-    }
-  });
+  .superRefine(
+    (value, ctx) => {
+      if (value.uri !== undefined && !isAbsolutePageUrl(value.uri)) {
+        raise(
+          ctx,
+          'MaintenanceUriNotAbsolute',
+          `Render serves a maintenance page from an absolute URL with a host, and "${value.uri}" is not one.`,
+          ['uri'],
+        );
+      }
+    },
+    whenFieldsParsed(['uri']),
+  );
 
 const webFields = {
   ...optionalSourcedServiceFields,
@@ -164,8 +176,9 @@ const webConfigSchema = z
     z.strictObject({ ...webFields, ...dockerSourceFields }).readonly(),
     z.strictObject({ ...webFields, ...imageSourceFields }).readonly(),
   ])
-  .superRefine(raiseDiskPreventsScaling)
-  .superRefine(raiseSubdomainPolicyNeedsDomain);
+  .superRefine(raiseDiskPreventsAutoscaling, WHEN_DISK_PREVENTS_AUTOSCALING)
+  .superRefine(raiseDiskPreventsMultipleInstances, WHEN_DISK_PREVENTS_MULTIPLE_INSTANCES)
+  .superRefine(raiseSubdomainPolicyNeedsDomain, WHEN_SUBDOMAIN_POLICY_NEEDS_DOMAIN);
 
 type WebConfigSchemaMatchesInterface = Expect<Equal<z.infer<typeof webConfigSchema>, WebConfig>>;
 

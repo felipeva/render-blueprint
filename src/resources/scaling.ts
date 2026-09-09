@@ -2,7 +2,7 @@ import * as z from 'zod';
 
 import { boundedInteger, INSTANCE_COUNT_BOUNDS, type IntegerBounds } from '../bounded-integer.js';
 import type { Equal, Expect } from '../equal.js';
-import { raise } from '../raise.js';
+import { raise, whenFieldsParsed } from '../raise.js';
 
 // spec §4.5: the published schema requires none of the four.
 export interface Scaling {
@@ -30,25 +30,32 @@ const scalingObject = z
     targetCPUPercent: boundedInteger(TARGET_PERCENT_BOUNDS).exactOptional(),
   })
   .readonly()
-  .superRefine((value, ctx) => {
-    if (value.minInstances > value.maxInstances) {
-      raise(
-        ctx,
-        'ScalingRangeInverted',
-        `Autoscaling runs between minInstances and maxInstances, and this range starts at ${value.minInstances} and ends at ${value.maxInstances}.`,
-        ['maxInstances'],
-      );
-    }
-
-    if (value.targetCPUPercent === undefined && value.targetMemoryPercent === undefined) {
-      raise(
-        ctx,
-        'ScalingTargetMissing',
-        'Autoscaling scales towards a target metric, so scaling carries targetCPUPercent, targetMemoryPercent, or both.',
-        [],
-      );
-    }
-  });
+  .superRefine(
+    (value, ctx) => {
+      if (value.minInstances > value.maxInstances) {
+        raise(
+          ctx,
+          'ScalingRangeInverted',
+          `Autoscaling runs between minInstances and maxInstances, and this range starts at ${value.minInstances} and ends at ${value.maxInstances}.`,
+          ['maxInstances'],
+        );
+      }
+    },
+    whenFieldsParsed(['minInstances', 'maxInstances']),
+  )
+  .superRefine(
+    (value, ctx) => {
+      if (value.targetCPUPercent === undefined && value.targetMemoryPercent === undefined) {
+        raise(
+          ctx,
+          'ScalingTargetMissing',
+          'Autoscaling scales towards a target metric, so scaling carries targetCPUPercent, targetMemoryPercent, or both.',
+          [],
+        );
+      }
+    },
+    whenFieldsParsed(['targetCPUPercent', 'targetMemoryPercent']),
+  );
 
 type ScalingSchemaMatchesInterface = Expect<Equal<z.infer<typeof scalingObject>, Scaling>>;
 

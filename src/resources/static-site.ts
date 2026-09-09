@@ -19,7 +19,10 @@ import type { DefaultsProvenance } from './defaults-provenance.js';
 import type { EnvironmentGroup } from './env-group.js';
 import { ipAllowListSchema, type IpAllowList } from './ip-allow-list.js';
 import { optionalCommonServiceFields } from './service-fields.js';
-import { raiseSubdomainPolicyNeedsDomain } from './subdomain-policy.js';
+import {
+  raiseSubdomainPolicyNeedsDomain,
+  WHEN_SUBDOMAIN_POLICY_NEEDS_DOMAIN,
+} from './subdomain-policy.js';
 
 export interface Route {
   readonly type: RouteType;
@@ -152,7 +155,7 @@ const staticSiteConfigSchema = z
     env: serviceEnvironmentSchema<OpaqueServiceReference>().exactOptional(),
   })
   .readonly()
-  .superRefine(raiseSubdomainPolicyNeedsDomain);
+  .superRefine(raiseSubdomainPolicyNeedsDomain, WHEN_SUBDOMAIN_POLICY_NEEDS_DOMAIN);
 
 type StaticSiteConfigSchemaMatchesInterface = Expect<
   Equal<z.infer<typeof staticSiteConfigSchema>, StaticSiteConfig>

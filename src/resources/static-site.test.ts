@@ -100,4 +100,10 @@ describe('parseStaticSiteConfig', () => {
   it('accepts an enabled subdomain policy on a site that lists no domain', () => {
     expect(issueCodes({ renderSubdomainPolicy: 'enabled' })).toEqual([]);
   });
+
+  it('reports a disabled subdomain policy beside a field whose value did not parse', () => {
+    expect(
+      raisedIssues(unchecked('{"staticPublishPath":5,"renderSubdomainPolicy":"disabled"}')),
+    ).toEqual([{ validationCode: 'SubdomainPolicyNeedsDomain', path: ['renderSubdomainPolicy'] }]);
+  });
 });

@@ -10,7 +10,7 @@ import {
 import { regionSchema, type Region } from '../enums/region.js';
 import type { Equal, Expect } from '../equal.js';
 import { jsonObjectSchema, type JsonObject } from '../json.js';
-import { raise } from '../raise.js';
+import { raise, whenFieldsParsed } from '../raise.js';
 import { postgresReference, type PostgresReference } from '../references/postgres-reference.js';
 import type { DefaultsProvenance } from './defaults-provenance.js';
 import { ipAllowListSchema, type IpAllowList } from './ip-allow-list.js';
@@ -142,27 +142,30 @@ const postgresConfigSchema = z
             [],
           );
         }
-      })
+      }, whenFieldsParsed([]))
       .exactOptional(),
     extraFields: jsonObjectSchema.exactOptional(),
   })
   .readonly()
-  .superRefine((config, ctx) => {
-    const version = config.postgresMajorVersion;
+  .superRefine(
+    (config, ctx) => {
+      const version = config.postgresMajorVersion;
 
-    if (
-      config.highAvailability?.enabled === true &&
-      version !== undefined &&
-      Number(version) < FIRST_HIGH_AVAILABILITY_VERSION
-    ) {
-      raise(
-        ctx,
-        'HighAvailabilityUnsupported',
-        `High availability needs PostgreSQL ${FIRST_HIGH_AVAILABILITY_VERSION} or later, and this database asks for version "${version}".`,
-        ['highAvailability'],
-      );
-    }
-  });
+      if (
+        config.highAvailability?.enabled === true &&
+        version !== undefined &&
+        Number(version) < FIRST_HIGH_AVAILABILITY_VERSION
+      ) {
+        raise(
+          ctx,
+          'HighAvailabilityUnsupported',
+          `High availability needs PostgreSQL ${FIRST_HIGH_AVAILABILITY_VERSION} or later, and this database asks for version "${version}".`,
+          ['highAvailability'],
+        );
+      }
+    },
+    whenFieldsParsed(['highAvailability', 'postgresMajorVersion']),
+  );
 
 type PostgresConfigSchemaMatchesInterface = Expect<
   Equal<z.infer<typeof postgresConfigSchema>, PostgresConfig>

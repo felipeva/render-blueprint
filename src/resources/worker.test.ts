@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { worker, type WorkerConfig } from './worker.js';
+import { raisedIssuesThrough, type RaisedIssue } from '../../test/support/raised-issues.js';
+import { parseWorkerConfig, worker, type WorkerConfig } from './worker.js';
+
+// SAFETY: JSON.parse returns any. Every config below stands in for a blueprint the CLI loaded
+// through Node type stripping, which erases types without checking them, so the annotation is
+// deliberately stronger than the value — the gap ADR-0003 gives the schemas to close.
+const unchecked: (json: string) => WorkerConfig = JSON.parse;
+
+const raisedIssues: (config: WorkerConfig) => readonly RaisedIssue[] =
+  raisedIssuesThrough(parseWorkerConfig);
 
 describe('worker', () => {
   it('returns an inert value carrying the kind, the name, and the config', () => {
@@ -55,5 +64,17 @@ describe('worker', () => {
       dockerContext: './',
       dockerCommand: 'node jobs.js',
     });
+  });
+});
+
+describe('parseWorkerConfig', () => {
+  it('reports a disk beside autoscaling when the instance count did not parse', () => {
+    expect(
+      raisedIssues(
+        unchecked(
+          '{"runtime":"node","disk":{"name":"state","mountPath":"/var/state"},"scaling":{"minInstances":1,"maxInstances":3,"targetCPUPercent":70},"instances":"three"}',
+        ),
+      ),
+    ).toEqual([{ validationCode: 'DiskPreventsScaling', path: ['scaling'] }]);
   });
 });

@@ -1,7 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
+import { raisedIssuesThrough, type RaisedIssue } from '../../test/support/raised-issues.js';
 import { external } from '../references/external.js';
-import { privateService, type PrivateServiceConfig } from './private-service.js';
+import {
+  parsePrivateServiceConfig,
+  privateService,
+  type PrivateServiceConfig,
+} from './private-service.js';
+
+// SAFETY: JSON.parse returns any. Every config below stands in for a blueprint the CLI loaded
+// through Node type stripping, which erases types without checking them, so the annotation is
+// deliberately stronger than the value — the gap ADR-0003 gives the schemas to close.
+const unchecked: (json: string) => PrivateServiceConfig = JSON.parse;
+
+const raisedIssues: (config: PrivateServiceConfig) => readonly RaisedIssue[] =
+  raisedIssuesThrough(parsePrivateServiceConfig);
 
 describe('privateService', () => {
   it('returns an inert value carrying the kind, the name, and the config', () => {
@@ -51,5 +64,17 @@ describe('privateService', () => {
         creds: { fromRegistryCreds: { name: 'acme-dockerhub' } },
       },
     });
+  });
+});
+
+describe('parsePrivateServiceConfig', () => {
+  it('reports a disk beside more than one instance when the plan did not parse', () => {
+    expect(
+      raisedIssues(
+        unchecked(
+          '{"runtime":"node","plan":"mars","disk":{"name":"keys","mountPath":"/var/keys"},"instances":3}',
+        ),
+      ),
+    ).toEqual([{ validationCode: 'DiskPreventsScaling', path: ['instances'] }]);
   });
 });
