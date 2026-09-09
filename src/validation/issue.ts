@@ -23,6 +23,7 @@ export const VALIDATION_CODES = [
   'ProjectWithoutEnvironment',
   'DiskSizeDisallowed',
   'ScheduleNotCron',
+  'IpAllowListSourceNotCidr',
 ] as const;
 
 export type ValidationCode = (typeof VALIDATION_CODES)[number];
