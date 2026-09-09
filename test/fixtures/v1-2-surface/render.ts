@@ -1,0 +1,94 @@
+import {
+  blueprint,
+  cron,
+  keyValue,
+  literal,
+  postgres,
+  staticSite,
+  web,
+  type Blueprint,
+  type IpAllowList,
+} from '../../../src/index.js';
+
+// spec §7: a source is an address or a range in CIDR notation, in either family.
+const OFFICE: IpAllowList = [
+  { source: '203.0.113.4/30', description: 'office range' },
+  { source: '198.51.100.1', description: 'ci runner' },
+  { source: '2001:db8:1::/48', description: 'office range over v6' },
+  { source: '2001:db8:1::c0a8:1', description: 'ci runner over v6' },
+];
+
+// spec §4.1: five fields, here a list, a range with a step, and month and weekday names.
+const NIGHTLY = '0,30 8-18/2 * JAN-DEC MON-FRI';
+
+// spec §9: high availability takes a plan with at least 1 CPU, and a disk size is 1 GB or a
+// multiple of 5 GB with no ceiling.
+const records = postgres('records', {
+  region: 'oregon',
+  plan: '1c-2g',
+  postgresMajorVersion: '16',
+  diskSizeGB: 4005,
+  previews: { plan: '1c-2g', diskSizeGB: 4010 },
+  highAvailability: { enabled: true },
+  ipAllowList: OFFICE,
+});
+
+// spec §4.3 and §1395: a repository builds the service, so the deploy trigger applies, and a web
+// service is a kind preview environments read a previewValue on.
+const api = web('api', {
+  runtime: 'node',
+  region: 'oregon',
+  plan: 'starter',
+  repo: 'https://github.com/acme/mono',
+  rootDir: 'apps/api',
+  buildCommand: 'pnpm install --frozen-lockfile && pnpm build',
+  startCommand: 'pnpm start',
+  autoDeployTrigger: 'commit',
+  ipAllowList: OFFICE,
+  env: {
+    DATABASE_URL: records.connectionString,
+    API_BASE_URL: literal('https://api.acme.dev', { previewValue: 'https://api.preview.acme.dev' }),
+  },
+});
+
+// spec §4.6: a service opts out of preview environments with the generation the shared enum lists.
+const marketing = staticSite('marketing', {
+  repo: 'https://github.com/acme/mono',
+  rootDir: 'apps/marketing',
+  buildCommand: 'pnpm install --frozen-lockfile && pnpm build',
+  staticPublishPath: './dist',
+  previews: { generation: 'off' },
+  ipAllowList: [
+    { source: '198.51.100.0/24', description: 'edge' },
+    { source: '2001:db8:2::1', description: 'edge over v6' },
+  ],
+});
+
+const nightly = cron('nightly', {
+  runtime: 'node',
+  region: 'oregon',
+  plan: 'starter',
+  schedule: NIGHTLY,
+  repo: 'https://github.com/acme/mono',
+  rootDir: 'apps/reports',
+  buildCommand: 'pnpm install --frozen-lockfile && pnpm build',
+  startCommand: 'pnpm report',
+});
+
+// spec §5: data persistence is available on a paid instance.
+const cache = keyValue('cache', {
+  region: 'oregon',
+  plan: 'standard',
+  persistenceMode: 'journal-snapshot',
+  ipAllowList: [
+    { source: '10.0.0.0/8', description: 'private network' },
+    { source: 'fd00::/8', description: 'private network over v6' },
+  ],
+});
+
+const value: Blueprint = blueprint({
+  previews: { generation: 'automatic', expireAfterDays: 7 },
+  resources: [api, marketing, nightly, cache, records],
+});
+
+export default value;

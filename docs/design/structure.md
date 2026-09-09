@@ -294,12 +294,12 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │                                rewritable, but only through `pnpm fixtures:update` (§6.2)
 │   ├── fixtures/*/render.ts         one directory per scenario; fixtures.test.ts discovers any
 │   │                                directory holding a render.ts, so adding one needs no wiring
-│   ├── fixtures/cli/                nine seed directories, each holding a render.ts.seed whose
+│   ├── fixtures/cli/                ten seed directories, each holding a render.ts.seed whose
 │   │                                import specifier is a placeholder the smoke test rewrites to
 │   │                                the built entry's file URL. What sits beside the seed differs:
-│   │                                split and v1-1-surface add an expected.yaml, the output the run
-│   │                                is compared against; clean, drifted and warned add a
-│   │                                render.yaml, the committed file `check` reads;
+│   │                                split, v1-1-surface and v1-2-surface add an expected.yaml, the
+│   │                                output the run is compared against; clean, drifted and warned
+│   │                                add a render.yaml, the committed file `check` reads;
 │   │                                build-filter-image, defective, invalid and schema-allow-list
 │   │                                hold the seed alone and are judged on exit code and streams.
 │   │                                export-not-a-blueprint.mjs and export-without-resources.mjs sit
@@ -653,9 +653,9 @@ propagate), `drift/normalize.ts`.
 **6.2 The golden test.** `test/fixtures.test.ts` imports `test/fixtures/canonical/render.ts` — design
 B §3 verbatim, the scenario every design document was judged on — calls `synthesize`, and compares
 with `test/fixtures/canonical/render.yaml` byte for byte, as it does every other fixture directory.
-Two CLI seeds, `split` and `v1-1-surface`, carry an `expected.yaml` that `test/cli.test.ts`
-compares against the built binary's own output the same way; the rest are judged on exit code and
-streams, and three of them hold a committed `render.yaml` for `check` to read instead. `pnpm fixtures:update` runs both files under `UPDATE_FIXTURES=1` to regenerate every
+Three CLI seeds, `split`, `v1-1-surface` and `v1-2-surface`, carry an `expected.yaml` that
+`test/cli.test.ts` compares against the built binary's own output the same way; the rest are judged
+on exit code and streams, and three of them hold a committed `render.yaml` for `check` to read instead. `pnpm fixtures:update` runs both files under `UPDATE_FIXTURES=1` to regenerate every
 `test/fixtures/*/render.yaml` and every `test/fixtures/cli/*/expected.yaml`, and a human reviews the
 diff by hand; those are the only files a test may rewrite. This is the single regression net for key
 order, quoting, the header and the map→list conversion.

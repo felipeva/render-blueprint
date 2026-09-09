@@ -155,6 +155,35 @@ describe('render-blueprint', () => {
     expect(ran.code, ran.stderr).toBe(0);
   });
 
+  it('exits 0 under --strict and writes the v1.2 surface the seed commits', async () => {
+    const cwd = await seeded('v1-2-surface');
+    const ran = await run(cwd, ['synth', '--strict']);
+
+    expect(ran.code, ran.stderr).toBe(0);
+    expect(ran.stderr).toBe('');
+
+    const produced = await readFile(join(cwd, 'render.yaml'), 'utf8');
+    const expected = await seedYaml('v1-2-surface', produced);
+
+    expect(produced).toBe(expected);
+
+    // SAFETY: yaml's parse returns any. Its input is the expectation the binary wrote, whose leaves
+    // are all JsonValue, so it round-trips into JsonValue.
+    const document: JsonValue = parse(expected);
+
+    expect(renderSchema(document)).toEqual([]);
+  });
+
+  it('exits 0 when check --strict reads back the v1.2 surface synth wrote', async () => {
+    const cwd = await seeded('v1-2-surface');
+
+    expect((await run(cwd, ['synth'])).code).toBe(0);
+
+    const ran = await run(cwd, ['check', '--strict']);
+
+    expect(ran.code, ran.stderr).toBe(0);
+  });
+
   it('exits 0 when check finds the committed file clean', async () => {
     const ran = await run(await seeded('clean'), ['check']);
 
