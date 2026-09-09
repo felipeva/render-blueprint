@@ -73,12 +73,12 @@ is actually stated. This list is only so you know which bullet to go and read.
 
 ## Fixtures and the golden file
 
-`test/fixtures/*/render.yaml` and the two `test/fixtures/cli/*/expected.yaml` are committed
-expectations compared byte for byte, `pnpm fixtures:update` is the only thing that may rewrite them,
-and `test/schema/render.yaml.schema.json` is the conformance oracle that `pnpm schema:refresh`
-refreshes — all three stated in full in the last two bullets of [`AGENTS.md`](AGENTS.md). The part
-worth repeating: a fixture diff you did not intend is a bug you have just found, not an expectation
-to accept.
+`test/fixtures/*/render.yaml` and the three `test/fixtures/cli/*/expected.yaml` — `split`,
+`v1-1-surface` and `v1-2-surface` — are committed expectations compared byte for byte, `pnpm
+fixtures:update` is the only thing that may rewrite them, and `test/schema/render.yaml.schema.json`
+is the conformance oracle that `pnpm schema:refresh` refreshes — all three stated in full in the
+last two bullets of [`AGENTS.md`](AGENTS.md). The part worth repeating: a fixture diff you did not
+intend is a bug you have just found, not an expectation to accept.
 
 ## Opening a change
 

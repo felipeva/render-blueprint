@@ -56,6 +56,14 @@ From `docs/research/render-blueprint-spec.md`.
   envVarKey, scaling min ≤ max, cron schedule, keyvalue ipAllowList, static site without
   plan/region, healthCheckPath leading slash, diskSizeGB rule (§16 B). The library enforces
   the prose.
+- Seven prose rules the library enforces beyond the schema, each at the rung the prose earns
+  it. Issues: a cron `schedule` that is not a five-field cron expression (§4.1), an
+  `ipAllowList` `source` that is neither an address nor a CIDR range (§7), a `diskSizeGB` that
+  is neither 1 GB nor a multiple of 5 GB (§9), and high availability on a Postgres database
+  below version 13 or on a plan with less than 1 CPU (§9). Warnings: an `autoDeployTrigger` on
+  a service that deploys a prebuilt image (§4.3), a `previewValue` on a worker or a cron job
+  (the preview-environments page), and a persistence mode other than `off` on a free Key Value
+  instance (§5).
 - Deprecated forms are never emitted: `env`, `autoDeploy`, `previewsEnabled`,
   `pullRequestPreviewsEnabled`, service `previewPlan`, `type: redis` (§13).
 - The published JSON Schema (`docs/research/raw/render.yaml.schema.json`) is the conformance
