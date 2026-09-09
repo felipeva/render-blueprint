@@ -92,6 +92,11 @@ export const DATABASE_SCHEMA_FIELDS = [
 // spec §9: high availability needs PostgreSQL 13 or later.
 const FIRST_HIGH_AVAILABILITY_VERSION = 13;
 
+// spec §9: high availability needs a compute plan with at least 1 CPU, and the plan table gives only
+// these three less than one. INFERRED: a legacy plan name passes, because the table gives it no CPU
+// count. The Pro-workspace clause is recorded here and not enforced: a blueprint names no workspace.
+const PLANS_UNDER_ONE_CPU = ['free', '0.1c-256mb', '0.5c-1g'] as const;
+
 // spec §9: a Postgres instance takes at most five read replicas.
 const MAX_READ_REPLICAS = 5;
 
@@ -165,6 +170,25 @@ const postgresConfigSchema = z
       }
     },
     whenFieldsParsed(['highAvailability', 'postgresMajorVersion']),
+  )
+  .superRefine(
+    (config, ctx) => {
+      const plan = config.plan;
+
+      if (
+        config.highAvailability?.enabled === true &&
+        plan !== undefined &&
+        PLANS_UNDER_ONE_CPU.some((under) => under === plan)
+      ) {
+        raise(
+          ctx,
+          'HighAvailabilityUnsupported',
+          `High availability needs a compute plan with at least 1 CPU, and this database asks for the "${plan}" plan.`,
+          ['highAvailability'],
+        );
+      }
+    },
+    whenFieldsParsed(['highAvailability', 'plan']),
   );
 
 type PostgresConfigSchemaMatchesInterface = Expect<
