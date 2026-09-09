@@ -104,7 +104,7 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   │                            source union the four sourced kinds share, and the tuple of
 │   │   │                            keys its branches own
 │   │   ├── disk.ts  scaling.ts  build-filter.ts  ip-allow-list.ts  previews.ts
-│   │   │   subdomain-policy.ts
+│   │   │   subdomain-policy.ts  is-cron-expression.ts
 │   │   │                            the sub-configs shared across service kinds, each with its own
 │   │   │                            ordered field tuple. disk.ts also carries DiskPreventsScaling
 │   │   │                            for the three kinds that spread it and scaling.ts the two
@@ -121,7 +121,11 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   │                            shared — only a static site takes them (spec §4.8), so they
 │   │   │                            live in static-site.ts with the factory (issue #6), and
 │   │   │                            MaintenanceMode lives in web.ts for the same reason, because
-│   │   │                            spec §4.8 gives it to a web service alone (issue #43)
+│   │   │                            spec §4.8 gives it to a web service alone (issue #43).
+│   │   │                            is-cron-expression.ts is not a sub-config either: it holds
+│   │   │                            the five-field cron grammar the schedule refinement in
+│   │   │                            cron.ts reads, dependency-free and in its own file because
+│   │   │                            the factory would otherwise outgrow a screen (issue #89)
 │   │   ├── web.ts  private-service.ts  worker.ts  cron.ts  static-site.ts  key-value.ts
 │   │   │   postgres.ts  env-group.ts   each: the factory, its Config, and its output type
 │   │   ├── read-replica.ts          referenceable, deliberately outside BlueprintResource
@@ -509,9 +513,10 @@ the issues a schema raises: `UnknownField`, `InvalidConfig`, `RootDirNotRelative
 `DiskPreventsScaling` for the two pairs a serverService config may not hold at once (issue #12),
 `MaintenanceUriNotAbsolute` for a maintenance page the config points at with something other than
 an absolute URL, `SubdomainPolicyNeedsDomain` for a `renderSubdomainPolicy` of `disabled` on a
-resource that lists no custom domain (issue #43), and `DiskSizeDisallowed` for a database disk size
-that is neither 1 nor a multiple of 5. `WarningCode` follows the same convention one
-tier down, for a rule that never blocks synthesis — `SecretSkipsPreviews`,
+resource that lists no custom domain (issue #43), `DiskSizeDisallowed` for a database disk size
+that is neither 1 nor a multiple of 5, and `ScheduleNotCron` for a cron `schedule` that is not the
+five-field cron expression Render documents (issue #89). `WarningCode` follows the same convention
+one tier down, for a rule that never blocks synthesis — `SecretSkipsPreviews`,
 `UnknownServiceEnvVarKey`, `WebOnlyField`, `InstancesIgnoredByScaling`, `UnusedDefault`,
 `BuildFilterOnImageSource`, `MaintenanceModeNeedsPaidPlan`, `AutoDeployTriggerOnImageSource`, `PreviewValueIgnored` and `PersistenceNeedsPaidPlan` among them.
 
