@@ -2032,4 +2032,15 @@ describe('validate', () => {
     ]);
     expect(result.value.warnings[0]?.at).toEqual({ resource: 'cache', field: 'persistenceMode' });
   });
+
+  it('reports a cron schedule that is not a cron expression under its own code', () => {
+    const result = validate(
+      blueprint({ resources: [cron('nightly-report', { runtime: 'node', schedule: '@daily' })] }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['ScheduleNotCron']);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues[0].at).toEqual({ resource: 'nightly-report', field: 'schedule' });
+  });
 });

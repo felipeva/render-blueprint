@@ -22,6 +22,7 @@ export const VALIDATION_CODES = [
   'SubdomainPolicyNeedsDomain',
   'ProjectWithoutEnvironment',
   'DiskSizeDisallowed',
+  'ScheduleNotCron',
 ] as const;
 
 export type ValidationCode = (typeof VALIDATION_CODES)[number];
