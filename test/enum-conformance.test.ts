@@ -38,6 +38,7 @@ interface RenderSchemaDefinition {
   readonly enum?: readonly string[];
   readonly type?: string;
   readonly minimum?: number;
+  readonly maximum?: number;
   readonly properties?: { readonly [name: string]: RenderSchemaProperty };
   readonly allOf?: readonly RenderSchemaProperty[];
 }
@@ -203,6 +204,7 @@ describe('diskSizeGB', () => {
 
     expect(definition?.type).toBe('integer');
     expect(definition?.minimum).toBe(1);
+    expect(definition?.maximum).toBeUndefined();
     expect(definition?.enum).toBeUndefined();
   });
 });

@@ -119,6 +119,17 @@ describe('parsePostgresConfig', () => {
     ]);
   });
 
+  it('reports both codes for a disk size that is below 1 and not a multiple of 5', () => {
+    expect(raisedIssues({ diskSizeGB: -3 })).toEqual([
+      { validationCode: 'OutOfRange', path: ['diskSizeGB'] },
+      { validationCode: 'DiskSizeDisallowed', path: ['diskSizeGB'] },
+    ]);
+    expect(raisedIssues({ previews: { diskSizeGB: -3 } })).toEqual([
+      { validationCode: 'OutOfRange', path: ['previews', 'diskSizeGB'] },
+      { validationCode: 'DiskSizeDisallowed', path: ['previews', 'diskSizeGB'] },
+    ]);
+  });
+
   it('reports a fractional disk size as an integer failure and nothing else', () => {
     expect(issueCodes({ diskSizeGB: 2.5 })).toEqual(['invalid_type']);
     expect(raisedIssues({ diskSizeGB: 2.5 })).toEqual([]);
@@ -165,6 +176,19 @@ describe('parsePostgresConfig', () => {
     expect(
       issueCodes({ postgresMajorVersion: '12', highAvailability: { enabled: false } }),
     ).toEqual([]);
+  });
+
+  it('reports the disk-size rule beside the high-availability rule the same config trips', () => {
+    expect(
+      raisedIssues({
+        postgresMajorVersion: '12',
+        diskSizeGB: 7,
+        highAvailability: { enabled: true },
+      }),
+    ).toEqual([
+      { validationCode: 'DiskSizeDisallowed', path: ['diskSizeGB'] },
+      { validationCode: 'HighAvailabilityUnsupported', path: ['highAvailability'] },
+    ]);
   });
 
   it('reports a sixth read replica on the readReplicas field', () => {

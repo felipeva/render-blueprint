@@ -1104,6 +1104,22 @@ describe('validate', () => {
     expect(reportedCodes(result)).toEqual(['InvalidConfig', 'DiskSizeDisallowed']);
   });
 
+  it('reports a bad disk size and the high-availability rule from one database', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          postgres('elephant', {
+            postgresMajorVersion: '12',
+            diskSizeGB: 7,
+            highAvailability: { enabled: true },
+          }),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['DiskSizeDisallowed', 'HighAvailabilityUnsupported']);
+  });
+
   it('reports a sixth read replica under its own code', () => {
     const result = validate(
       blueprint({
