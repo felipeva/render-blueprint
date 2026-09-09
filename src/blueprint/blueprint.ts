@@ -52,6 +52,7 @@ export const ROOT_SCHEMA_FIELDS = [
   'ungrouped',
   'version',
 ] as const;
+
 const EXPIRE_AFTER_DAYS_ERROR =
   'An expireAfterDays is a whole number of days of at least 1; Render deprovisions a preview environment that goes that long without a push.';
 

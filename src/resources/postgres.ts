@@ -88,6 +88,7 @@ export const DATABASE_SCHEMA_FIELDS = [
   'ipAllowList',
   'readReplicas',
 ] as const;
+
 // spec §9: high availability needs PostgreSQL 13 or later.
 const FIRST_HIGH_AVAILABILITY_VERSION = 13;
 

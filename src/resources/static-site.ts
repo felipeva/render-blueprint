@@ -112,6 +112,7 @@ export const STATIC_SERVICE_SCHEMA_FIELDS = [
   'ipAllowList',
   'renderSubdomainPolicy',
 ] as const;
+
 export const HEADER_FIELDS = ['path', 'name', 'value'] as const;
 
 // Emission order follows the schema's staticServicePreviews property order.

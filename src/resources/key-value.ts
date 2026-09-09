@@ -59,6 +59,7 @@ export const REDIS_SERVER_SCHEMA_FIELDS = [
   'maxmemoryPolicy',
   'persistenceMode',
 ] as const;
+
 const keyValueConfigSchema = z
   .strictObject({
     // spec §5: a Key Value instance is the one resource Render requires an ipAllowList on.

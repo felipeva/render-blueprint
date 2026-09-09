@@ -83,6 +83,41 @@ describe('extraFieldNotInSchema', () => {
     expect(warnings[0]?.message).toContain('cron job');
   });
 
+  it('warns about the domains a cron job cannot carry', () => {
+    const warnings = extraFieldNotInSchema(undefined, [
+      cron('nightly', {
+        runtime: 'node',
+        schedule: '0 2 * * *',
+        extraFields: { domains: ['nightly.acme.dev'] },
+      }),
+    ]);
+
+    expect(warnings.map((warning) => warning.at)).toEqual([
+      { resource: 'nightly', field: 'extraFields.domains' },
+    ]);
+    expect(warnings[0]?.message).toContain('"cronService"');
+  });
+
+  it('warns about a first-deploy hook on a cron job and on a static site', () => {
+    const warnings = extraFieldNotInSchema(undefined, [
+      cron('nightly', {
+        runtime: 'node',
+        schedule: '0 2 * * *',
+        extraFields: { initialDeployHook: './seed.sh' },
+      }),
+      staticSite('marketing', { extraFields: { initialDeployHook: './seed.sh' } }),
+    ]);
+
+    expect(warnings.map((warning) => warning.at)).toEqual([
+      { resource: 'nightly', field: 'extraFields.initialDeployHook' },
+      { resource: 'marketing', field: 'extraFields.initialDeployHook' },
+    ]);
+    expect(warnings.map((warning) => warning.code)).toEqual([
+      'ExtraFieldNotInSchema',
+      'ExtraFieldNotInSchema',
+    ]);
+  });
+
   it('warns about a key staticService does not list, on a static site', () => {
     const warnings = extraFieldNotInSchema(undefined, [
       staticSite('marketing', { extraFields: { maintenanceMode: { enabled: true } } }),

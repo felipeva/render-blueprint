@@ -118,6 +118,7 @@ export const CRON_SERVICE_SCHEMA_FIELDS = [
   'autoDeployTrigger',
   'preDeployCommand',
 ] as const;
+
 const cronFields = {
   ...optionalSourcedServiceFields,
   schedule: scheduleSchema,

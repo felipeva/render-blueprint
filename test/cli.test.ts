@@ -206,7 +206,7 @@ describe('render-blueprint', () => {
 
     expect(ran.code, ran.stderr).toBe(0);
     expect(ran.stderr).toContain('warning api.extraFields.logStream:');
-    expect(ran.stderr).not.toContain('api.buildCommand');
+    expect(ran.stderr).toContain('The "serverService" definition is closed');
 
     const strict = await run(cwd, ['check', '--strict']);
 

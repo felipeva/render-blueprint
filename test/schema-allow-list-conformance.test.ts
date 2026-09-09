@@ -14,11 +14,13 @@ import { STATIC_SERVICE_SCHEMA_FIELDS } from '../src/resources/static-site.js';
 interface RenderSchemaObject {
   readonly $ref?: string;
   readonly properties?: { readonly [name: string]: RenderSchemaObject };
+  readonly additionalProperties?: boolean;
 }
 
 interface RenderSchema {
   readonly definitions: { readonly [name: string]: RenderSchemaObject };
   readonly allOf: readonly RenderSchemaObject[];
+  readonly unevaluatedProperties?: boolean;
 }
 
 const schemaPath = fileURLToPath(new URL('schema/render.yaml.schema.json', import.meta.url));
@@ -40,49 +42,62 @@ const publishedProperties = (definition: string): readonly string[] =>
 const publishedRootProperties = (): readonly string[] =>
   renderSchema.allOf.flatMap((entry) => Object.keys(referenced(entry).properties ?? {}));
 
-const expectClosedDefinition = (tuple: readonly string[], order: readonly string[]): void => {
+// A tuple is only a constraint while the definition it mirrors stays closed: an open definition
+// would turn every warning the allow list raises into a false positive.
+const expectClosedDefinition = (tuple: readonly string[], definition: string): void => {
+  const order = publishedProperties(definition);
+
+  expect(renderSchema.definitions[definition]?.additionalProperties).toBe(false);
+  expect(order).not.toEqual([]);
+  expect([...tuple]).toEqual([...order]);
+};
+
+const expectClosedRoot = (tuple: readonly string[]): void => {
+  const order = publishedRootProperties();
+
+  expect(renderSchema.unevaluatedProperties).toBe(false);
   expect(order).not.toEqual([]);
   expect([...tuple]).toEqual([...order]);
 };
 
 describe('SERVER_SERVICE_SCHEMA_FIELDS', () => {
-  it('lists every property the serverService definition publishes, in its order', () => {
-    expectClosedDefinition(SERVER_SERVICE_SCHEMA_FIELDS, publishedProperties('serverService'));
+  it('lists every property the closed serverService definition publishes, in its order', () => {
+    expectClosedDefinition(SERVER_SERVICE_SCHEMA_FIELDS, 'serverService');
   });
 });
 
 describe('CRON_SERVICE_SCHEMA_FIELDS', () => {
-  it('lists every property the cronService definition publishes, in its order', () => {
-    expectClosedDefinition(CRON_SERVICE_SCHEMA_FIELDS, publishedProperties('cronService'));
+  it('lists every property the closed cronService definition publishes, in its order', () => {
+    expectClosedDefinition(CRON_SERVICE_SCHEMA_FIELDS, 'cronService');
   });
 });
 
 describe('STATIC_SERVICE_SCHEMA_FIELDS', () => {
-  it('lists every property the staticService definition publishes, in its order', () => {
-    expectClosedDefinition(STATIC_SERVICE_SCHEMA_FIELDS, publishedProperties('staticService'));
+  it('lists every property the closed staticService definition publishes, in its order', () => {
+    expectClosedDefinition(STATIC_SERVICE_SCHEMA_FIELDS, 'staticService');
   });
 });
 
 describe('REDIS_SERVER_SCHEMA_FIELDS', () => {
-  it('lists every property the redisServer definition publishes, in its order', () => {
-    expectClosedDefinition(REDIS_SERVER_SCHEMA_FIELDS, publishedProperties('redisServer'));
+  it('lists every property the closed redisServer definition publishes, in its order', () => {
+    expectClosedDefinition(REDIS_SERVER_SCHEMA_FIELDS, 'redisServer');
   });
 });
 
 describe('DATABASE_SCHEMA_FIELDS', () => {
-  it('lists every property the database definition publishes, in its order', () => {
-    expectClosedDefinition(DATABASE_SCHEMA_FIELDS, publishedProperties('database'));
+  it('lists every property the closed database definition publishes, in its order', () => {
+    expectClosedDefinition(DATABASE_SCHEMA_FIELDS, 'database');
   });
 });
 
 describe('ENV_VAR_GROUP_SCHEMA_FIELDS', () => {
-  it('lists every property the envVarGroup definition publishes, in its order', () => {
-    expectClosedDefinition(ENV_VAR_GROUP_SCHEMA_FIELDS, publishedProperties('envVarGroup'));
+  it('lists every property the closed envVarGroup definition publishes, in its order', () => {
+    expectClosedDefinition(ENV_VAR_GROUP_SCHEMA_FIELDS, 'envVarGroup');
   });
 });
 
 describe('ROOT_SCHEMA_FIELDS', () => {
-  it('lists every property the root publishes, in its order', () => {
-    expectClosedDefinition(ROOT_SCHEMA_FIELDS, publishedRootProperties());
+  it('lists every property the closed root publishes, in its order', () => {
+    expectClosedRoot(ROOT_SCHEMA_FIELDS);
   });
 });
