@@ -81,7 +81,7 @@ const DISK_SIZE_STEP_GB = 5;
 
 const DISK_SIZE_BOUNDS: IntegerBounds = { subject: 'A database disk size in GB', min: 1 };
 
-const diskSizeGBSchema = boundedInteger(DISK_SIZE_BOUNDS).superRefine((size, ctx) => {
+const diskSizeGBSchema: z.ZodInt = boundedInteger(DISK_SIZE_BOUNDS).superRefine((size, ctx) => {
   if (size !== 1 && size % DISK_SIZE_STEP_GB !== 0) {
     raise(
       ctx,
