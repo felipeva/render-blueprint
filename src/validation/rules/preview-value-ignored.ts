@@ -2,15 +2,15 @@ import { resolveEnv } from '../../env/resolve-env.js';
 import { resourceEnv, type BlueprintResource } from '../../resources/resource.js';
 import type { ValidationWarning } from '../issue.js';
 
-// spec §6.1 and §11: previewValue overrides a value for a web or a private service in a preview
-// environment, and spec §10 records the override as supported in an environment group. INFERRED: a
-// static site passes, because Render emits it as type: web and the prose excludes it nowhere.
-const kindIgnoringPreviewValue = (resource: BlueprintResource): string | undefined => {
+// docs/research/raw/render-preview-environments.md § "Environment variables"
+// INFERRED: a static site passes, because the page names web services and Render emits a static
+// site as type: web.
+const kindIgnoringPreviewValue = (resource: BlueprintResource): 'worker' | 'cron' | undefined => {
   switch (resource.kind) {
     case 'worker':
-      return 'a worker';
+      return 'worker';
     case 'cron':
-      return 'a cron job';
+      return 'cron';
     case 'web':
     case 'privateService':
     case 'staticSite':
@@ -30,13 +30,15 @@ export const previewValueIgnored = (
     const kind = kindIgnoringPreviewValue(resource);
     if (kind === undefined) continue;
 
+    const label = kind === 'worker' ? 'a worker' : 'a cron job';
+
     for (const entry of resolveEnv(resourceEnv(resource), undefined)) {
       if (entry.form !== 'literal' || entry.previewValue === undefined) continue;
 
       warnings.push({
         code: 'PreviewValueIgnored',
         at: { resource: resource.name, field: `env.${entry.key}` },
-        message: `"${resource.name}" writes a previewValue on the environment variable "${entry.key}". Render overrides a value with previewValue for a web or a private service in a preview environment, so ${kind} never reads it.`,
+        message: `"${resource.name}" writes a previewValue on the environment variable "${entry.key}". Render supports the override for web services, private services and environment groups, so ${label} never reads it; set the value on the service the preview reads, or move the variable to an environment group.`,
       });
     }
   }

@@ -25,7 +25,7 @@ describe('previewValueIgnored', () => {
         code: 'PreviewValueIgnored',
         at: { resource: 'jobs', field: 'env.API_BASE_URL' },
         message:
-          '"jobs" writes a previewValue on the environment variable "API_BASE_URL". Render overrides a value with previewValue for a web or a private service in a preview environment, so a worker never reads it.',
+          '"jobs" writes a previewValue on the environment variable "API_BASE_URL". Render supports the override for web services, private services and environment groups, so a worker never reads it; set the value on the service the preview reads, or move the variable to an environment group.',
       },
     ]);
   });
@@ -44,7 +44,7 @@ describe('previewValueIgnored', () => {
         code: 'PreviewValueIgnored',
         at: { resource: 'nightly', field: 'env.LOG_LEVEL' },
         message:
-          '"nightly" writes a previewValue on the environment variable "LOG_LEVEL". Render overrides a value with previewValue for a web or a private service in a preview environment, so a cron job never reads it.',
+          '"nightly" writes a previewValue on the environment variable "LOG_LEVEL". Render supports the override for web services, private services and environment groups, so a cron job never reads it; set the value on the service the preview reads, or move the variable to an environment group.',
       },
     ]);
   });

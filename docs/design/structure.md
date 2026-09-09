@@ -512,7 +512,7 @@ an absolute URL, and `SubdomainPolicyNeedsDomain` for a `renderSubdomainPolicy` 
 resource that lists no custom domain (issue #43). `WarningCode` follows the same convention one
 tier down, for a rule that never blocks synthesis — `SecretSkipsPreviews`,
 `UnknownServiceEnvVarKey`, `WebOnlyField`, `InstancesIgnoredByScaling`, `UnusedDefault`,
-`BuildFilterOnImageSource` and `MaintenanceModeNeedsPaidPlan` among them.
+`BuildFilterOnImageSource`, `MaintenanceModeNeedsPaidPlan`, `AutoDeployTriggerOnImageSource`, `PreviewValueIgnored` and `PersistenceNeedsPaidPlan` among them.
 
 **Enums.** `erasableSyntaxOnly` bans `enum`. Every closed set is a SCREAMING_SNAKE `as const`
 tuple plus its derived union, in one file; the tuple is exported because validation and tests

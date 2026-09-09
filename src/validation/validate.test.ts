@@ -1928,7 +1928,7 @@ describe('validate', () => {
     ]);
   });
 
-  // spec §6.1 and §11: Render reads previewValue for a web and a private service.
+  // docs/research/raw/render-preview-environments.md § "Environment variables"
   it('warns about a previewValue on a worker and on a cron job', () => {
     const result = validate(
       blueprint({
