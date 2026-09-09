@@ -21,11 +21,13 @@ const onValueOrField = (issue: z.core.$ZodRawIssue, fields: readonly string[]): 
   return path.length === 0 || (path.length === 1 && fields.includes(String(path[0])));
 };
 
+// SAFETY: a refinement running under this guard sees the raw input on every field it does not
+// name, because only the named ones are known to have parsed. It may read the named fields alone.
 export const whenFieldsParsed = (fields: readonly string[]): RefinementOptions => ({
   when: (payload) =>
     !payload.issues.some((issue) => aborting(issue) && onValueOrField(issue, fields)),
 });
 
 export const whenValueParsed: RefinementOptions = {
-  when: (payload) => payload.issues.length === 0,
+  when: (payload) => !payload.issues.some(aborting),
 };

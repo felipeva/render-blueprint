@@ -1270,6 +1270,46 @@ describe('validate', () => {
     ]);
   });
 
+  it('reports a disk beside more than one instance when scaling did not parse', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web(
+            'api',
+            unchecked(
+              '{"runtime":"node","disk":{"name":"uploads","mountPath":"/var/data"},"scaling":"nope","instances":3}',
+            ),
+          ),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['InvalidConfig', 'DiskPreventsScaling']);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.at.field)).toEqual(['scaling', 'instances']);
+  });
+
+  it('reports a disk beside autoscaling when the instance count did not parse', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          web(
+            'api',
+            unchecked(
+              '{"runtime":"node","disk":{"name":"uploads","mountPath":"/var/data"},"scaling":{"minInstances":1,"maxInstances":3,"targetCPUPercent":70},"instances":"three"}',
+            ),
+          ),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['InvalidConfig', 'DiskPreventsScaling']);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.at.field)).toEqual(['instances', 'scaling']);
+  });
+
   it('reports nothing from the disk rule when the instance count it reads did not parse', () => {
     const result = validate(
       blueprint({

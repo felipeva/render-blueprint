@@ -17,7 +17,13 @@ import {
 } from '../references/http-service-reference.js';
 import type { BuildFilter } from './build-filter.js';
 import type { DefaultsProvenance } from './defaults-provenance.js';
-import { raiseDiskPreventsScaling, WHEN_DISK_PREVENTS_SCALING, type Disk } from './disk.js';
+import {
+  raiseDiskPreventsAutoscaling,
+  raiseDiskPreventsMultipleInstances,
+  WHEN_DISK_PREVENTS_AUTOSCALING,
+  WHEN_DISK_PREVENTS_MULTIPLE_INSTANCES,
+  type Disk,
+} from './disk.js';
 import type { EnvironmentGroup } from './env-group.js';
 import { ipAllowListSchema, type IpAllowList } from './ip-allow-list.js';
 import { servicePreviewsSchema, type ServicePreviews } from './previews.js';
@@ -170,7 +176,8 @@ const webConfigSchema = z
     z.strictObject({ ...webFields, ...dockerSourceFields }).readonly(),
     z.strictObject({ ...webFields, ...imageSourceFields }).readonly(),
   ])
-  .superRefine(raiseDiskPreventsScaling, WHEN_DISK_PREVENTS_SCALING)
+  .superRefine(raiseDiskPreventsAutoscaling, WHEN_DISK_PREVENTS_AUTOSCALING)
+  .superRefine(raiseDiskPreventsMultipleInstances, WHEN_DISK_PREVENTS_MULTIPLE_INSTANCES)
   .superRefine(raiseSubdomainPolicyNeedsDomain, WHEN_SUBDOMAIN_POLICY_NEEDS_DOMAIN);
 
 type WebConfigSchemaMatchesInterface = Expect<Equal<z.infer<typeof webConfigSchema>, WebConfig>>;

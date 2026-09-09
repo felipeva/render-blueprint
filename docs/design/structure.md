@@ -62,7 +62,9 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   ├── json.ts                      JsonValue / JsonObject — the escape-hatch types (design B §7)
 │   ├── raise.ts                     the one way a schema refinement raises a custom issue carrying
 │                                    a validationCode, so validation/translate-schema-issue.ts can
-│                                    map it back to a ValidationCode
+│                                    map it back to a ValidationCode; beside it whenFieldsParsed and
+│                                    whenValueParsed, the guards that name which earlier parse
+│                                    failures make a refinement skip
 │   ├── bounded-integer.ts           z.int() plus the bound the spec sets, raising the one
 │                                    OutOfRange code every bounded number shares (issue #12)
 │   ├── equal.ts                     Equal / Expect — the identity-guard pair every schema-versus-

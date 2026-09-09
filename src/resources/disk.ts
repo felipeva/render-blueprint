@@ -62,7 +62,7 @@ export interface ScalableFields {
 }
 
 // docs/research/raw/render-disks.md § "Disk limitations and considerations"
-export const raiseDiskPreventsScaling = <T extends ScalableFields>(
+export const raiseDiskPreventsAutoscaling = <T extends ScalableFields>(
   config: T,
   ctx: z.core.$RefinementCtx<T>,
 ): void => {
@@ -76,6 +76,20 @@ export const raiseDiskPreventsScaling = <T extends ScalableFields>(
       ['scaling'],
     );
   }
+};
+
+export const WHEN_DISK_PREVENTS_AUTOSCALING: RefinementOptions = whenFieldsParsed([
+  'runtime',
+  'disk',
+  'scaling',
+]);
+
+// docs/research/raw/render-disks.md § "Disk limitations and considerations"
+export const raiseDiskPreventsMultipleInstances = <T extends ScalableFields>(
+  config: T,
+  ctx: z.core.$RefinementCtx<T>,
+): void => {
+  if (config.disk === undefined) return;
 
   if (config.instances !== undefined && config.instances > 1) {
     raise(
@@ -87,9 +101,8 @@ export const raiseDiskPreventsScaling = <T extends ScalableFields>(
   }
 };
 
-export const WHEN_DISK_PREVENTS_SCALING: RefinementOptions = whenFieldsParsed([
+export const WHEN_DISK_PREVENTS_MULTIPLE_INSTANCES: RefinementOptions = whenFieldsParsed([
   'runtime',
   'disk',
-  'scaling',
   'instances',
 ]);

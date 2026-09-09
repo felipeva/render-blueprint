@@ -214,6 +214,26 @@ describe('parseWebConfig', () => {
     ).toEqual([{ validationCode: 'MaintenanceUriNotAbsolute', path: ['maintenanceMode', 'uri'] }]);
   });
 
+  it('reports a disk beside more than one instance when scaling did not parse', () => {
+    expect(
+      raisedIssues(
+        unchecked(
+          '{"runtime":"node","disk":{"name":"uploads","mountPath":"/var/data"},"scaling":"nope","instances":3}',
+        ),
+      ),
+    ).toEqual([{ validationCode: 'DiskPreventsScaling', path: ['instances'] }]);
+  });
+
+  it('reports a disk beside autoscaling when the instance count did not parse', () => {
+    expect(
+      raisedIssues(
+        unchecked(
+          '{"runtime":"node","disk":{"name":"uploads","mountPath":"/var/data"},"scaling":{"minInstances":1,"maxInstances":3,"targetCPUPercent":70},"instances":"three"}',
+        ),
+      ),
+    ).toEqual([{ validationCode: 'DiskPreventsScaling', path: ['scaling'] }]);
+  });
+
   it('reports nothing from the disk rule when the instance count it reads did not parse', () => {
     expect(
       raisedIssues(
