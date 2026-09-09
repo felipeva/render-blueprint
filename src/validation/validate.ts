@@ -18,6 +18,7 @@ import { duplicateEnvKey } from './rules/duplicate-env-key.js';
 import { duplicateResourceName } from './rules/duplicate-resource-name.js';
 import { envKeyCollision } from './rules/env-key-collision.js';
 import { extraFieldConflict } from './rules/extra-field-conflict.js';
+import { extraFieldNotInSchema } from './rules/extra-field-not-in-schema.js';
 import { instancesIgnoredByScaling } from './rules/instances-ignored-by-scaling.js';
 import { maintenanceModeNeedsPaidPlan } from './rules/maintenance-mode-needs-paid-plan.js';
 import { missingBuildCommand } from './rules/missing-build-command.js';
@@ -103,6 +104,7 @@ export const validate = (value: Blueprint): ResultType<ValidatedBlueprint, Bluep
           ...WARNING_RULES.flatMap((rule) => rule(parsed.accepted)),
           ...branchDisablesPreviews(value.previews, parsed.accepted),
           ...secretSkipsPreviews(value.previews, parsed.accepted),
+          ...extraFieldNotInSchema(value.extraFields, parsed.accepted),
         ],
       })
     : Result.err(new BlueprintInvalid({ issues: [first, ...rest] }));

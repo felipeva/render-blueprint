@@ -1824,7 +1824,7 @@ describe('validate', () => {
 
     expect(Result.isOk(result)).toBe(true);
     if (!Result.isOk(result)) return;
-    expect(result.value.warnings.map((warning) => warning.code)).toEqual(['WebOnlyField']);
+    expect(result.value.warnings.map((warning) => warning.code)).toEqual(['ExtraFieldNotInSchema']);
   });
 
   // spec §4.1: maintenance mode needs a paid web service instance.
@@ -1905,7 +1905,7 @@ describe('validate', () => {
 
     expect(Result.isOk(result)).toBe(true);
     if (!Result.isOk(result)) return;
-    expect(result.value.warnings.map((warning) => warning.code)).toEqual(['WebOnlyField']);
+    expect(result.value.warnings.map((warning) => warning.code)).toEqual(['ExtraFieldNotInSchema']);
     expect(result.value.warnings[0]?.at).toEqual({
       resource: 'marketing',
       field: 'extraFields.maintenanceMode',

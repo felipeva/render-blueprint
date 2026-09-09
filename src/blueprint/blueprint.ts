@@ -39,6 +39,19 @@ export const BLUEPRINT_FIELDS = [
   'ungrouped',
 ] as const;
 
+// spec §4.8: Render closes the root over the resources definition and its own properties, so the
+// blueprint takes no property beyond these.
+export const ROOT_SCHEMA_FIELDS = [
+  'databases',
+  'envVarGroups',
+  'services',
+  'previews',
+  'previewsEnabled',
+  'previewsExpireAfterDays',
+  'projects',
+  'ungrouped',
+  'version',
+] as const;
 const EXPIRE_AFTER_DAYS_ERROR =
   'An expireAfterDays is a whole number of days of at least 1; Render deprovisions a preview environment that goes that long without a push.';
 

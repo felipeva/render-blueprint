@@ -1,0 +1,14 @@
+import { blueprint, web, type Blueprint } from '__RENDER_BLUEPRINT__';
+
+const value: Blueprint = blueprint({
+  resources: [
+    web('api', {
+      runtime: 'node',
+      buildCommand: 'pnpm build',
+      startCommand: 'pnpm start',
+      extraFields: { logStream: 'acme-logs' },
+    }),
+  ],
+});
+
+export default value;

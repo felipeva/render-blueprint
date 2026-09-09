@@ -200,6 +200,20 @@ describe('render-blueprint', () => {
     expect(strict.stderr).toContain('--strict');
   });
 
+  it('exits 1 under --strict on an extra field the schema does not list', async () => {
+    const cwd = await seeded('schema-allow-list');
+    const ran = await run(cwd, ['synth']);
+
+    expect(ran.code, ran.stderr).toBe(0);
+    expect(ran.stderr).toContain('warning api.extraFields.logStream:');
+    expect(ran.stderr).not.toContain('api.buildCommand');
+
+    const strict = await run(cwd, ['check', '--strict']);
+
+    expect(strict.code).toBe(1);
+    expect(strict.stderr).toContain('--strict');
+  });
+
   it('exits 1 when there is no blueprint file to find', async () => {
     const ran = await run(await directory(), ['check']);
 

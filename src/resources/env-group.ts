@@ -18,6 +18,10 @@ export interface EnvironmentGroup {
 // Emission order follows the schema's envVarGroup property order.
 export const ENVIRONMENT_GROUP_FIELDS = ['name', 'envVars'] as const;
 
+// spec §4.8: Render closes the envVarGroup definition, so an environment group takes no property
+// beyond these.
+export const ENV_VAR_GROUP_SCHEMA_FIELDS = ['name', 'envVars'] as const;
+
 const envGroupConfigSchema = z
   .strictObject({
     env: envGroupEnvironmentSchema,

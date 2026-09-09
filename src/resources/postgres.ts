@@ -70,6 +70,24 @@ export const POSTGRES_DATABASE_FIELDS = [
   'readReplicas',
 ] as const;
 
+// spec §4.8: Render closes the database definition, so a Postgres database takes no property beyond
+// these.
+export const DATABASE_SCHEMA_FIELDS = [
+  'name',
+  'databaseName',
+  'user',
+  'region',
+  'plan',
+  'diskSizeGB',
+  'storageAutoscalingEnabled',
+  'connectionPool',
+  'previewPlan',
+  'previewDiskSizeGB',
+  'postgresMajorVersion',
+  'highAvailability',
+  'ipAllowList',
+  'readReplicas',
+] as const;
 // spec §9: high availability needs PostgreSQL 13 or later.
 const FIRST_HIGH_AVAILABILITY_VERSION = 13;
 

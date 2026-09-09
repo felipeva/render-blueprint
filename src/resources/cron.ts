@@ -94,6 +94,30 @@ export const CRON_JOB_FIELDS = [
   'preDeployCommand',
 ] as const;
 
+// spec §4.8: Render closes the cronService definition, so a cron job takes no property beyond these.
+export const CRON_SERVICE_SCHEMA_FIELDS = [
+  'type',
+  'name',
+  'region',
+  'plan',
+  'runtime',
+  'schedule',
+  'buildCommand',
+  'startCommand',
+  'dockerCommand',
+  'dockerfilePath',
+  'dockerContext',
+  'registryCredential',
+  'repo',
+  'branch',
+  'image',
+  'envVars',
+  'buildFilter',
+  'rootDir',
+  'autoDeploy',
+  'autoDeployTrigger',
+  'preDeployCommand',
+] as const;
 const cronFields = {
   ...optionalSourcedServiceFields,
   schedule: scheduleSchema,

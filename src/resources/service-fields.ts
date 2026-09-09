@@ -10,6 +10,45 @@ import { diskSchema, type Disk } from './disk.js';
 import { environmentGroupSchema, type EnvironmentGroup } from './env-group.js';
 import { scalingSchema, type Scaling } from './scaling.js';
 
+// spec §4.8: Render closes the serverService definition, so a web service, a private service and
+// a worker take no property beyond these.
+export const SERVER_SERVICE_SCHEMA_FIELDS = [
+  'type',
+  'name',
+  'region',
+  'plan',
+  'runtime',
+  'repo',
+  'branch',
+  'image',
+  'rootDir',
+  'dockerCommand',
+  'dockerContext',
+  'dockerfilePath',
+  'numInstances',
+  'healthCheckPath',
+  'scaling',
+  'buildCommand',
+  'startCommand',
+  'preDeployCommand',
+  'registryCredential',
+  'domain',
+  'domains',
+  'envVars',
+  'autoDeploy',
+  'autoDeployTrigger',
+  'initialDeployHook',
+  'disk',
+  'buildFilter',
+  'previews',
+  'pullRequestPreviewsEnabled',
+  'previewPlan',
+  'maintenanceMode',
+  'maxShutdownDelaySeconds',
+  'ipAllowList',
+  'renderSubdomainPolicy',
+] as const;
+
 const rootDirSchema: z.ZodString = z.string().superRefine((value, ctx) => {
   // spec §4.1 makes rootDir relative to the repository root. INFERRED: the schema does not.
   if (value.startsWith('/')) {

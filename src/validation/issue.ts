@@ -43,6 +43,7 @@ export const WARNING_CODES = [
   'AutoDeployTriggerOnImageSource',
   'PreviewValueIgnored',
   'PersistenceNeedsPaidPlan',
+  'ExtraFieldNotInSchema',
 ] as const;
 
 export type WarningCode = (typeof WARNING_CODES)[number];
