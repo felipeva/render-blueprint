@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { POSTGRES_PLANS } from '../enums/plan.js';
 import { parsePostgresConfig, postgres, type PostgresConfig } from './postgres.js';
 import { readReplica } from './read-replica.js';
 
@@ -29,13 +30,9 @@ const raisedIssues = (config: PostgresConfig): readonly RaisedIssue[] => {
   );
 };
 
-const raisedMessages = (config: PostgresConfig): readonly string[] => {
+const issueMessages = (config: PostgresConfig): readonly string[] => {
   const result = parsePostgresConfig(config);
-  if (result.success) return [];
-
-  return result.error.issues.flatMap((issue): readonly string[] =>
-    issue.code === 'custom' ? [issue.message] : [],
-  );
+  return result.success ? [] : result.error.issues.map((issue) => issue.message);
 };
 
 describe('postgres', () => {
@@ -217,7 +214,7 @@ describe('parsePostgresConfig', () => {
   });
 
   it.each(['free', '0.1c-256mb', '0.5c-1g'] as const)(
-    'reports high availability on the %j plan on the highAvailability field',
+    'reports the %j plan under one CPU on the highAvailability field',
     (plan) => {
       expect(raisedIssues({ plan, highAvailability: { enabled: true } })).toEqual([
         { validationCode: 'HighAvailabilityUnsupported', path: ['highAvailability'] },
@@ -226,10 +223,10 @@ describe('parsePostgresConfig', () => {
   );
 
   it('names the plan and the CPU the plan lacks', () => {
-    expect(raisedMessages({ plan: '0.5c-1g', highAvailability: { enabled: true } })).toEqual([
+    expect(issueMessages({ plan: '0.5c-1g', highAvailability: { enabled: true } })).toEqual([
       expect.stringContaining('"0.5c-1g"'),
     ]);
-    expect(raisedMessages({ plan: '0.5c-1g', highAvailability: { enabled: true } })).toEqual([
+    expect(issueMessages({ plan: '0.5c-1g', highAvailability: { enabled: true } })).toEqual([
       expect.stringContaining('1 CPU'),
     ]);
   });
@@ -253,7 +250,7 @@ describe('parsePostgresConfig', () => {
     expect(issueCodes({ plan, highAvailability: { enabled: true } })).toEqual([]);
   });
 
-  it('accepts high availability with no plan, because Render injects no default', () => {
+  it('accepts high availability with no plan, because the library injects no Render default', () => {
     expect(issueCodes({ highAvailability: { enabled: true } })).toEqual([]);
   });
 
@@ -271,6 +268,14 @@ describe('parsePostgresConfig', () => {
     },
   );
 
+  it('refuses high availability on exactly the plans Render gives less than one CPU', () => {
+    const refused = POSTGRES_PLANS.filter(
+      (plan) => issueCodes({ plan, highAvailability: { enabled: true } }).length > 0,
+    );
+
+    expect(refused).toEqual(['free', '0.1c-256mb', '0.5c-1g']);
+  });
+
   it('reports the version rule and the plan rule from one database, each with its own message', () => {
     const config: PostgresConfig = {
       plan: '0.5c-1g',
@@ -282,7 +287,7 @@ describe('parsePostgresConfig', () => {
       { validationCode: 'HighAvailabilityUnsupported', path: ['highAvailability'] },
       { validationCode: 'HighAvailabilityUnsupported', path: ['highAvailability'] },
     ]);
-    expect(raisedMessages(config)).toEqual([
+    expect(issueMessages(config)).toEqual([
       expect.stringContaining('"12"'),
       expect.stringContaining('"0.5c-1g"'),
     ]);

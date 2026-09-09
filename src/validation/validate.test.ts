@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { blueprint } from '../blueprint/blueprint.js';
 import { project } from '../blueprint/project.js';
+import { withDefaults } from '../defaults/with-defaults.js';
 import type { EnvValue } from '../env/env-value.js';
 import { literal } from '../env/literal.js';
 import { secret } from '../env/secret.js';
@@ -1109,6 +1110,23 @@ describe('validate', () => {
     const result = validate(
       blueprint({
         resources: [postgres('elephant', { plan: '0.5c-1g', highAvailability: { enabled: true } })],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['HighAvailabilityUnsupported']);
+    expect(result.error.issues[0].at).toEqual({
+      resource: 'elephant',
+      field: 'highAvailability',
+    });
+  });
+
+  it('reports high availability on a plan a defaults scope filled in', () => {
+    const acme = withDefaults({ plan: { postgres: 'free' } });
+    const result = validate(
+      blueprint({
+        resources: [acme.postgres('elephant', { highAvailability: { enabled: true } })],
       }),
     );
 

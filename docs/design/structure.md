@@ -530,15 +530,14 @@ with something other than an absolute URL, `SubdomainPolicyNeedsDomain` for a
 `renderSubdomainPolicy` of `disabled` on a resource that lists no custom domain (issue #43),
 `DiskSizeDisallowed` for a database disk size that is neither 1 nor a multiple of 5,
 `ScheduleNotCron` for a cron `schedule` that is not the five-field cron expression Render documents
-(issue #89), and `IpAllowListSourceNotCidr` for an allow-list `source` that is neither an IP
-address nor a CIDR range (issue #90). Two more come from a refinement beside the config that owns
-the fields it reads rather than from a schema issue, so they sit here too: `ScalingRangeInverted`
-for a scaling range whose `minInstances` exceeds its `maxInstances`, and
-`HighAvailabilityUnsupported` for a database that asks for a standby on a PostgreSQL version before
-13 or on a compute plan with less than one CPU. `WarningCode` follows the same
-convention one tier down, for a rule that never blocks synthesis — `SecretSkipsPreviews`,
-`UnknownServiceEnvVarKey`, `WebOnlyField`, `InstancesIgnoredByScaling`, `UnusedDefault`,
-`BuildFilterOnImageSource`, `MaintenanceModeNeedsPaidPlan`, `AutoDeployTriggerOnImageSource`, `PreviewValueIgnored` and `PersistenceNeedsPaidPlan` among them.
+(issue #89), `IpAllowListSourceNotCidr` for an allow-list `source` that is neither an IP address
+nor a CIDR range (issue #90), `ScalingRangeInverted` for a scaling range whose `minInstances`
+exceeds its `maxInstances`, and `HighAvailabilityUnsupported` for a database that asks for a
+standby on a PostgreSQL version before 13 or on a compute plan with less than one CPU.
+`WarningCode` follows the same convention one tier down, for a rule that never blocks synthesis —
+`SecretSkipsPreviews`, `UnknownServiceEnvVarKey`, `WebOnlyField`, `InstancesIgnoredByScaling`,
+`UnusedDefault`, `BuildFilterOnImageSource`, `MaintenanceModeNeedsPaidPlan`,
+`AutoDeployTriggerOnImageSource`, `PreviewValueIgnored` and `PersistenceNeedsPaidPlan` among them.
 
 **Enums.** `erasableSyntaxOnly` bans `enum`. Every closed set is a SCREAMING_SNAKE `as const`
 tuple plus its derived union, in one file; the tuple is exported because validation and tests
