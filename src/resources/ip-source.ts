@@ -5,7 +5,7 @@ const isDigits = (text: string): boolean => {
     if (character < '0' || character > '9') return false;
   }
 
-  return text.length > 0;
+  return true;
 };
 
 const isDecimalWithin = (text: string, max: number): boolean => {
@@ -57,11 +57,8 @@ const isIpv6 = (text: string): boolean => {
   const marker = text.indexOf('::');
   if (marker === -1) return groupCount(text, true) === 8;
 
-  const tail = text.slice(marker + 2);
-  if (tail.includes('::')) return false;
-
   const before = groupCount(text.slice(0, marker), false);
-  const after = groupCount(tail, true);
+  const after = groupCount(text.slice(marker + 2), true);
   if (before === undefined || after === undefined) return false;
 
   return before + after <= 7;
