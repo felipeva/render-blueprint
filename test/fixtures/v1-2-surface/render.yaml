@@ -44,6 +44,8 @@ services:
     ipAllowList:
       - source: 198.51.100.0/24
         description: edge
+      - source: 198.51.100.7
+        description: edge probe
       - source: 2001:db8:2::1
         description: edge over v6
   - type: cron
@@ -62,6 +64,8 @@ services:
     ipAllowList:
       - source: 10.0.0.0/8
         description: private network
+      - source: 10.1.2.3
+        description: admin host
       - source: fd00::/8
         description: private network over v6
     plan: standard

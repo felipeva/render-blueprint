@@ -10,7 +10,7 @@ import {
   type IpAllowList,
 } from '../../../src/index.js';
 
-// spec §7: a source is an address or a range in CIDR notation, in either family.
+// spec §7: a source is an address or a range in CIDR notation.
 const OFFICE: IpAllowList = [
   { source: '203.0.113.4/30', description: 'office range' },
   { source: '198.51.100.1', description: 'ci runner' },
@@ -18,11 +18,12 @@ const OFFICE: IpAllowList = [
   { source: '2001:db8:1::c0a8:1', description: 'ci runner over v6' },
 ];
 
-// spec §4.1: five fields, here a list, a range with a step, and month and weekday names.
+// spec §4.1: five fields, here a list and a range with a step. INFERRED: names for months and
+// weekdays.
 const NIGHTLY = '0,30 8-18/2 * JAN-DEC MON-FRI';
 
-// spec §9: high availability takes a plan with at least 1 CPU, and a disk size is 1 GB or a
-// multiple of 5 GB with no ceiling.
+// spec §9: high availability takes PostgreSQL 13 or later on a plan with at least 1 CPU, and a
+// disk size is 1 GB or a multiple of 5 GB with no ceiling.
 const records = postgres('records', {
   region: 'oregon',
   plan: '1c-2g',
@@ -33,8 +34,9 @@ const records = postgres('records', {
   ipAllowList: OFFICE,
 });
 
-// spec §4.3 and §1395: a repository builds the service, so the deploy trigger applies, and a web
-// service is a kind preview environments read a previewValue on.
+// spec §4.3: a repository builds the service, so the deploy trigger applies.
+// docs/research/raw/render-preview-environments.md § "Environment variables": a web service is
+// a kind whose preview environment reads a previewValue.
 const api = web('api', {
   runtime: 'node',
   region: 'oregon',
@@ -51,7 +53,8 @@ const api = web('api', {
   },
 });
 
-// spec §4.6: a service opts out of preview environments with the generation the shared enum lists.
+// spec §4.6: a service opts out of its own pull request previews with the generation the shared
+// enum lists, and the field does not affect preview environments.
 const marketing = staticSite('marketing', {
   repo: 'https://github.com/acme/mono',
   rootDir: 'apps/marketing',
@@ -60,6 +63,7 @@ const marketing = staticSite('marketing', {
   previews: { generation: 'off' },
   ipAllowList: [
     { source: '198.51.100.0/24', description: 'edge' },
+    { source: '198.51.100.7', description: 'edge probe' },
     { source: '2001:db8:2::1', description: 'edge over v6' },
   ],
 });
@@ -82,6 +86,7 @@ const cache = keyValue('cache', {
   persistenceMode: 'journal-snapshot',
   ipAllowList: [
     { source: '10.0.0.0/8', description: 'private network' },
+    { source: '10.1.2.3', description: 'admin host' },
     { source: 'fd00::/8', description: 'private network over v6' },
   ],
 });
