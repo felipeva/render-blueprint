@@ -519,22 +519,25 @@ a name: `WebConfig` in, `WebService` out.
 better-result's own `TemplateNotFound` / `RenderTemplateFailed`: `BlueprintInvalid`,
 `BlueprintWriteFailed`, `BlueprintFileUnreadable`; `_tag` equals the class name. `ValidationCode`
 literals use the same convention one level down — `DanglingReference`, `DuplicateResourceName`,
-`ResourceInMultipleLocations`, `ScalingRangeInverted`, `HighAvailabilityUnsupported`,
-`ExtraFieldConflict`, `EnvKeyCollision`, `ProjectWithoutEnvironment` — one literal per rule, named
-after the rule file that produces it. The config tier mints the few no rule file produces, from
-the issues a schema raises: `UnknownField`, `InvalidConfig`, `RootDirNotRelative`,
-`ConflictingSource` for a key one source branch owns on a config whose runtime picked another
-(issue #10), `OutOfRange` for every numeric bound the spec sets, `ScalingTargetMissing` and
-`DiskPreventsScaling` for the two pairs a serverService config may not hold at once (issue #12),
-`MaintenanceUriNotAbsolute` for a maintenance page the config points at with something other than
-an absolute URL, `SubdomainPolicyNeedsDomain` for a `renderSubdomainPolicy` of `disabled` on a
-resource that lists no custom domain (issue #43), `DiskSizeDisallowed` for a database disk size that
-is neither 1 nor a multiple of 5, `ScheduleNotCron` for a cron `schedule` that is not the five-field
-cron expression Render documents (issue #89), and `IpAllowListSourceNotCidr` for an allow-list
-`source` that is neither an IP address nor a CIDR range (issue #90). `WarningCode` follows the same
-convention one tier down, for a rule that never blocks synthesis — `SecretSkipsPreviews`,
-`UnknownServiceEnvVarKey`, `WebOnlyField`, `InstancesIgnoredByScaling`, `UnusedDefault`,
-`BuildFilterOnImageSource`, `MaintenanceModeNeedsPaidPlan`, `AutoDeployTriggerOnImageSource`, `PreviewValueIgnored` and `PersistenceNeedsPaidPlan` among them.
+`ResourceInMultipleLocations`, `ExtraFieldConflict`, `EnvKeyCollision`, `ProjectWithoutEnvironment`
+— one literal per rule, named after the rule file that produces it. The config tier mints the few
+no rule file produces, from the issues a schema raises: `UnknownField`, `InvalidConfig`,
+`RootDirNotRelative`, `ConflictingSource` for a key one source branch owns on a config whose
+runtime picked another (issue #10), `OutOfRange` for every numeric bound the spec sets,
+`ScalingTargetMissing` and `DiskPreventsScaling` for the two pairs a serverService config may not
+hold at once (issue #12), `MaintenanceUriNotAbsolute` for a maintenance page the config points at
+with something other than an absolute URL, `SubdomainPolicyNeedsDomain` for a
+`renderSubdomainPolicy` of `disabled` on a resource that lists no custom domain (issue #43),
+`DiskSizeDisallowed` for a database disk size that is neither 1 nor a multiple of 5,
+`ScheduleNotCron` for a cron `schedule` that is not the five-field cron expression Render documents
+(issue #89), `IpAllowListSourceNotCidr` for an allow-list `source` that is neither an IP address
+nor a CIDR range (issue #90), `ScalingRangeInverted` for a scaling range whose `minInstances`
+exceeds its `maxInstances`, and `HighAvailabilityUnsupported` for a database that asks for a
+standby on a PostgreSQL version before 13 or on a compute plan with less than one CPU.
+`WarningCode` follows the same convention one tier down, for a rule that never blocks synthesis —
+`SecretSkipsPreviews`, `UnknownServiceEnvVarKey`, `WebOnlyField`, `InstancesIgnoredByScaling`,
+`UnusedDefault`, `BuildFilterOnImageSource`, `MaintenanceModeNeedsPaidPlan`,
+`AutoDeployTriggerOnImageSource`, `PreviewValueIgnored` and `PersistenceNeedsPaidPlan` among them.
 
 **Enums.** `erasableSyntaxOnly` bans `enum`. Every closed set is a SCREAMING_SNAKE `as const`
 tuple plus its derived union, in one file; the tuple is exported because validation and tests

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { POSTGRES_PLANS } from '../enums/plan.js';
 import { parsePostgresConfig, postgres, type PostgresConfig } from './postgres.js';
 import { readReplica } from './read-replica.js';
 
@@ -27,6 +28,11 @@ const raisedIssues = (config: PostgresConfig): readonly RaisedIssue[] => {
       ? [{ validationCode: String(issue.params?.['validationCode']), path: issue.path }]
       : [],
   );
+};
+
+const issueMessages = (config: PostgresConfig): readonly string[] => {
+  const result = parsePostgresConfig(config);
+  return result.success ? [] : result.error.issues.map((issue) => issue.message);
 };
 
 describe('postgres', () => {
@@ -205,6 +211,106 @@ describe('parsePostgresConfig', () => {
     expect(
       raisedIssues(unchecked('{"postgresMajorVersion":12,"highAvailability":{"enabled":true}}')),
     ).toEqual([]);
+  });
+
+  it.each(['free', '0.1c-256mb', '0.5c-1g'] as const)(
+    'reports the %j plan under one CPU on the highAvailability field',
+    (plan) => {
+      expect(raisedIssues({ plan, highAvailability: { enabled: true } })).toEqual([
+        { validationCode: 'HighAvailabilityUnsupported', path: ['highAvailability'] },
+      ]);
+    },
+  );
+
+  it('names the plan and the CPU the plan lacks', () => {
+    expect(issueMessages({ plan: '0.5c-1g', highAvailability: { enabled: true } })).toEqual([
+      expect.stringContaining('"0.5c-1g"'),
+    ]);
+    expect(issueMessages({ plan: '0.5c-1g', highAvailability: { enabled: true } })).toEqual([
+      expect.stringContaining('1 CPU'),
+    ]);
+  });
+
+  it.each(['1c-2g', '1c-4g', '128c-1024g'] as const)(
+    'accepts high availability on the %j plan',
+    (plan) => {
+      expect(issueCodes({ plan, highAvailability: { enabled: true } })).toEqual([]);
+    },
+  );
+
+  it.each([
+    'starter',
+    'standard',
+    'pro',
+    'pro plus',
+    'basic-1gb',
+    'pro-4gb',
+    'accelerated-16gb',
+  ] as const)('accepts high availability on the legacy %j plan', (plan) => {
+    expect(issueCodes({ plan, highAvailability: { enabled: true } })).toEqual([]);
+  });
+
+  it('accepts high availability with no plan, because the library injects no Render default', () => {
+    expect(issueCodes({ highAvailability: { enabled: true } })).toEqual([]);
+  });
+
+  it.each(['free', '0.1c-256mb', '0.5c-1g'] as const)(
+    'accepts the %j plan with high availability turned off',
+    (plan) => {
+      expect(issueCodes({ plan, highAvailability: { enabled: false } })).toEqual([]);
+    },
+  );
+
+  it.each(['free', '0.1c-256mb', '0.5c-1g'] as const)(
+    'accepts the %j plan with no high availability',
+    (plan) => {
+      expect(issueCodes({ plan })).toEqual([]);
+    },
+  );
+
+  it('refuses high availability on exactly the plans Render gives less than one CPU', () => {
+    const refused = POSTGRES_PLANS.filter(
+      (plan) => issueCodes({ plan, highAvailability: { enabled: true } }).length > 0,
+    );
+
+    expect(refused).toEqual(['free', '0.1c-256mb', '0.5c-1g']);
+  });
+
+  it('reports the version rule and the plan rule from one database, each with its own message', () => {
+    const config: PostgresConfig = {
+      plan: '0.5c-1g',
+      postgresMajorVersion: '12',
+      highAvailability: { enabled: true },
+    };
+
+    expect(raisedIssues(config)).toEqual([
+      { validationCode: 'HighAvailabilityUnsupported', path: ['highAvailability'] },
+      { validationCode: 'HighAvailabilityUnsupported', path: ['highAvailability'] },
+    ]);
+    expect(issueMessages(config)).toEqual([
+      expect.stringContaining('"12"'),
+      expect.stringContaining('"0.5c-1g"'),
+    ]);
+  });
+
+  it('reports the version rule when the plan the other rule reads did not parse', () => {
+    expect(
+      raisedIssues(
+        unchecked(
+          '{"plan":"gigantic","postgresMajorVersion":"12","highAvailability":{"enabled":true}}',
+        ),
+      ),
+    ).toEqual([{ validationCode: 'HighAvailabilityUnsupported', path: ['highAvailability'] }]);
+  });
+
+  it('reports the plan rule when the version the other rule reads did not parse', () => {
+    expect(
+      raisedIssues(
+        unchecked(
+          '{"plan":"0.5c-1g","postgresMajorVersion":12,"highAvailability":{"enabled":true}}',
+        ),
+      ),
+    ).toEqual([{ validationCode: 'HighAvailabilityUnsupported', path: ['highAvailability'] }]);
   });
 
   it('reports a sixth read replica beside a replica that did not parse', () => {

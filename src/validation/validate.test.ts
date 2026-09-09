@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { blueprint } from '../blueprint/blueprint.js';
 import { project } from '../blueprint/project.js';
+import { withDefaults } from '../defaults/with-defaults.js';
 import type { EnvValue } from '../env/env-value.js';
 import { literal } from '../env/literal.js';
 import { secret } from '../env/secret.js';
@@ -1103,6 +1104,104 @@ describe('validate', () => {
     );
 
     expect(reportedCodes(result)).toEqual(['InvalidConfig', 'DiskSizeDisallowed']);
+  });
+
+  it('reports high availability on a plan with less than one CPU under its own code', () => {
+    const result = validate(
+      blueprint({
+        resources: [postgres('elephant', { plan: '0.5c-1g', highAvailability: { enabled: true } })],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['HighAvailabilityUnsupported']);
+    expect(result.error.issues[0].at).toEqual({
+      resource: 'elephant',
+      field: 'highAvailability',
+    });
+  });
+
+  it('reports high availability on a plan a defaults scope filled in', () => {
+    const acme = withDefaults({ plan: { postgres: 'free' } });
+    const result = validate(
+      blueprint({
+        resources: [acme.postgres('elephant', { highAvailability: { enabled: true } })],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['HighAvailabilityUnsupported']);
+    expect(result.error.issues[0].at).toEqual({
+      resource: 'elephant',
+      field: 'highAvailability',
+    });
+  });
+
+  it('reports both high-availability rules from one database', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          postgres('elephant', {
+            plan: '0.5c-1g',
+            postgresMajorVersion: '12',
+            highAvailability: { enabled: true },
+          }),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual([
+      'HighAvailabilityUnsupported',
+      'HighAvailabilityUnsupported',
+    ]);
+  });
+
+  it('reports the version rule beside a plan whose value did not parse', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          postgres(
+            'elephant',
+            uncheckedDatabase(
+              '{"plan":"gigantic","postgresMajorVersion":"12","highAvailability":{"enabled":true}}',
+            ),
+          ),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['InvalidConfig', 'HighAvailabilityUnsupported']);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.at.field)).toEqual([
+      'plan',
+      'highAvailability',
+    ]);
+  });
+
+  it('reports the plan rule beside a version whose value did not parse', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          postgres(
+            'elephant',
+            uncheckedDatabase(
+              '{"plan":"0.5c-1g","postgresMajorVersion":12,"highAvailability":{"enabled":true}}',
+            ),
+          ),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual(['InvalidConfig', 'HighAvailabilityUnsupported']);
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.at.field)).toEqual([
+      'postgresMajorVersion',
+      'highAvailability',
+    ]);
   });
 
   it('reports a bad disk size and the high-availability rule from one database', () => {
