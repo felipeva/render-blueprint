@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { blueprint } from '../blueprint/blueprint.js';
 import { project } from '../blueprint/project.js';
 import type { EnvValue } from '../env/env-value.js';
+import { literal } from '../env/literal.js';
 import { secret } from '../env/secret.js';
 import type { JsonObject } from '../json.js';
 import { external } from '../references/external.js';
@@ -1890,5 +1891,96 @@ describe('validate', () => {
     expect(Result.isOk(result)).toBe(true);
     if (!Result.isOk(result)) return;
     expect(result.value.warnings.map((warning) => warning.code)).toEqual(['SecretSkipsPreviews']);
+  });
+
+  // spec §4.3: autoDeployTrigger has no effect for a service that deploys a prebuilt image.
+  it('warns about a deploy trigger on every kind an image can source', () => {
+    const image = { url: 'docker.io/acme/api:1.0.0' };
+    const result = validate(
+      blueprint({
+        resources: [
+          web('api', { runtime: 'image', image, autoDeployTrigger: 'commit' }),
+          privateService('auth', { runtime: 'image', image, autoDeployTrigger: 'commit' }),
+          worker('jobs', { runtime: 'image', image, autoDeployTrigger: 'off' }),
+          cron('nightly', {
+            runtime: 'image',
+            image,
+            schedule: '0 2 * * *',
+            autoDeployTrigger: 'checksPass',
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isOk(result)).toBe(true);
+    if (!Result.isOk(result)) return;
+    expect(result.value.warnings.map((warning) => warning.code)).toEqual([
+      'AutoDeployTriggerOnImageSource',
+      'AutoDeployTriggerOnImageSource',
+      'AutoDeployTriggerOnImageSource',
+      'AutoDeployTriggerOnImageSource',
+    ]);
+    expect(result.value.warnings.map((warning) => warning.at)).toEqual([
+      { resource: 'api', field: 'autoDeployTrigger' },
+      { resource: 'auth', field: 'autoDeployTrigger' },
+      { resource: 'jobs', field: 'autoDeployTrigger' },
+      { resource: 'nightly', field: 'autoDeployTrigger' },
+    ]);
+  });
+
+  // docs/research/raw/render-preview-environments.md § "Environment variables"
+  it('warns about a previewValue on a worker and on a cron job', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          worker('jobs', {
+            runtime: 'node',
+            buildCommand: 'pnpm build',
+            startCommand: 'pnpm run jobs',
+            env: { LOG_LEVEL: literal('info', { previewValue: 'debug' }) },
+          }),
+          cron('nightly', {
+            runtime: 'node',
+            schedule: '0 2 * * *',
+            buildCommand: 'pnpm build',
+            startCommand: 'pnpm run nightly',
+            env: { LOG_LEVEL: literal('info', { previewValue: 'debug' }) },
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isOk(result)).toBe(true);
+    if (!Result.isOk(result)) return;
+    expect(result.value.warnings.map((warning) => warning.code)).toEqual([
+      'PreviewValueIgnored',
+      'PreviewValueIgnored',
+    ]);
+    expect(result.value.warnings.map((warning) => warning.at)).toEqual([
+      { resource: 'jobs', field: 'env.LOG_LEVEL' },
+      { resource: 'nightly', field: 'env.LOG_LEVEL' },
+    ]);
+  });
+
+  // spec §5: data persistence is not available for a free instance.
+  it('warns about a persistence mode on a free key value instance', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          keyValue('cache', {
+            ipAllowList: [{ source: '203.0.113.4/30' }],
+            plan: 'free',
+            persistenceMode: 'journal-snapshot',
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isOk(result)).toBe(true);
+    if (!Result.isOk(result)) return;
+    expect(result.value.warnings.map((warning) => warning.code)).toEqual([
+      'PersistenceNeedsPaidPlan',
+    ]);
+    expect(result.value.warnings[0]?.at).toEqual({ resource: 'cache', field: 'persistenceMode' });
   });
 });

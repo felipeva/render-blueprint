@@ -708,7 +708,7 @@ There are **two distinct, independent** preview mechanisms:
 | Applies to | web, pserv, worker, cron, keyvalue, Postgres | web services and static sites |
 | Compute-plan override | services: `previews.plan`; keyvalue: `previewPlan`; Postgres: `previewPlan` + `previewDiskSizeGB` | `previews.plan` |
 | Instance-count override | `previews.numInstances` | `previews.numInstances` |
-| Env var override | `previewValue` | (inherits base service settings verbatim) |
+| Env var override | `previewValue`, supported for web services, private services and environment groups only, per `docs/research/raw/render-preview-environments.md` § "Environment variables" | (inherits base service settings verbatim) |
 | Expiry | root `previews.expireAfterDays` | tied to PR lifetime |
 
 Per-resource preview behaviour:
