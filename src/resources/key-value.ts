@@ -47,6 +47,19 @@ export const KEY_VALUE_STORE_FIELDS = [
   'persistenceMode',
 ] as const;
 
+// spec §4.8: Render closes the redisServer definition, so a Key Value instance takes no property
+// beyond these.
+export const REDIS_SERVER_SCHEMA_FIELDS = [
+  'type',
+  'name',
+  'region',
+  'ipAllowList',
+  'plan',
+  'previewPlan',
+  'maxmemoryPolicy',
+  'persistenceMode',
+] as const;
+
 const keyValueConfigSchema = z
   .strictObject({
     // spec §5: a Key Value instance is the one resource Render requires an ipAllowList on.

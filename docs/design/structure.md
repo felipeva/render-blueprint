@@ -177,13 +177,15 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   ├── deprecation.ts           the deprecated fields and the sentence each one warns with
 │   │   ├── env-key-origins.ts       resolves an imported group by name the way Render does, so the
 │   │   │                            group/direct collision and the duplicate key have one reader
-│   │   └── rules/                   one pure Blueprint → issues[] file per rule, 21 of them:
-│                                     branch-disables-previews, build-filter-on-image-source,
-│                                     dangling-reference, deprecated-field, duplicate-env-key,
-│                                     duplicate-resource-name, env-key-collision,
-│                                     extra-field-conflict, instances-ignored-by-scaling,
+│   │   └── rules/                   one pure Blueprint → issues[] file per rule, 25 of them:
+│                                     auto-deploy-trigger-on-image-source, branch-disables-previews,
+│                                     build-filter-on-image-source, dangling-reference,
+│                                     deprecated-field, duplicate-env-key, duplicate-resource-name,
+│                                     env-key-collision, extra-field-conflict,
+│                                     extra-field-not-in-schema, instances-ignored-by-scaling,
 │                                     maintenance-mode-needs-paid-plan, missing-build-command,
 │                                     missing-start-command, missing-static-publish-path,
+│                                     persistence-needs-paid-plan, preview-value-ignored,
 │                                     project-without-environment, resource-in-multiple-locations,
 │                                     root-deprecated-field, root-extra-field-conflict,
 │                                     secret-skips-previews, unknown-service-env-var-key,
@@ -276,6 +278,13 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │                                against the property order that definition lists them in.
 │   │                                SOURCE_FIELDS is not one of them: it is the set of keys the
 │   │                                source branches own, not an emission order (issue #12)
+│   ├── schema-allow-list-conformance.test.ts   every allow-list tuple against the whole property
+│   │                                list its closed definition publishes, and against the
+│   │                                additionalProperties (unevaluatedProperties, at the root) that
+│   │                                makes that list a constraint rather than a suggestion
+│   ├── extra-field-not-in-schema.test.ts   one document per closed definition carrying a key the
+│   │                                schema lacks: the warning it draws, the oracle rejecting the
+│   │                                same document at the same path, and the control without the key
 │   ├── dependency-policy.test.ts    §3.1 itself: extends the real .oxlintrc.json in a temp
 │   │                                directory and asserts what each row rejects and admits
 │   ├── fixtures/canonical/render.ts   design B §3 verbatim — the scenario every design doc shares
@@ -283,16 +292,16 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │                                rewritable, but only through `pnpm fixtures:update` (§6.2)
 │   ├── fixtures/*/render.ts         one directory per scenario; fixtures.test.ts discovers any
 │   │                                directory holding a render.ts, so adding one needs no wiring
-│   ├── fixtures/cli/                eight seed directories, each holding a render.ts.seed whose
-│   │                                import specifier is a placeholder the smoke test rewrites to the
-│   │                                built entry's file URL. What sits beside the seed differs:
+│   ├── fixtures/cli/                nine seed directories, each holding a render.ts.seed whose
+│   │                                import specifier is a placeholder the smoke test rewrites to
+│   │                                the built entry's file URL. What sits beside the seed differs:
 │   │                                split and v1-1-surface add an expected.yaml, the output the run
-│   │                                is compared against; clean, drifted and warned add a render.yaml,
-│   │                                the committed file `check` reads; build-filter-image, defective
-│   │                                and invalid hold the seed alone and are judged on exit code and
-│   │                                streams. export-not-a-blueprint.mjs and
-│   │                                export-without-resources.mjs sit beside the directories, for the
-│   │                                two bad-export paths
+│   │                                is compared against; clean, drifted and warned add a
+│   │                                render.yaml, the committed file `check` reads;
+│   │                                build-filter-image, defective, invalid and schema-allow-list
+│   │                                hold the seed alone and are judged on exit code and streams.
+│   │                                export-not-a-blueprint.mjs and export-without-resources.mjs sit
+│   │                                beside the directories, for the two bad-export paths
 │   └── schema/render.yaml.schema.json the conformance oracle, refreshed by script only (§6.3)
 ├── tools/oxlint/anti-slop/          written by the install skill; committed; never linted or edited
 ├── .githooks/                       pre-commit formats and lints the staged files; commit-msg

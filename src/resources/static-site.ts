@@ -87,6 +87,32 @@ export const STATIC_SITE_FIELDS = [
   'renderSubdomainPolicy',
 ] as const;
 
+// spec §4.8: Render closes the staticService definition, so a static site takes no property beyond
+// these.
+export const STATIC_SERVICE_SCHEMA_FIELDS = [
+  'type',
+  'name',
+  'runtime',
+  'buildCommand',
+  'staticPublishPath',
+  'previews',
+  'pullRequestPreviewsEnabled',
+  'buildFilter',
+  'headers',
+  'routes',
+  'envVars',
+  'rootDir',
+  'repo',
+  'branch',
+  'domain',
+  'domains',
+  'autoDeploy',
+  'autoDeployTrigger',
+  'preDeployCommand',
+  'ipAllowList',
+  'renderSubdomainPolicy',
+] as const;
+
 export const HEADER_FIELDS = ['path', 'name', 'value'] as const;
 
 // Emission order follows the schema's staticServicePreviews property order.

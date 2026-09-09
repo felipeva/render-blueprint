@@ -47,24 +47,6 @@ describe('webOnlyField', () => {
     ).toEqual([]);
   });
 
-  // spec §4.8: cronService lists none of the six and takes no property beyond the ones it lists.
-  it('warns about a web-only field on a cron job, whose schema carries none of them', () => {
-    const warnings = webOnlyField([
-      cron('nightly', {
-        runtime: 'node',
-        schedule: '0 2 * * *',
-        extraFields: { domains: ['a.com'], healthCheckPath: '/healthz' },
-      }),
-    ]);
-
-    expect(warnings.map((warning) => warning.at.field)).toEqual([
-      'extraFields.healthCheckPath',
-      'extraFields.domains',
-    ]);
-    expect(warnings[0]?.message).toContain('cron job');
-    expect(warnings[0]?.code).toBe('WebOnlyField');
-  });
-
   // spec §13: the singular domain is also the retired form.
   it('warns about the singular domain on a worker, beside the issue that retires it', () => {
     const warnings = webOnlyField([
@@ -88,54 +70,26 @@ describe('webOnlyField', () => {
     ).toEqual([]);
   });
 
-  // spec §4.8: neither cronService nor staticService carries the hook serverService does.
-  it('warns about a first-deploy hook on a cron job and on a static site', () => {
-    const warnings = webOnlyField([
-      cron('nightly', {
-        runtime: 'node',
-        schedule: '0 2 * * *',
-        extraFields: { initialDeployHook: './seed.sh' },
-      }),
-      staticSite('marketing', { extraFields: { initialDeployHook: './seed.sh' } }),
-    ]);
-
-    expect(warnings.map((warning) => warning.at)).toEqual([
-      { resource: 'nightly', field: 'extraFields.initialDeployHook' },
-      { resource: 'marketing', field: 'extraFields.initialDeployHook' },
-    ]);
-    expect(warnings.map((warning) => warning.code)).toEqual(['WebOnlyField', 'WebOnlyField']);
-  });
-
-  // spec §4.8: staticService allows no property beyond the ones it lists.
-  it('warns about every field staticService lacks, on a static site', () => {
-    const warnings = webOnlyField([
-      staticSite('marketing', {
-        extraFields: {
-          healthCheckPath: '/healthz',
-          maintenanceMode: { enabled: true },
-          initialDeployHook: './seed.sh',
-        },
-      }),
-    ]);
-
-    expect(warnings.map((warning) => warning.at.field)).toEqual([
-      'extraFields.healthCheckPath',
-      'extraFields.maintenanceMode',
-      'extraFields.initialDeployHook',
-    ]);
-    expect(warnings[0]?.code).toBe('WebOnlyField');
-    expect(warnings[0]?.message).toContain('static site');
-  });
-
-  it('warns about nothing a static site carries, however it was set', () => {
+  // spec §4.8: neither kind shares the serverService definition, so the allow-list rule covers
+  // every key this one would name there.
+  it('warns about nothing on a cron job or a static site', () => {
     expect(
       webOnlyField([
+        cron('nightly', {
+          runtime: 'node',
+          schedule: '0 2 * * *',
+          extraFields: {
+            healthCheckPath: '/healthz',
+            domains: ['a.com'],
+            initialDeployHook: './seed.sh',
+          },
+        }),
         staticSite('marketing', {
           extraFields: {
-            domains: ['acme.dev'],
-            domain: 'acme.dev',
+            healthCheckPath: '/healthz',
+            maintenanceMode: { enabled: true },
+            initialDeployHook: './seed.sh',
             renderSubdomainPolicy: 'disabled',
-            ipAllowList: [{ source: '203.0.113.4/30' }],
           },
         }),
       ]),
