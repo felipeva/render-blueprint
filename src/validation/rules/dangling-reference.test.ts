@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { external } from '../../references/external.js';
 import { cron } from '../../resources/cron.js';
 import { keyValue } from '../../resources/key-value.js';
-import { postgres } from '../../resources/postgres.js';
+import { postgres, type PostgresConfig } from '../../resources/postgres.js';
 import { privateService } from '../../resources/private-service.js';
 import { readReplica, type ReadReplica } from '../../resources/read-replica.js';
 import type { BlueprintResource } from '../../resources/resource.js';
@@ -18,9 +18,10 @@ const parsed = (
   named: readonly BlueprintResource[] = accepted,
 ): ParsedConfigs => ({ issues: [], named, accepted });
 
-// SAFETY: JSON.parse returns any. Each entry stands in for a read replica the CLI loaded through
-// Node type stripping, which erases types without checking them, so the annotation is
+// SAFETY: JSON.parse returns any. Every value below stands in for a blueprint the CLI loaded
+// through Node type stripping, which erases types without checking them, so the annotation is
 // deliberately stronger than the value — the gap ADR-0003 gives the schemas to close.
+const uncheckedDatabase: (json: string) => PostgresConfig = JSON.parse;
 const uncheckedReplica: (json: string) => ReadReplica = JSON.parse;
 
 describe('danglingReference', () => {
@@ -84,7 +85,7 @@ describe('danglingReference', () => {
     expect(danglingReference(parsed([api], [api, elephant]))).toEqual([]);
   });
 
-  it('reads no target from a read replica entry that is not an object, and still counts its database', () => {
+  it('reports no unresolved database reference while a read replica entry is not an object', () => {
     const elephant = postgres('elephant', {
       readReplicas: [uncheckedReplica('null'), uncheckedReplica('"elephant-replica"')],
     });
@@ -96,21 +97,75 @@ describe('danglingReference', () => {
       },
     });
 
-    expect(danglingReference(parsed([api], [api, elephant])).map((issue) => issue.at)).toEqual([
-      { resource: 'api', field: 'env.REPLICA_URL' },
-    ]);
+    expect(danglingReference(parsed([api], [api, elephant]))).toEqual([]);
   });
 
-  it('counts the name on a read replica entry that did not parse, so its own issue stands alone', () => {
+  it('reports no unresolved database reference while an entry that carries a name did not parse', () => {
     const elephant = postgres('elephant', {
       readReplicas: [uncheckedReplica('{"name":"elephant-replica"}')],
     });
+    const api = web('api', {
+      runtime: 'node',
+      env: { REPLICA_URL: readReplica('elephant-reader').connectionString },
+    });
+
+    expect(danglingReference(parsed([api], [api, elephant]))).toEqual([]);
+  });
+
+  it('reports nothing for a mistyped database name while a read replica entry did not parse', () => {
+    const elephant = postgres('elephant', {
+      readReplicas: [uncheckedReplica('"elephant-replica"')],
+    });
+    const api = web('api', {
+      runtime: 'node',
+      env: { DATABASE_URL: postgres('elefant').connectionString },
+    });
+
+    expect(danglingReference(parsed([api], [api, elephant]))).toEqual([]);
+  });
+
+  it('reports no unresolved database reference while readReplicas is not an array', () => {
+    const elephant = postgres('elephant', uncheckedDatabase('{"readReplicas":"elephant-replica"}'));
     const api = web('api', {
       runtime: 'node',
       env: { REPLICA_URL: readReplica('elephant-replica').connectionString },
     });
 
     expect(danglingReference(parsed([api], [api, elephant]))).toEqual([]);
+  });
+
+  it('reports nothing for a listed database beside a read replica entry that did not parse', () => {
+    const elephant = postgres('elephant', { readReplicas: [uncheckedReplica('null')] });
+    const api = web('api', { runtime: 'node', env: { DATABASE_URL: elephant.connectionString } });
+
+    expect(danglingReference(parsed([api], [api, elephant]))).toEqual([]);
+  });
+
+  it('still reports a service reference beside a read replica entry that did not parse', () => {
+    const elephant = postgres('elephant', { readReplicas: [uncheckedReplica('null')] });
+    const api = web('api', {
+      runtime: 'node',
+      env: {
+        AUTH_HOSTPORT: web('auth', { runtime: 'node' }).hostport,
+        DATABASE_URL: postgres('elefant').connectionString,
+      },
+    });
+
+    expect(danglingReference(parsed([api], [api, elephant])).map((issue) => issue.at)).toEqual([
+      { resource: 'api', field: 'env.AUTH_HOSTPORT' },
+    ]);
+  });
+
+  it('reports a name no database or read replica takes once every entry parsed', () => {
+    const elephant = postgres('elephant', { readReplicas: [readReplica('elephant-replica')] });
+    const api = web('api', {
+      runtime: 'node',
+      env: { REPLICA_URL: readReplica('elephant-reader').connectionString },
+    });
+
+    expect(danglingReference(parsed([api, elephant])).map((issue) => issue.at)).toEqual([
+      { resource: 'api', field: 'env.REPLICA_URL' },
+    ]);
   });
 
   it('reports nothing when the referenced service is listed', () => {

@@ -5,6 +5,7 @@ import type { BlueprintResource } from '../../resources/resource.js';
 import { resourceEnv, serviceReferenceType } from '../../resources/resource.js';
 import type { ValidationIssue } from '../issue.js';
 import type { ParsedConfigs } from '../parse-configs.js';
+import { declaresUnparsedReplica, replicaNames } from '../replica-names.js';
 
 // spec §12: readReplicas[].name declares a replica, which spec §9 makes a fromDatabase target too.
 const databaseTargets = (resources: readonly BlueprintResource[]): ReadonlySet<string> => {
@@ -14,9 +15,7 @@ const databaseTargets = (resources: readonly BlueprintResource[]): ReadonlySet<s
     if (resource.kind !== 'postgres') continue;
 
     names.add(resource.name);
-    // An entry may not be a replica; a missing target blames the wrong resource, so any name counts.
-    const declared = resource.config?.readReplicas;
-    if (Array.isArray(declared)) for (const replica of declared) names.add(replica?.name);
+    for (const replica of replicaNames(resource)) names.add(replica);
   }
 
   return names;
@@ -52,6 +51,8 @@ const mismatch = (
 
 export const danglingReference = (parsed: ParsedConfigs): readonly ValidationIssue[] => {
   const databases = databaseTargets(parsed.named);
+  // A replica entry that did not parse may be the one a reference names, so none is surely missing.
+  const databasesKnown = !parsed.named.some((resource) => declaresUnparsedReplica(resource));
   const services = serviceTargets(parsed.named);
   const issues: ValidationIssue[] = [];
 
@@ -64,7 +65,7 @@ export const danglingReference = (parsed: ParsedConfigs): readonly ValidationIss
       if (entry.form !== 'fromDatabase' && entry.form !== 'fromService') continue;
       if (entry.reference.origin === 'external') continue;
 
-      if (entry.form === 'fromDatabase' && !databases.has(entry.reference.name)) {
+      if (entry.form === 'fromDatabase' && databasesKnown && !databases.has(entry.reference.name)) {
         issues.push({
           code: 'DanglingReference',
           at: { resource: resource.name, field: `env.${entry.key}` },
