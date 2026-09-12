@@ -416,6 +416,28 @@ services:
     }
   });
 
+  it('says where the value came from when a rule reads a default and reports on another field', () => {
+    const scope = withDefaults({ plan: { postgres: 'free' } });
+    const result = validate(
+      blueprint({
+        resources: [scope.postgres('elephant', { highAvailability: { enabled: true } })],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+
+    if (Result.isError(result)) {
+      expect(BlueprintInvalid.is(result.error)).toBe(true);
+      expect(result.error.issues).toEqual([
+        {
+          code: 'HighAvailabilityUnsupported',
+          at: { resource: 'elephant', field: 'highAvailability' },
+          message: expect.stringContaining('takes "plan" from a defaults scope'),
+        },
+      ]);
+    }
+  });
+
   it("says nothing about a scope on an issue the resource's own value raised", () => {
     const scope = withDefaults({ region: 'frankfurt' });
     const result = validate(

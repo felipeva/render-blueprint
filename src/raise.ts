@@ -31,3 +31,25 @@ export const whenFieldsParsed = (fields: readonly string[]): RefinementOptions =
 export const whenValueParsed: RefinementOptions = {
   when: (payload) => !payload.issues.some(aborting),
 };
+
+export interface FieldRefinement {
+  readonly guard: RefinementOptions;
+  readonly raise: <T>(
+    ctx: z.core.$RefinementCtx<T>,
+    validationCode: string,
+    message: string,
+    path: readonly PropertyKey[],
+  ) => void;
+}
+
+export const readingFields = (fields: readonly string[]): FieldRefinement => ({
+  guard: whenFieldsParsed(fields),
+  raise: (ctx, validationCode, message, path) => {
+    ctx.addIssue({
+      code: 'custom',
+      message,
+      params: { validationCode, fieldsRead: fields, reportDepth: path.length },
+      path: [...path],
+    });
+  },
+});

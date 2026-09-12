@@ -10,7 +10,7 @@ import {
 import { regionSchema, type Region } from '../enums/region.js';
 import type { Equal, Expect } from '../equal.js';
 import { jsonObjectSchema, type JsonObject } from '../json.js';
-import { raise, whenFieldsParsed } from '../raise.js';
+import { raise, readingFields, whenFieldsParsed, type FieldRefinement } from '../raise.js';
 import { postgresReference, type PostgresReference } from '../references/postgres-reference.js';
 import type { DefaultsProvenance } from './defaults-provenance.js';
 import { ipAllowListSchema, type IpAllowList } from './ip-allow-list.js';
@@ -101,6 +101,13 @@ const PLANS_UNDER_ONE_CPU = [
   '0.5c-1g',
 ] as const satisfies readonly PostgresPlan[];
 
+const HIGH_AVAILABILITY_NEEDS_VERSION: FieldRefinement = readingFields([
+  'highAvailability',
+  'postgresMajorVersion',
+]);
+
+const HIGH_AVAILABILITY_NEEDS_CPU: FieldRefinement = readingFields(['highAvailability', 'plan']);
+
 // spec §9: a Postgres instance takes at most five read replicas.
 const MAX_READ_REPLICAS = 5;
 
@@ -156,44 +163,38 @@ const postgresConfigSchema = z
     extraFields: jsonObjectSchema.exactOptional(),
   })
   .readonly()
-  .superRefine(
-    (config, ctx) => {
-      const version = config.postgresMajorVersion;
+  .superRefine((config, ctx) => {
+    const version = config.postgresMajorVersion;
 
-      if (
-        config.highAvailability?.enabled === true &&
-        version !== undefined &&
-        Number(version) < FIRST_HIGH_AVAILABILITY_VERSION
-      ) {
-        raise(
-          ctx,
-          'HighAvailabilityUnsupported',
-          `High availability needs PostgreSQL ${FIRST_HIGH_AVAILABILITY_VERSION} or later, and this database asks for version "${version}".`,
-          ['highAvailability'],
-        );
-      }
-    },
-    whenFieldsParsed(['highAvailability', 'postgresMajorVersion']),
-  )
-  .superRefine(
-    (config, ctx) => {
-      const plan = config.plan;
+    if (
+      config.highAvailability?.enabled === true &&
+      version !== undefined &&
+      Number(version) < FIRST_HIGH_AVAILABILITY_VERSION
+    ) {
+      HIGH_AVAILABILITY_NEEDS_VERSION.raise(
+        ctx,
+        'HighAvailabilityUnsupported',
+        `High availability needs PostgreSQL ${FIRST_HIGH_AVAILABILITY_VERSION} or later, and this database asks for version "${version}".`,
+        ['highAvailability'],
+      );
+    }
+  }, HIGH_AVAILABILITY_NEEDS_VERSION.guard)
+  .superRefine((config, ctx) => {
+    const plan = config.plan;
 
-      if (
-        config.highAvailability?.enabled === true &&
-        plan !== undefined &&
-        PLANS_UNDER_ONE_CPU.some((under) => under === plan)
-      ) {
-        raise(
-          ctx,
-          'HighAvailabilityUnsupported',
-          `High availability needs a compute plan with at least 1 CPU, and this database asks for the "${plan}" plan.`,
-          ['highAvailability'],
-        );
-      }
-    },
-    whenFieldsParsed(['highAvailability', 'plan']),
-  );
+    if (
+      config.highAvailability?.enabled === true &&
+      plan !== undefined &&
+      PLANS_UNDER_ONE_CPU.some((under) => under === plan)
+    ) {
+      HIGH_AVAILABILITY_NEEDS_CPU.raise(
+        ctx,
+        'HighAvailabilityUnsupported',
+        `High availability needs a compute plan with at least 1 CPU, and this database asks for the "${plan}" plan.`,
+        ['highAvailability'],
+      );
+    }
+  }, HIGH_AVAILABILITY_NEEDS_CPU.guard);
 
 type PostgresConfigSchemaMatchesInterface = Expect<
   Equal<z.infer<typeof postgresConfigSchema>, PostgresConfig>
