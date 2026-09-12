@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
 import { keyValue } from '../../resources/key-value.js';
-import { postgres } from '../../resources/postgres.js';
-import { readReplica } from '../../resources/read-replica.js';
+import { postgres, type PostgresConfig } from '../../resources/postgres.js';
+import { readReplica, type ReadReplica } from '../../resources/read-replica.js';
 import { web } from '../../resources/web.js';
 import { duplicateResourceName } from './duplicate-resource-name.js';
+
+// SAFETY: JSON.parse returns any. Every value below stands in for a blueprint the CLI loaded
+// through Node type stripping, which erases types without checking them, so the annotation is
+// deliberately stronger than the value — the gap ADR-0003 gives the schemas to close.
+const uncheckedDatabase: (json: string) => PostgresConfig = JSON.parse;
+const uncheckedReplica: (json: string) => ReadReplica = JSON.parse;
 
 describe('duplicateResourceName', () => {
   it('reports a name declared by two resources', () => {
@@ -64,6 +70,53 @@ describe('duplicateResourceName', () => {
     expect(duplicateResourceName([elephant]).map((issue) => issue.at)).toEqual([
       { resource: 'elephant', field: 'readReplicas' },
     ]);
+  });
+
+  it('reads no name from read replica entries that did not parse', () => {
+    const elephant = postgres(
+      'elephant',
+      uncheckedDatabase('{"readReplicas":["a","b","c","d","e","f"]}'),
+    );
+
+    expect(duplicateResourceName([elephant])).toEqual([]);
+  });
+
+  it('reads no name from a null read replica entry', () => {
+    const elephant = postgres('elephant', {
+      readReplicas: [uncheckedReplica('null'), uncheckedReplica('null')],
+    });
+
+    expect(duplicateResourceName([elephant])).toEqual([]);
+  });
+
+  it('reports two read replicas that share a name beside entries that did not parse', () => {
+    const elephant = postgres('elephant', {
+      readReplicas: [
+        readReplica('elephant-replica'),
+        uncheckedReplica('"a"'),
+        readReplica('elephant-replica'),
+        uncheckedReplica('"b"'),
+      ],
+    });
+
+    expect(duplicateResourceName([elephant])).toEqual([
+      {
+        code: 'DuplicateResourceName',
+        at: { resource: 'elephant', field: 'readReplicas' },
+        message: expect.stringContaining('"elephant-replica"'),
+      },
+    ]);
+  });
+
+  it('reads no name from a read replica entry that did not parse beside one that did', () => {
+    const elephant = postgres('elephant', {
+      readReplicas: [
+        readReplica('elephant-replica'),
+        uncheckedReplica('{"name":"elephant-replica"}'),
+      ],
+    });
+
+    expect(duplicateResourceName([elephant])).toEqual([]);
   });
 
   it('accepts a read replica whose name no other resource takes', () => {

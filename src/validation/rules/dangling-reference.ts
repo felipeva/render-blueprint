@@ -14,9 +14,9 @@ const databaseTargets = (resources: readonly BlueprintResource[]): ReadonlySet<s
     if (resource.kind !== 'postgres') continue;
 
     names.add(resource.name);
-    // The name tier runs ahead of config parsing (ADR-0003), so this list may not be one yet.
+    // An entry may not be a replica; a missing target blames the wrong resource, so any name counts.
     const declared = resource.config?.readReplicas;
-    if (Array.isArray(declared)) for (const replica of declared) names.add(replica.name);
+    if (Array.isArray(declared)) for (const replica of declared) names.add(replica?.name);
   }
 
   return names;
