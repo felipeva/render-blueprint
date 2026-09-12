@@ -1875,11 +1875,11 @@ describe('validate', () => {
     ]);
   });
 
-  it('carries no read replica hint on a database whose name did not parse, since it silences nothing', () => {
+  it('carries the read replica hint on a database whose name did not parse, and reports no reference', () => {
     const result = validate(
       blueprint({
         resources: [
-          postgres(uncheckedName('""'), uncheckedDatabase('{"readReplicas":["elephant-replica"]}')),
+          postgres('', uncheckedDatabase('{"readReplicas":["elephant-replica"]}')),
           web('api', {
             runtime: 'node',
             env: { REPLICA_URL: readReplica('elephant-replica').connectionString },
@@ -1898,8 +1898,33 @@ describe('validate', () => {
       })),
     ).toEqual([
       { code: 'InvalidConfig', field: 'name', hinted: false },
-      { code: 'InvalidConfig', field: 'readReplicas.0', hinted: false },
-      { code: 'DanglingReference', field: 'env.REPLICA_URL', hinted: false },
+      { code: 'InvalidConfig', field: 'readReplicas.0', hinted: true },
+    ]);
+  });
+
+  it('carries the read replica hint on a readReplicas key that is present and undefined', () => {
+    // JSON carries no undefined, so the key is set after parsing.
+    const config = Object.assign(uncheckedDatabase('{}'), { readReplicas: undefined });
+    const result = validate(
+      blueprint({
+        resources: [
+          postgres('elephant', config),
+          web('api', {
+            runtime: 'node',
+            env: { REPLICA_URL: readReplica('elephant-replica').connectionString },
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues).toEqual([
+      {
+        code: 'InvalidConfig',
+        at: { resource: 'elephant', field: 'readReplicas' },
+        message: expect.stringContaining(ELEPHANT_REPLICA_HINT),
+      },
     ]);
   });
 

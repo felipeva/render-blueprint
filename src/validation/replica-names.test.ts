@@ -106,4 +106,19 @@ describe('declaresUnparsedReplica', () => {
     expect(declaresUnparsedReplica(named)).toBe(true);
     expect(declaresUnparsedReplica(nulled)).toBe(true);
   });
+
+  it('is true for a readReplicas key that is present and undefined, which the schema rejects', () => {
+    // JSON carries no undefined, so the key is set after parsing.
+    const config = Object.assign(uncheckedDatabase('{}'), { readReplicas: undefined });
+
+    expect(declaresUnparsedReplica(postgres('elephant', config))).toBe(true);
+  });
+
+  it('is false for a config that is not an object, which declares no read replica', () => {
+    const nulled = postgres('elephant', uncheckedDatabase('null'));
+    const text = postgres('elephant', uncheckedDatabase('"elephant-replica"'));
+
+    expect(declaresUnparsedReplica(nulled)).toBe(false);
+    expect(declaresUnparsedReplica(text)).toBe(false);
+  });
 });

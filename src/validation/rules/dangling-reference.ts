@@ -5,7 +5,7 @@ import type { BlueprintResource } from '../../resources/resource.js';
 import { resourceEnv, serviceReferenceType } from '../../resources/resource.js';
 import type { ValidationIssue } from '../issue.js';
 import type { ParsedConfigs } from '../parse-configs.js';
-import { declaresUnparsedReplica, replicaNames } from '../replica-names.js';
+import { replicaNames } from '../replica-names.js';
 
 // spec §12: readReplicas[].name declares a replica, which spec §9 makes a fromDatabase target too.
 const databaseTargets = (resources: readonly BlueprintResource[]): ReadonlySet<string> => {
@@ -51,8 +51,6 @@ const mismatch = (
 
 export const danglingReference = (parsed: ParsedConfigs): readonly ValidationIssue[] => {
   const databases = databaseTargets(parsed.named);
-  // A replica entry that did not parse may be the one a reference names, so none is surely missing.
-  const databasesKnown = !parsed.named.some((resource) => declaresUnparsedReplica(resource));
   const services = serviceTargets(parsed.named);
   const issues: ValidationIssue[] = [];
 
@@ -65,7 +63,12 @@ export const danglingReference = (parsed: ParsedConfigs): readonly ValidationIss
       if (entry.form !== 'fromDatabase' && entry.form !== 'fromService') continue;
       if (entry.reference.origin === 'external') continue;
 
-      if (entry.form === 'fromDatabase' && databasesKnown && !databases.has(entry.reference.name)) {
+      // A replica that did not parse may be the one a reference names, so none is surely missing.
+      if (
+        entry.form === 'fromDatabase' &&
+        parsed.replicasKnown &&
+        !databases.has(entry.reference.name)
+      ) {
         issues.push({
           code: 'DanglingReference',
           at: { resource: resource.name, field: `env.${entry.key}` },

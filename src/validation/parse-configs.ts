@@ -9,6 +9,7 @@ export interface ParsedConfigs {
   readonly issues: readonly ValidationIssue[];
   readonly named: readonly BlueprintResource[];
   readonly accepted: readonly BlueprintResource[];
+  readonly replicasKnown: boolean;
 }
 
 const reportedName = (resource: BlueprintResource): string => String(resource?.name);
@@ -45,6 +46,7 @@ export const parseConfigs = (resources: readonly BlueprintResource[]): ParsedCon
   const issues: ValidationIssue[] = [];
   const named: BlueprintResource[] = [];
   const accepted: BlueprintResource[] = [];
+  let replicasKnown = true;
 
   for (const resource of resources) {
     const name = reportedName(resource);
@@ -57,8 +59,9 @@ export const parseConfigs = (resources: readonly BlueprintResource[]): ParsedCon
 
     const runtime = sourceRuntime(resource);
     const applied = resourceDefaults(resource)?.applied ?? [];
-    // The dangling-reference rule falls silent on this same condition, over the resources named.
-    const unparsedReplicas = onName.length === 0 && declaresUnparsedReplica(resource);
+    // A replica is addressed by its own name, so a database whose name did not parse still hides one.
+    const unparsedReplicas = declaresUnparsedReplica(resource);
+    if (unparsedReplicas) replicasKnown = false;
 
     for (const issue of onName) issues.push(...translateSchemaIssue(name, ['name'], issue));
     for (const issue of onConfig) {
@@ -75,5 +78,5 @@ export const parseConfigs = (resources: readonly BlueprintResource[]): ParsedCon
     if (onName.length === 0 && onConfig.length === 0 && onEnv.length === 0) accepted.push(resource);
   }
 
-  return { issues, named, accepted };
+  return { issues, named, accepted, replicasKnown };
 };

@@ -174,9 +174,10 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   │                            ValidationIssue, ValidationCode, ResourcePath, ValidationWarning
 │   │   ├── blueprint-invalid.ts     the BlueprintInvalid class — declared at its only producer (§5)
 │   │   ├── parse-configs.ts         walks the resource list: which entries are named, which are
-│   │   │                            accepted, and the issues the rest produce, each naming the
-│   │   │                            defaults scope that supplied the field it sits on or, failing
-│   │   │                            that, the first field its rule read, in the rule's own order
+│   │   │                            accepted, whether every read replica is known, and the issues
+│   │   │                            the rest produce, each naming the defaults scope that supplied
+│   │   │                            the field it sits on or, failing that, the first field its rule
+│   │   │                            read, in the rule's own order
 │   │   ├── parse-resource.ts        every zod issue one resource's entry, name, config and resolved
 │   │   │                            environment produce; the schemas stay beside their factories
 │   │   ├── parse-placement.ts       the root, project and environment schemas, for the placement

@@ -10,13 +10,19 @@ import type { BlueprintResource } from '../../resources/resource.js';
 import { staticSite } from '../../resources/static-site.js';
 import { web } from '../../resources/web.js';
 import { worker } from '../../resources/worker.js';
-import type { ParsedConfigs } from '../parse-configs.js';
+import { parseConfigs, type ParsedConfigs } from '../parse-configs.js';
 import { danglingReference } from './dangling-reference.js';
 
 const parsed = (
   accepted: readonly BlueprintResource[],
   named: readonly BlueprintResource[] = accepted,
-): ParsedConfigs => ({ issues: [], named, accepted });
+  listed: readonly BlueprintResource[] = named,
+): ParsedConfigs => ({
+  issues: [],
+  named,
+  accepted,
+  replicasKnown: parseConfigs(listed).replicasKnown,
+});
 
 // SAFETY: JSON.parse returns any. Every value below stands in for a blueprint the CLI loaded
 // through Node type stripping, which erases types without checking them, so the annotation is
@@ -166,6 +172,16 @@ describe('danglingReference', () => {
     expect(danglingReference(parsed([api, elephant])).map((issue) => issue.at)).toEqual([
       { resource: 'api', field: 'env.REPLICA_URL' },
     ]);
+  });
+
+  it('reports no unresolved database reference while a database whose name did not parse declares an unparsed replica', () => {
+    const nameless = postgres('', { readReplicas: [uncheckedReplica('"elephant-replica"')] });
+    const api = web('api', {
+      runtime: 'node',
+      env: { REPLICA_URL: readReplica('elephant-replica').connectionString },
+    });
+
+    expect(danglingReference(parsed([api], [api], [api, nameless]))).toEqual([]);
   });
 
   it('reports nothing when the referenced service is listed', () => {
