@@ -1,20 +1,6 @@
-import { readReplicaSchema } from '../../resources/read-replica.js';
 import type { BlueprintResource } from '../../resources/resource.js';
 import type { ValidationIssue } from '../issue.js';
-
-// spec §9 and §12: a read replica is addressed by its own name, so it shares the one namespace.
-const replicaNames = (resource: BlueprintResource): readonly string[] => {
-  if (resource.kind !== 'postgres') return [];
-
-  const declared = resource.config?.readReplicas;
-  // The name tier runs ahead of config parsing (ADR-0003): only an entry that parses is a replica.
-  if (!Array.isArray(declared)) return [];
-
-  return declared.flatMap((replica): readonly string[] => {
-    const parsed = readReplicaSchema.safeParse(replica);
-    return parsed.success ? [parsed.data.name] : [];
-  });
-};
+import { replicaNames } from '../replica-names.js';
 
 export const duplicateResourceName = (
   resources: readonly BlueprintResource[],

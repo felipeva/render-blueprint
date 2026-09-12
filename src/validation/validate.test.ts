@@ -41,6 +41,9 @@ const uncheckedCron: (json: string) => CronConfig = JSON.parse;
 const CRON_WITH_UNKNOWN_BUILD_FILTER_FIELD =
   '{"runtime":"node","schedule":"0 2 * * *","buildFilter":{"globs":["a"]}}';
 
+const ELEPHANT_REPLICA_HINT =
+  'Until the read replicas of "elephant" parse, a reference to a database this blueprint does not list is not checked, since it may name one of them.';
+
 const reportedCodes = (result: ReturnType<typeof validate>): readonly ValidationCode[] =>
   Result.isError(result) ? result.error.issues.map((issue) => issue.code) : [];
 
@@ -1707,6 +1710,222 @@ describe('validate', () => {
     if (!Result.isError(result)) return;
     expect(result.error.issues.map((issue) => issue.code)).toEqual(['DanglingReference']);
     expect(result.error.issues[0].at).toEqual({ resource: 'api', field: 'env.DATABASE_URL' });
+  });
+
+  it('reports a read replica entry that did not parse, not the reference that names it', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          postgres('elephant', uncheckedDatabase('{"readReplicas":["elephant-replica"]}')),
+          web('api', {
+            runtime: 'node',
+            env: { REPLICA_URL: readReplica('elephant-replica').connectionString },
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues).toEqual([
+      {
+        code: 'InvalidConfig',
+        at: { resource: 'elephant', field: 'readReplicas.0' },
+        message: `A read replica is the value readReplica(name) returned; this entry is not one. ${ELEPHANT_REPLICA_HINT}`,
+      },
+    ]);
+  });
+
+  it('reports no mistyped database name while a read replica entry did not parse', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          postgres('elephant', uncheckedDatabase('{"readReplicas":["elephant-replica"]}')),
+          web('api', {
+            runtime: 'node',
+            env: { DATABASE_URL: postgres('elefant').connectionString },
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues).toEqual([
+      {
+        code: 'InvalidConfig',
+        at: { resource: 'elephant', field: 'readReplicas.0' },
+        message: expect.stringContaining(ELEPHANT_REPLICA_HINT),
+      },
+    ]);
+  });
+
+  it('carries the read replica hint on a readReplicas value that is not an array', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          postgres('elephant', uncheckedDatabase('{"readReplicas":"elephant-replica"}')),
+          web('api', {
+            runtime: 'node',
+            env: { REPLICA_URL: readReplica('elephant-replica').connectionString },
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues).toEqual([
+      {
+        code: 'InvalidConfig',
+        at: { resource: 'elephant', field: 'readReplicas' },
+        message: expect.stringContaining(ELEPHANT_REPLICA_HINT),
+      },
+    ]);
+  });
+
+  it('carries the read replica hint on a field the library does not model inside an entry', () => {
+    const standby = { ...readReplica('elephant-standby'), region: 'oregon' };
+    const result = validate(
+      blueprint({ resources: [postgres('elephant', { readReplicas: [standby] })] }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues).toEqual([
+      {
+        code: 'UnknownField',
+        at: { resource: 'elephant', field: 'readReplicas.0.region' },
+        message: expect.stringContaining(ELEPHANT_REPLICA_HINT),
+      },
+    ]);
+  });
+
+  it('carries the read replica hint on no database field outside readReplicas', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          postgres(
+            'elephant',
+            uncheckedDatabase('{"plan":"enormous","readReplicas":["elephant-replica"]}'),
+          ),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(
+      result.error.issues.map((issue) => ({
+        field: issue.at.field,
+        hinted: issue.message.includes(ELEPHANT_REPLICA_HINT),
+      })),
+    ).toEqual([
+      { field: 'plan', hinted: false },
+      { field: 'readReplicas.0', hinted: true },
+    ]);
+  });
+
+  it('carries no read replica hint on a service that lists readReplicas', () => {
+    const result = validate(
+      blueprint({
+        resources: [web('api', unchecked('{"runtime":"node","readReplicas":["api-replica"]}'))],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['UnknownField']);
+    expect(result.error.issues[0].message).not.toContain('Until the read replicas of');
+  });
+
+  it('carries no read replica hint on a sixth read replica when every entry parsed', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          postgres('elephant', { readReplicas: ['a', 'b', 'c', 'd', 'e', 'f'].map(readReplica) }),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => issue.code)).toEqual(['TooManyReadReplicas']);
+    expect(result.error.issues[0].message).not.toContain(ELEPHANT_REPLICA_HINT);
+  });
+
+  it('still reports a service reference that does not resolve beside a read replica entry that did not parse', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          postgres('elephant', uncheckedDatabase('{"readReplicas":["elephant-replica"]}')),
+          web('api', {
+            runtime: 'node',
+            env: { AUTH_HOSTPORT: web('auth', { runtime: 'node' }).hostport },
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues.map((issue) => ({ code: issue.code, at: issue.at }))).toEqual([
+      { code: 'InvalidConfig', at: { resource: 'elephant', field: 'readReplicas.0' } },
+      { code: 'DanglingReference', at: { resource: 'api', field: 'env.AUTH_HOSTPORT' } },
+    ]);
+  });
+
+  it('carries the read replica hint on a database whose name did not parse, and reports no reference', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          postgres('', uncheckedDatabase('{"readReplicas":["elephant-replica"]}')),
+          web('api', {
+            runtime: 'node',
+            env: { REPLICA_URL: readReplica('elephant-replica').connectionString },
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(
+      result.error.issues.map((issue) => ({
+        code: issue.code,
+        field: issue.at.field,
+        hinted: issue.message.includes('Until the read replicas of'),
+      })),
+    ).toEqual([
+      { code: 'InvalidConfig', field: 'name', hinted: false },
+      { code: 'InvalidConfig', field: 'readReplicas.0', hinted: true },
+    ]);
+  });
+
+  it('carries the read replica hint on a readReplicas key that is present and undefined', () => {
+    // JSON carries no undefined, so the key is set after parsing.
+    const config = Object.assign(uncheckedDatabase('{}'), { readReplicas: undefined });
+    const result = validate(
+      blueprint({
+        resources: [
+          postgres('elephant', config),
+          web('api', {
+            runtime: 'node',
+            env: { REPLICA_URL: readReplica('elephant-replica').connectionString },
+          }),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues).toEqual([
+      {
+        code: 'InvalidConfig',
+        at: { resource: 'elephant', field: 'readReplicas' },
+        message: expect.stringContaining(ELEPHANT_REPLICA_HINT),
+      },
+    ]);
   });
 
   it('accepts a web service wired to a database the blueprint lists', () => {

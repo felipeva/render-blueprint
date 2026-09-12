@@ -2,18 +2,20 @@ import type { AppliedDefault } from '../resources/defaults-provenance.js';
 import { resourceDefaults, sourceRuntime, type BlueprintResource } from '../resources/resource.js';
 import type { ValidationIssue } from './issue.js';
 import { parseResource } from './parse-resource.js';
+import { declaresUnparsedReplica } from './replica-names.js';
 import { fieldsRead, translateSchemaIssue } from './translate-schema-issue.js';
 
 export interface ParsedConfigs {
   readonly issues: readonly ValidationIssue[];
   readonly named: readonly BlueprintResource[];
   readonly accepted: readonly BlueprintResource[];
+  readonly replicasKnown: boolean;
 }
 
 const reportedName = (resource: BlueprintResource): string => String(resource?.name);
 
-const landedOn = (field: string, applied: AppliedDefault): boolean =>
-  field === applied.field || field.startsWith(`${applied.field}.`);
+const landedOn = (field: string, target: string): boolean =>
+  field === target || field.startsWith(`${target}.`);
 
 const fromScope = (
   issue: ValidationIssue,
@@ -21,7 +23,7 @@ const fromScope = (
   applied: readonly AppliedDefault[],
 ): ValidationIssue => {
   const entry = [issue.at.field, ...read]
-    .map((field) => applied.find((candidate) => landedOn(field, candidate)))
+    .map((field) => applied.find((candidate) => landedOn(field, candidate.field)))
     .find((candidate) => candidate !== undefined);
 
   return entry === undefined
@@ -32,10 +34,19 @@ const fromScope = (
       };
 };
 
+const fromReplicas = (issue: ValidationIssue, unparsed: boolean): ValidationIssue =>
+  unparsed && landedOn(issue.at.field, 'readReplicas')
+    ? {
+        ...issue,
+        message: `${issue.message} Until the read replicas of "${issue.at.resource}" parse, a reference to a database this blueprint does not list is not checked, since it may name one of them.`,
+      }
+    : issue;
+
 export const parseConfigs = (resources: readonly BlueprintResource[]): ParsedConfigs => {
   const issues: ValidationIssue[] = [];
   const named: BlueprintResource[] = [];
   const accepted: BlueprintResource[] = [];
+  let replicasKnown = true;
 
   for (const resource of resources) {
     const name = reportedName(resource);
@@ -48,13 +59,16 @@ export const parseConfigs = (resources: readonly BlueprintResource[]): ParsedCon
 
     const runtime = sourceRuntime(resource);
     const applied = resourceDefaults(resource)?.applied ?? [];
+    // A replica is addressed by its own name, so a database whose name did not parse still hides one.
+    const unparsedReplicas = declaresUnparsedReplica(resource);
+    if (unparsedReplicas) replicasKnown = false;
 
     for (const issue of onName) issues.push(...translateSchemaIssue(name, ['name'], issue));
     for (const issue of onConfig) {
       const read = fieldsRead(issue);
       issues.push(
         ...translateSchemaIssue(name, [], issue, runtime).map((entry) =>
-          fromScope(entry, read, applied),
+          fromReplicas(fromScope(entry, read, applied), unparsedReplicas),
         ),
       );
     }
@@ -64,5 +78,5 @@ export const parseConfigs = (resources: readonly BlueprintResource[]): ParsedCon
     if (onName.length === 0 && onConfig.length === 0 && onEnv.length === 0) accepted.push(resource);
   }
 
-  return { issues, named, accepted };
+  return { issues, named, accepted, replicasKnown };
 };
