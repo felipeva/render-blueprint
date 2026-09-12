@@ -20,9 +20,13 @@ Three rules read the base `plan` of a resource and never its preview plan:
 | `HighAvailabilityUnsupported` (issue) | Postgres | `highAvailability.enabled` on a plan under 1 CPU | `src/resources/postgres.ts` |
 
 A resource with a paid base plan and a free preview plan gets no warning. In `render.yaml` the preview
-plan is `previews.plan` on a service and `previewPlan` on Postgres and Key Value. The library writes
-`previews: { plan }` on every kind. The question: does Render document enough to warn on the preview
-plan too?
+plan is `previews.plan` on a web service, private service or worker, and `previewPlan` on Postgres and
+Key Value. In the library, a web service takes `previews: { generation, plan, instances }`. A private
+service and a worker take the same object with a paid plan only. A static site takes
+`previews: { generation }` alone. A cron job and an environment group take no `previews`. Key Value
+takes `previews: { plan }` and Postgres takes `previews: { plan, diskSizeGB }`; synthesis emits the plan
+as `previewPlan`. So a free preview plan can occur on a web service, a Key Value store or a Postgres
+database. The question: does Render document enough to warn on the preview plan too?
 
 ## Primary sources
 
@@ -38,7 +42,7 @@ plan too?
 | `[API]` | https://api-docs.render.com/reference/preview-service | API reference | `docs/research/raw/render-api-preview-service.md` (2026-09-12) |
 | `[BOARD]` | https://feedback.render.com/features/p/allow-pull-request-previews-to-be-on-free-tier | Staff reply on feedback.render.com, staff status INFERRED | URL only, fetched 2026-09-12 |
 | `[PR38]` | https://github.com/render-examples/preview-environment/pull/38 | GitHub PR on a Render repo, by a Render docs writer (role from a third-party profile) | URL only, fetched 2026-09-12 |
-| `[TF]` | https://github.com/render-oss/terraform-provider-render/pull/105 | GitHub PR on a Render repo, by a non-staff user | URL only, fetched 2026-09-12 |
+| `[TF]` | https://github.com/render-oss/terraform-provider-render/pull/105 | Open, unmerged GitHub PR on a Render repo. Author not staff, INFERRED from the GitHub author association `NONE` | URL only, fetched 2026-09-12 |
 | `[ART]` | https://render.com/articles/best-practices-for-implementing-git-based-deployment-in-production-environments | Render article, dated 2026-07-31 | URL only, fetched 2026-09-12 |
 | `[TUT]` | https://render.com/tutorials/advanced-blueprint-patterns/preview-environments | Render tutorial, no date | URL only, fetched 2026-09-12 |
 | `[PLANS]` | https://render.com/docs/compute-plans | Render doc | URL only, fetched 2026-09-12 |
@@ -61,17 +65,18 @@ Render has two preview features. A sentence about one is not evidence about the 
 
 | Statement | Verbatim quote | Source | Kind |
 | --- | --- | --- | --- |
-| A preview environment makes new instances | "A preview environment creates new instances of the services and datastores defined in your Blueprint." | `[PE]` L20 | Render doc |
+| A preview environment makes new instances | "A preview environment creates new instances of the services and datastores defined in your Blueprint. These instances do not copy any data from existing services. …" | `[PE]` L20 | Render doc |
 | The preview plan sets the preview instance's compute | "Sets the preview instance's available compute resources." | `[SPEC]` L489 | Render doc |
 | The same, per kind | "The compute plan to use for this service in preview environments." / "The compute plan to use for this Key Value instance in preview environments." / "The compute plan to use for this database in preview environments." | `[SCHEMA]` L636, L696, L183 | Render schema |
+| An omitted preview plan is inherited | "If you don't specify a preview compute plan for a service, Render uses the same compute plan that you use in production." / "If you omit this field, preview instances use the same compute plan as the base service." | `[PE]` L98; `[SPEC]` L489 | Render doc. This is inheritance of the plan alone. It says nothing about other settings. |
 | Render recommends small preview plans | "By using smaller compute plans for preview environments, you can reduce costs." | `[PE]` L91 | Render doc |
 | Carve-out: autoscaling | "Autoscaling is disabled in [preview environments](preview-environments)." | `[SPEC]` L663 | Render doc |
 | Carve-out: placeholder env vars | "Render does not include `sync: false` environment variables in [preview environments](preview-environments)." | `[SPEC]` L1352 | Render doc |
 | Service previews copy settings | "Preview instances copy all of their settings over from their base service when they're first created." | `[SP]` L96 (pull request previews), L137 (image previews) | Render doc, service previews only |
 | Preview environments take env vars from the Blueprint | "Because preview environments are generated from your Blueprint, their environment variables come from the `render.yaml` file itself, not from a copy of a running service's settings." | `[ART]` | Render article, env vars only |
 
-No Render source says which other settings a preview-environment instance takes from its base
-resource.
+Apart from the plan, no Render source says which settings a preview-environment instance takes from its
+base resource.
 
 ## 3. The three settings
 
@@ -83,7 +88,7 @@ Documented for a preview instance: **no**.
 | --- | --- | --- | --- |
 | A free instance does not persist | "*Data persistence is not available for free Key Value instances.*" | `[KV]` L469 | Render doc |
 | The same, in the spec | "Render uses `off` for a new free instance (data persistence is not available for free instances)." | `[SPEC]` L844 | Render doc |
-| The preview plan can be free | `previewPlan` takes `keyValuePlan`, and that enum lists `free` | `[SCHEMA]` L694-696 | Render schema |
+| The preview plan can be free | `previewPlan` takes `keyValuePlan`, and that enum lists `free` | `[SCHEMA]` L694-696 (the reference), L503-521 (the enum, `free` at L507) | Render schema |
 
 No source says that a preview Key Value instance takes `persistenceMode` from its base. No source says
 what Render does with the mode on a free preview plan.
@@ -97,11 +102,13 @@ Documented for a preview instance: **no**.
 | Paid web services only | "Maintenance mode is available only for paid web services." | `[MM]` L21 | Render doc |
 | The same, in the spec | "Web services only. Requires a *[paid compute plan](/pricing#compute)*." | `[SPEC]` L585 | Render doc |
 | The same, in the schema | "Configuration for service maintenance mode. Requires a paid web service instance." | `[SCHEMA]` L958 | Render schema |
-| The API refuses it on a free base service | "every apply failing with `maintenance mode can only be configured for non-free tier services`" | `[TF]` | GitHub PR, non-staff; REST API, a base service, no preview |
+| The API refuses it on a free base service, per the PR author | "every apply failing with `maintenance mode can only be configured for non-free tier services`" | `[TF]` | Open, unmerged GitHub PR; author not staff (INFERRED); REST API, a base service, no preview |
 
 No source says that a preview web service instance takes `maintenanceMode` from its base. No source
-says what Render does with it on a free preview plan. Section 4 records a rule one step earlier: for
-services, Render documents that a paid base plan cannot take a free preview plan.
+says what Render does with it on a free preview plan. Section 4 records a rule one step earlier: in the
+services API and for service previews, Render documents that a paid base plan cannot take a free
+preview plan. None of those sources names preview environments, so the rule's scope to Blueprints is
+INFERRED.
 
 ### 3.3 High availability on a preview plan under 1 CPU
 
@@ -109,7 +116,8 @@ Documented for a preview instance: **no**.
 
 | Statement | Verbatim quote | Source | Kind |
 | --- | --- | --- | --- |
-| At least 1 CPU | "Use a [compute plan](compute-plans#render-postgres-plans) with at least 1 CPU" | `[HA]` L55; `[SPEC]` L1047 | Render doc |
+| At least 1 CPU | "Use a [compute plan](compute-plans#render-postgres-plans) with at least 1 CPU" | `[HA]` L55 | Render doc |
+| The same, in the spec | "Use a compute plan with at least 1 CPU" | `[SPEC]` L1047 | Render doc |
 | The standby matches the primary | "Your standby instance always has the same compute plan and storage as your primary instance and is billed accordingly." | `[HA]` L49 | Render doc |
 | Plans under 1 CPU | `free` and `0.1c-256mb` have 0.1 CPU, `0.5c-1g` has 0.5 CPU | `[SPEC]` L906-908 | Render doc |
 | Render's own example uses a preview plan under 1 CPU | `plan: 1c-4g` with `previewPlan: 0.5c-1g`, and no `highAvailability` on the page | `[PE]` L117-118 | Render doc |
@@ -128,7 +136,8 @@ document does not decide it.
 | A paid base service cannot take a free preview | "Note that base services on any paid compute plan can't create preview instances with the `free` plan." | `[API]` L932, on the shared services `plan` enum | API reference |
 | The same, for image previews | "If your base service uses a paid compute plan, its previews can't use the [Free compute plan](free)." | `[SP]` L149, under "Billing for image previews" (L145) | Render doc, image previews |
 | The same, for pull request previews | "we do not allow paid services to override their preview plan to free as it is likely that these services would not be performant with the limited resources available on the free tier." | `[BOARD]`, Hari Demirev, 2021-12-06 | Staff reply on feedback.render.com, staff status INFERRED |
-| A Postgres preview plan refuses `free` | "Updating the `previewPlan` attribute, because it doesn't accept `free`." | `[PR38]`, merged 2026-06-08 | GitHub PR on a Render repo; no error text; the diff sets `plan: free` with `previewPlan: basic-256mb` |
+| The schema accepts a free Postgres preview plan | `previewPlan` takes `postgresPlan`, and that enum lists `free` | `[SCHEMA]` L181-183 (the reference), L522-577 (the enum, `free` at L526) | Render schema |
+| A Render docs writer says a Postgres preview plan refuses `free` | "Updating the `previewPlan` attribute, because it doesn't accept `free`." | `[PR38]`, merged 2026-06-08 | GitHub PR on a Render repo. It gives no error text and no reason. Its blueprint's base plan is itself `free`: the diff sets `plan: free` with `previewPlan: basic-256mb`. INFERRED and unresolved, because it contradicts the schema row above. |
 
 Scope:
 
@@ -165,10 +174,15 @@ The staff reply is on feedback.render.com, Render's feature-request board, not o
 These sources have no sentence on persistence, maintenance mode or high availability for a preview
 instance, for either preview feature:
 
-- All Render docs, through `https://render.com/docs/llms-full.txt` (about 1 MB). Eight lines mention a
-  preview together with a plan, a copy or a paid instance. None names the three settings.
+- All Render docs, through `https://render.com/docs/llms-full.txt` (about 1 MB). The search took each
+  line that holds "preview" together with a term for persistence, high availability, a standby,
+  maintenance mode, a free or paid plan, inheritance, copying, flexible plans or a refusal. The hits
+  include billing, the settings that service previews copy, the Free-plan sentence for image previews,
+  and the data that preview environments do not copy. None ties a preview instance to persistence,
+  maintenance mode or high availability.
 - The whole Render OpenAPI spec, `https://api-docs.render.com/v1.0/openapi/render-public-api-1.json`.
-  Its `errorCode` vocabulary has no code about plans or previews.
+  Its `errorCode` vocabulary has no code about previews. Its one plan code, `snapshot_plan_mismatch`,
+  is about snapshots.
 - The schema, `[SCHEMA]`.
 - The Render changelog, the Render blog, and seven tutorial and article pages on render.com.
 - The `render-oss/skills` repository, and GitHub issue search in the `render-oss`, `render-examples` and
