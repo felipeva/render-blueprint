@@ -20,9 +20,9 @@ const fromScope = (
   read: readonly string[],
   applied: readonly AppliedDefault[],
 ): ValidationIssue => {
-  const entry =
-    applied.find((candidate) => landedOn(issue.at.field, candidate)) ??
-    applied.find((candidate) => read.some((field) => landedOn(field, candidate)));
+  const entry = [issue.at.field, ...read]
+    .map((field) => applied.find((candidate) => landedOn(field, candidate)))
+    .find((candidate) => candidate !== undefined);
 
   return entry === undefined
     ? issue

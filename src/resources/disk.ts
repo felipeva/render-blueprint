@@ -67,7 +67,7 @@ export interface ScalableFields {
   readonly scaling?: Scaling;
 }
 
-const DISK_PREVENTS_AUTOSCALING: FieldRefinement = readingFields(['runtime', 'disk', 'scaling']);
+const DISK_PREVENTS_AUTOSCALING: FieldRefinement = readingFields(['disk', 'scaling'], ['runtime']);
 
 // docs/research/raw/render-disks.md § "Disk limitations and considerations"
 export const raiseDiskPreventsAutoscaling = <T extends ScalableFields>(
@@ -88,11 +88,10 @@ export const raiseDiskPreventsAutoscaling = <T extends ScalableFields>(
 
 export const WHEN_DISK_PREVENTS_AUTOSCALING: RefinementOptions = DISK_PREVENTS_AUTOSCALING.guard;
 
-const DISK_PREVENTS_MULTIPLE_INSTANCES: FieldRefinement = readingFields([
-  'runtime',
-  'disk',
-  'instances',
-]);
+const DISK_PREVENTS_MULTIPLE_INSTANCES: FieldRefinement = readingFields(
+  ['disk', 'instances'],
+  ['runtime'],
+);
 
 // docs/research/raw/render-disks.md § "Disk limitations and considerations"
 export const raiseDiskPreventsMultipleInstances = <T extends ScalableFields>(

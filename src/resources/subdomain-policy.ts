@@ -9,11 +9,10 @@ export interface SubdomainFields {
   readonly domains?: readonly string[];
 }
 
-const SUBDOMAIN_POLICY_NEEDS_DOMAIN: FieldRefinement = readingFields([
-  'runtime',
-  'renderSubdomainPolicy',
-  'domains',
-]);
+const SUBDOMAIN_POLICY_NEEDS_DOMAIN: FieldRefinement = readingFields(
+  ['renderSubdomainPolicy', 'domains'],
+  ['runtime'],
+);
 
 // spec §4.1: `disabled` requires at least one custom domain.
 export const raiseSubdomainPolicyNeedsDomain = <T extends SubdomainFields>(

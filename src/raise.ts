@@ -42,8 +42,14 @@ export interface FieldRefinement {
   ) => void;
 }
 
-export const readingFields = (fields: readonly string[]): FieldRefinement => ({
-  guard: whenFieldsParsed(fields),
+// SAFETY: the guard is whenFieldsParsed over both lists, so its promise covers both. A scope hint
+// follows `fields` alone, so list there only what the rule reads, and under `alsoParsed` what
+// it needs parsed without reading.
+export const readingFields = (
+  fields: readonly string[],
+  alsoParsed: readonly string[] = [],
+): FieldRefinement => ({
+  guard: whenFieldsParsed([...fields, ...alsoParsed]),
   raise: (ctx, validationCode, message, path) => {
     ctx.addIssue({
       code: 'custom',

@@ -122,7 +122,7 @@ describe('fieldsRead', () => {
     ]);
   });
 
-  it('reads the fields the disk and subdomain rules name on a web service', () => {
+  it('leaves out the runtime the disk and subdomain rules need parsed but do not read', () => {
     const result = parseWebConfig({
       runtime: 'node',
       disk: { name: 'uploads', mountPath: '/var/data' },
@@ -134,9 +134,9 @@ describe('fieldsRead', () => {
     expect(result.success).toBe(false);
     if (result.success) return;
     expect(result.error.issues.map(fieldsRead)).toEqual([
-      ['runtime', 'disk', 'scaling'],
-      ['runtime', 'disk', 'instances'],
-      ['runtime', 'renderSubdomainPolicy', 'domains'],
+      ['disk', 'scaling'],
+      ['disk', 'instances'],
+      ['renderSubdomainPolicy', 'domains'],
     ]);
   });
 });
