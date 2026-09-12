@@ -2,7 +2,7 @@ import * as z from 'zod';
 
 import { boundedInteger, INSTANCE_COUNT_BOUNDS, type IntegerBounds } from '../bounded-integer.js';
 import type { Equal, Expect } from '../equal.js';
-import { raise, whenFieldsParsed } from '../raise.js';
+import { readingFields, type FieldRefinement } from '../raise.js';
 
 // spec §4.5: the published schema requires none of the four.
 export interface Scaling {
@@ -22,6 +22,13 @@ export const SCALING_FIELDS = [
 
 const TARGET_PERCENT_BOUNDS: IntegerBounds = { subject: 'A scaling target', min: 1, max: 90 };
 
+const SCALING_RANGE_INVERTED: FieldRefinement = readingFields(['minInstances', 'maxInstances']);
+
+const SCALING_TARGET_MISSING: FieldRefinement = readingFields([
+  'targetCPUPercent',
+  'targetMemoryPercent',
+]);
+
 const scalingObject = z
   .strictObject({
     minInstances: boundedInteger(INSTANCE_COUNT_BOUNDS),
@@ -30,32 +37,26 @@ const scalingObject = z
     targetCPUPercent: boundedInteger(TARGET_PERCENT_BOUNDS).exactOptional(),
   })
   .readonly()
-  .superRefine(
-    (value, ctx) => {
-      if (value.minInstances > value.maxInstances) {
-        raise(
-          ctx,
-          'ScalingRangeInverted',
-          `Autoscaling runs between minInstances and maxInstances, and this range starts at ${value.minInstances} and ends at ${value.maxInstances}.`,
-          ['maxInstances'],
-        );
-      }
-    },
-    whenFieldsParsed(['minInstances', 'maxInstances']),
-  )
-  .superRefine(
-    (value, ctx) => {
-      if (value.targetCPUPercent === undefined && value.targetMemoryPercent === undefined) {
-        raise(
-          ctx,
-          'ScalingTargetMissing',
-          'Autoscaling scales towards a target metric, so scaling carries targetCPUPercent, targetMemoryPercent, or both.',
-          [],
-        );
-      }
-    },
-    whenFieldsParsed(['targetCPUPercent', 'targetMemoryPercent']),
-  );
+  .superRefine((value, ctx) => {
+    if (value.minInstances > value.maxInstances) {
+      SCALING_RANGE_INVERTED.raise(
+        ctx,
+        'ScalingRangeInverted',
+        `Autoscaling runs between minInstances and maxInstances, and this range starts at ${value.minInstances} and ends at ${value.maxInstances}.`,
+        ['maxInstances'],
+      );
+    }
+  }, SCALING_RANGE_INVERTED.guard)
+  .superRefine((value, ctx) => {
+    if (value.targetCPUPercent === undefined && value.targetMemoryPercent === undefined) {
+      SCALING_TARGET_MISSING.raise(
+        ctx,
+        'ScalingTargetMissing',
+        'Autoscaling scales towards a target metric, so scaling carries targetCPUPercent, targetMemoryPercent, or both.',
+        [],
+      );
+    }
+  }, SCALING_TARGET_MISSING.guard);
 
 type ScalingSchemaMatchesInterface = Expect<Equal<z.infer<typeof scalingObject>, Scaling>>;
 

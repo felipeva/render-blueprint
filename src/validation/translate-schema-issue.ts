@@ -1,4 +1,4 @@
-import type * as z from 'zod';
+import * as z from 'zod';
 
 import { SOURCE_FIELDS } from '../resources/service-source.js';
 import {
@@ -62,4 +62,21 @@ export const translateSchemaIssue = (
       message: issue.message,
     },
   ];
+};
+
+const fieldsReadSchema = z.array(z.string()).readonly();
+
+const reportDepthSchema = z.int().min(0);
+
+// A refinement names the fields it read on the object it sits on, and Zod puts that object's path
+// in front of the path the refinement reported at.
+export const fieldsRead = (issue: z.core.$ZodIssue): readonly string[] => {
+  if (issue.code !== 'custom') return [];
+
+  const fields = fieldsReadSchema.safeParse(issue.params?.['fieldsRead']);
+  const depth = reportDepthSchema.safeParse(issue.params?.['reportDepth']);
+  if (!fields.success || !depth.success) return [];
+
+  const prefix = issue.path.slice(0, issue.path.length - depth.data);
+  return fields.data.map((field) => fieldPath([...prefix, field]));
 };

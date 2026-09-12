@@ -2,7 +2,7 @@ import type { AppliedDefault } from '../resources/defaults-provenance.js';
 import { resourceDefaults, sourceRuntime, type BlueprintResource } from '../resources/resource.js';
 import type { ValidationIssue } from './issue.js';
 import { parseResource } from './parse-resource.js';
-import { translateSchemaIssue } from './translate-schema-issue.js';
+import { fieldsRead, translateSchemaIssue } from './translate-schema-issue.js';
 
 export interface ParsedConfigs {
   readonly issues: readonly ValidationIssue[];
@@ -15,8 +15,14 @@ const reportedName = (resource: BlueprintResource): string => String(resource?.n
 const landedOn = (field: string, applied: AppliedDefault): boolean =>
   field === applied.field || field.startsWith(`${applied.field}.`);
 
-const fromScope = (issue: ValidationIssue, applied: readonly AppliedDefault[]): ValidationIssue => {
-  const entry = applied.find((candidate) => landedOn(issue.at.field, candidate));
+const fromScope = (
+  issue: ValidationIssue,
+  read: readonly string[],
+  applied: readonly AppliedDefault[],
+): ValidationIssue => {
+  const entry = [issue.at.field, ...read]
+    .map((field) => applied.find((candidate) => landedOn(field, candidate)))
+    .find((candidate) => candidate !== undefined);
 
   return entry === undefined
     ? issue
@@ -45,8 +51,11 @@ export const parseConfigs = (resources: readonly BlueprintResource[]): ParsedCon
 
     for (const issue of onName) issues.push(...translateSchemaIssue(name, ['name'], issue));
     for (const issue of onConfig) {
+      const read = fieldsRead(issue);
       issues.push(
-        ...translateSchemaIssue(name, [], issue, runtime).map((entry) => fromScope(entry, applied)),
+        ...translateSchemaIssue(name, [], issue, runtime).map((entry) =>
+          fromScope(entry, read, applied),
+        ),
       );
     }
     for (const issue of onEnv) issues.push(...translateSchemaIssue(name, ['env'], issue));

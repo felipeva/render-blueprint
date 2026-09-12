@@ -2,7 +2,13 @@ import * as z from 'zod';
 
 import { boundedInteger } from '../bounded-integer.js';
 import type { Equal, Expect } from '../equal.js';
-import { raise, whenFieldsParsed, type RefinementOptions } from '../raise.js';
+import {
+  raise,
+  readingFields,
+  whenFieldsParsed,
+  type FieldRefinement,
+  type RefinementOptions,
+} from '../raise.js';
 import type { Scaling } from './scaling.js';
 
 // spec §4.4: a disk needs a name and a mount path.
@@ -61,6 +67,8 @@ export interface ScalableFields {
   readonly scaling?: Scaling;
 }
 
+const DISK_PREVENTS_AUTOSCALING: FieldRefinement = readingFields(['disk', 'scaling'], ['runtime']);
+
 // docs/research/raw/render-disks.md § "Disk limitations and considerations"
 export const raiseDiskPreventsAutoscaling = <T extends ScalableFields>(
   config: T,
@@ -69,7 +77,7 @@ export const raiseDiskPreventsAutoscaling = <T extends ScalableFields>(
   if (config.disk === undefined) return;
 
   if (config.scaling !== undefined) {
-    raise(
+    DISK_PREVENTS_AUTOSCALING.raise(
       ctx,
       'DiskPreventsScaling',
       'A service with a disk runs on one instance, so Render cannot autoscale it; drop the disk or drop scaling.',
@@ -78,11 +86,12 @@ export const raiseDiskPreventsAutoscaling = <T extends ScalableFields>(
   }
 };
 
-export const WHEN_DISK_PREVENTS_AUTOSCALING: RefinementOptions = whenFieldsParsed([
-  'runtime',
-  'disk',
-  'scaling',
-]);
+export const WHEN_DISK_PREVENTS_AUTOSCALING: RefinementOptions = DISK_PREVENTS_AUTOSCALING.guard;
+
+const DISK_PREVENTS_MULTIPLE_INSTANCES: FieldRefinement = readingFields(
+  ['disk', 'instances'],
+  ['runtime'],
+);
 
 // docs/research/raw/render-disks.md § "Disk limitations and considerations"
 export const raiseDiskPreventsMultipleInstances = <T extends ScalableFields>(
@@ -92,7 +101,7 @@ export const raiseDiskPreventsMultipleInstances = <T extends ScalableFields>(
   if (config.disk === undefined) return;
 
   if (config.instances !== undefined && config.instances > 1) {
-    raise(
+    DISK_PREVENTS_MULTIPLE_INSTANCES.raise(
       ctx,
       'DiskPreventsScaling',
       `A service with a disk runs on one instance, and this one asks for ${config.instances}.`,
@@ -101,8 +110,5 @@ export const raiseDiskPreventsMultipleInstances = <T extends ScalableFields>(
   }
 };
 
-export const WHEN_DISK_PREVENTS_MULTIPLE_INSTANCES: RefinementOptions = whenFieldsParsed([
-  'runtime',
-  'disk',
-  'instances',
-]);
+export const WHEN_DISK_PREVENTS_MULTIPLE_INSTANCES: RefinementOptions =
+  DISK_PREVENTS_MULTIPLE_INSTANCES.guard;

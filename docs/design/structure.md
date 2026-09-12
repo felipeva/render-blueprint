@@ -64,7 +64,13 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │                                    a validationCode, so validation/translate-schema-issue.ts can
 │                                    map it back to a ValidationCode; beside it whenFieldsParsed and
 │                                    whenValueParsed, the guards that name which earlier parse
-│                                    failures make a refinement skip
+│                                    failures make a refinement skip, and readingFields, which
+│                                    states once the fields a cross-field rule reads, for its guard
+│                                    and for the issue it raises, so validation can tell which of
+│                                    them a defaults scope supplied; list there only what the rule
+│                                    reads, and put a field it needs parsed but does not read, such
+│                                    as the runtime a union branch needs, in its second argument,
+│                                    which only the guard sees
 │   ├── bounded-integer.ts           z.int() plus the bound the spec sets, raising the one
 │                                    OutOfRange code every bounded number shares (issue #12)
 │   ├── equal.ts                     Equal / Expect — the identity-guard pair every schema-versus-
@@ -168,13 +174,17 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   │   │                            ValidationIssue, ValidationCode, ResourcePath, ValidationWarning
 │   │   ├── blueprint-invalid.ts     the BlueprintInvalid class — declared at its only producer (§5)
 │   │   ├── parse-configs.ts         walks the resource list: which entries are named, which are
-│   │   │                            accepted, and the issues the rest produce
+│   │   │                            accepted, and the issues the rest produce, each naming the
+│   │   │                            defaults scope that supplied the field it sits on or, failing
+│   │   │                            that, the first field its rule read, in the rule's own order
 │   │   ├── parse-resource.ts        every zod issue one resource's entry, name, config and resolved
 │   │   │                            environment produce; the schemas stay beside their factories
 │   │   ├── parse-placement.ts       the root, project and environment schemas, for the placement
 │   │   │                            axes rather than the resources on them
 │   │   ├── translate-schema-issue.ts   one zod issue → ValidationIssues: the unknown-field recovery
-│   │   │                            and the source conflict that resource and placement both raise
+│   │   │                            and the source conflict that resource and placement both raise;
+│   │   │                            beside it fieldsRead, the fields a refinement read, resolved
+│   │   │                            against the config rather than the object it sits on
 │   │   ├── describe-names.ts        the quoted "a", "b" and "c" list a diagnostic message reads
 │   │   ├── deprecation.ts           the deprecated fields and the sentence each one warns with
 │   │   ├── env-key-origins.ts       resolves an imported group by name the way Render does, so the

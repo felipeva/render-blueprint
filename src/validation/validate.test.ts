@@ -1132,11 +1132,36 @@ describe('validate', () => {
 
     expect(Result.isError(result)).toBe(true);
     if (!Result.isError(result)) return;
-    expect(result.error.issues.map((issue) => issue.code)).toEqual(['HighAvailabilityUnsupported']);
-    expect(result.error.issues[0].at).toEqual({
-      resource: 'elephant',
-      field: 'highAvailability',
-    });
+    expect(result.error.issues).toEqual([
+      {
+        code: 'HighAvailabilityUnsupported',
+        at: { resource: 'elephant', field: 'highAvailability' },
+        message:
+          'High availability needs a compute plan with at least 1 CPU, and this database asks for the "free" plan. "elephant" takes "plan" from a defaults scope, so the value to change is the scope\'s.',
+      },
+    ]);
+  });
+
+  it('names no defaults scope when the database sets its own plan', () => {
+    const acme = withDefaults({ region: 'frankfurt', plan: { postgres: 'pro-4gb' } });
+    const result = validate(
+      blueprint({
+        resources: [
+          acme.postgres('elephant', { plan: 'free', highAvailability: { enabled: true } }),
+        ],
+      }),
+    );
+
+    expect(Result.isError(result)).toBe(true);
+    if (!Result.isError(result)) return;
+    expect(result.error.issues).toEqual([
+      {
+        code: 'HighAvailabilityUnsupported',
+        at: { resource: 'elephant', field: 'highAvailability' },
+        message:
+          'High availability needs a compute plan with at least 1 CPU, and this database asks for the "free" plan.',
+      },
+    ]);
   });
 
   it('reports both high-availability rules from one database', () => {
