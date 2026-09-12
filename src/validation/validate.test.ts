@@ -1237,6 +1237,26 @@ describe('validate', () => {
     expect(result.error.issues[0].at).toEqual({ resource: 'elephant', field: 'readReplicas' });
   });
 
+  it('reports a read replica entry that did not parse under its type issue alone', () => {
+    const result = validate(
+      blueprint({
+        resources: [
+          postgres('elephant', uncheckedDatabase('{"readReplicas":["a","b","c","d","e","f"]}')),
+        ],
+      }),
+    );
+
+    expect(reportedCodes(result)).toEqual([
+      'InvalidConfig',
+      'InvalidConfig',
+      'InvalidConfig',
+      'InvalidConfig',
+      'InvalidConfig',
+      'InvalidConfig',
+      'TooManyReadReplicas',
+    ]);
+  });
+
   it('reports an inverted scaling range under its own code', () => {
     const result = validate(
       blueprint({

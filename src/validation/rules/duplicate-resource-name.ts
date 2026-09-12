@@ -1,3 +1,4 @@
+import { readReplicaSchema } from '../../resources/read-replica.js';
 import type { BlueprintResource } from '../../resources/resource.js';
 import type { ValidationIssue } from '../issue.js';
 
@@ -6,8 +7,13 @@ const replicaNames = (resource: BlueprintResource): readonly string[] => {
   if (resource.kind !== 'postgres') return [];
 
   const declared = resource.config?.readReplicas;
-  // The name tier runs ahead of config parsing (ADR-0003), so this list may not be one yet.
-  return Array.isArray(declared) ? declared.map((replica) => replica.name) : [];
+  // The name tier runs ahead of config parsing (ADR-0003): only an entry that parses is a replica.
+  if (!Array.isArray(declared)) return [];
+
+  return declared.flatMap((replica): readonly string[] => {
+    const parsed = readReplicaSchema.safeParse(replica);
+    return parsed.success ? [parsed.data.name] : [];
+  });
 };
 
 export const duplicateResourceName = (
