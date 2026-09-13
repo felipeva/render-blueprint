@@ -24,7 +24,7 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
       - run: pnpm install --frozen-lockfile
-      - uses: changesets/action@v2
+      - uses: changesets/action@v2.1.2
         with:
           publish-script: pnpm release
           commit-message: 'chore: version packages'
