@@ -133,8 +133,8 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `master` 
 - One package. The CLI is a `bin` entry in it, never a second package.
 - Two published entrypoints, both re-exports only: `src/index.ts` is the library (`.`) and
   `src/testing.ts` publishes `memoryFilePort` alone (`./testing`). There is no third and no deep
-  import into `dist/`. Add an export there rather than importing across a boundary that does not
-  exist.
+  import into `dist/`; `./package.json` is the manifest, exported for tools that read it, not a
+  code entry. Add an export there rather than importing across a boundary that does not exist.
 - Imports flow strictly upward: `raise`/`equal` → `json`/`bounded-integer`/`enums` → `references` →
   `env` → `resources` → `defaults`/`blueprint` → `validation` → `synth` → `fs` → `drift` →
   `index.ts`/`testing.ts` → `cli`. A module's own files import each other freely; what is banned is

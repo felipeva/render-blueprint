@@ -9,7 +9,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.1.0] - 2026-09-13
 
-The first release.
+The first release. The package is ESM only: a consumer project sets `"type": "module"` or names
+the blueprint `render.mts`.
 
 ### Added
 

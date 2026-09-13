@@ -17,7 +17,6 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: pnpm
           registry-url: https://registry.npmjs.org
       - name: Require the tag to name the package version
         run: |
@@ -29,6 +28,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: pnpm build
-      - run: npm publish --provenance --access public
+      - name: Publish, with provenance only from a public repository
+        run: |
+          flags=''
+          if [ "$REPOSITORY_VISIBILITY" = public ]; then flags='--provenance'; fi
+          npm publish --access public $flags
         env:
+          REPOSITORY_VISIBILITY: ${{ github.event.repository.visibility }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -54,7 +54,7 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 ├── docs/                            unchanged: adr/ agents/ design/ research/ research/raw/
 ├── scripts/                         refresh-render-schema.mjs re-downloads the Render JSON Schema
 │                                    into test/schema/ (§6.3); check-declarations.mjs fails the build
-│                                    if dist/index.d.ts names a Zod type (ADR-0003)
+│                                    if any declaration under dist/ names a Zod type (ADR-0003)
 ├── src/                             the only compiled source root (tsconfig rootDir)
 │   ├── index.ts                     THE public entry — re-exports only, no logic
 │   ├── testing.ts                   the `render-blueprint/testing` subpath — memoryFilePort only,
@@ -398,7 +398,7 @@ If a CLI file needs something `index.ts` does not export, export it — do not r
 
 | Package | Allowed in | Why |
 | --- | --- | --- |
-| `zod` | L0-L6 only | no schema and no Zod type may cross a published entry (ADR-0003). `scripts/check-declarations.mjs` proves the output half by failing the build if `dist/index.d.ts` names Zod; this ban is the input half |
+| `zod` | L0-L6 only | no schema and no Zod type may cross a published entry (ADR-0003). `scripts/check-declarations.mjs` proves the output half by failing the build if any declaration under `dist/` names Zod; this ban is the input half |
 | `better-result` | `validation/`, `synth/`, `fs/`, `drift/`, `cli/` | banned below `validation/`, which is the mechanical form of "factories are total" |
 | `yaml` | `synth/` | `drift/` receives a `JsonValue`, never a string it must parse itself. `test/` may parse the emitted YAML back, which is what §6.3 does |
 | `node:fs`, `node:fs/promises` | `fs/`, and any test file | everything above it is pure. The fixture harness, the CLI smoke test and `src/fs/node-file-port.test.ts` read the disk directly |
@@ -715,7 +715,7 @@ when it is read — proves a Panic escapes brocli's catch, is reported, and exit
 `oxfmt --check && oxlint && tsc -p tsconfig.check.json && vitest run && vitest run
 --typecheck.only`. Format first, because it is instant and its failures are noise in every later
 diff. `pnpm build` runs tsdown and then `scripts/check-declarations.mjs`, which fails if
-`dist/index.d.ts` names a Zod type.
+any declaration under `dist/` names a Zod type.
 
 ## 7. Tooling files
 
@@ -731,7 +731,7 @@ it stands, and the manifest that follows it is the manifest.
 | `vitest.config.ts` | `test.include: ["src/**/*.test.ts","test/**/*.test.ts"]`, `test.typecheck.include: ["src/**/*.test-d.ts","test/**/*.test-d.ts"]`, `test.typecheck.tsconfig: "tsconfig.check.json"`. INFERRED — the toolchain doc verifies vitest 5 with `--typecheck` but ships no config skeleton. |
 | `tsdown.config.ts` | `entry: { index: "src/index.ts", testing: "src/testing.ts", cli: "src/cli/main.ts" }`, `format: "esm"`, `fixedExtension: false`, `dts: { sourcemap: false, entry: ["src/index.ts", "src/testing.ts"] }`, `treeshake: { moduleSideEffects: false }`, `deps: { neverBundle: ["@drizzle-team/brocli", "yaml", "better-result", "zod"] }`, shebang on the `cli` entry. `fixedExtension: false` is required: tsdown 0.23 defaults it to true on the node platform and emits `.mjs` and `.d.mts`, which `exports`, `bin`, and CI would not find (verified in PR #15). `neverBundle` is mandatory — the default bundles dependencies and the toolchain doc measured 234 kB of `yaml` inlined. `dts.sourcemap: false` ships no source maps at all: rolldown-plugin-dts defaults it to the tsconfig's `declarationMap` and then turns the JavaScript maps on too, whose `sourcesContent` carried the whole source into the tarball. `dts.entry` limits declarations to the two public entries, so the binary gets no empty `cli.d.ts`; a third public entry goes into both `entry` and `dts.entry`. |
 | `.github/workflows/ci.yml` | `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm build`, then `node dist/cli.js --help` as a smoke test that the built binary starts. It is the one workflow on pushes and pull requests: `pnpm check` already runs both test suites, so no second workflow repeats them. |
-| `.github/workflows/release.yml` | Runs only on a pushed `v*` tag, with `id-token: write` and `contents: read`. It fails first unless the tag is `v` followed by the exact `package.json` version, then runs `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm build` and `npm publish --provenance --access public`, with `NODE_AUTH_TOKEN` read from the `NPM_TOKEN` repository secret. `npm publish` runs `prepublishOnly` a second time; that cost is accepted. |
+| `.github/workflows/release.yml` | Runs only on a pushed `v*` tag, with `id-token: write` and `contents: read`. It fails first unless the tag is `v` followed by the exact `package.json` version, then runs `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm build` and `npm publish --access public`, with `NODE_AUTH_TOKEN` read from the `NPM_TOKEN` repository secret. It adds `--provenance` only when the repository is public: npm rejects provenance from a private repository, and the CLI writes the statement to the public Rekor log before the registry rejects it. It restores no dependency cache, because its output is the published package. `npm publish` runs `prepublishOnly` a second time; that cost is accepted. |
 | `.githooks/` | `pre-commit` formats the staged files with oxfmt, re-stages them, and runs oxlint on the staged source. `commit-msg` validates the Conventional Commits subject. Git does not version hooks, so each clone runs `git config core.hooksPath .githooks` once. |
 | `.gitignore` | Covers `node_modules/`, `dist/`, `coverage/`, `*.tsbuildinfo`, `.reference/`. |
 
@@ -747,7 +747,7 @@ it stands, and the manifest that follows it is the manifest.
   },
   "bin": { "render-blueprint": "dist/cli.js" },
   "files": ["dist"],
-  "engines": { "node": "^22.18.0 || ^24.11.0 || >=26.0.0" },
+  "engines": { "node": "^22.18.0 || >=23.6.0" },
   "devEngines": { "runtime": { "name": "node", "version": "^22.18.0 || ^24.11.0 || >=26.0.0" } },
   "packageManager": "pnpm@10.33.4",
   "dependencies": { "@drizzle-team/brocli": "^0.12.1", "better-result": "^3.0.1",
