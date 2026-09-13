@@ -24,7 +24,7 @@ pnpm build                            # the bundle, the types and the bin, into 
 
 `pnpm check` is the gate. Judge it by its exit code, never by a summary line it printed. `pnpm
 build` is the second gate for anything that touches a published export: it runs
-`scripts/check-declarations.mjs`, which fails if a Zod type reached `dist/index.d.ts`.
+`scripts/check-declarations.mjs`, which fails if a Zod type reached any declaration under `dist/`.
 
 The `pre-commit` hook formats and lints the files you staged, so stage whole files. The
 `commit-msg` hook validates the Conventional Commits subject.
