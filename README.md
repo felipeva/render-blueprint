@@ -83,7 +83,7 @@ A `--file` or `--out` path resolves against the working directory, not the bluep
 | 1         | The blueprint is invalid, a file operation failed, the command line was wrong, or `--strict` turned a warning into a failure. |
 | 2         | The committed file drifted from the blueprint.                                                                                |
 
-`check` compares normalized YAML, so formatting alone is not drift.
+`check` compares normalized YAML, so a change in formatting alone is not drift.
 
 ## References and secrets
 
@@ -100,7 +100,8 @@ import {
   web,
 } from 'render-blueprint';
 
-const db = postgres('records', { readReplicas: [readReplica('records-reader')] });
+const replica = readReplica('records-reader');
+const db = postgres('records', { readReplicas: [replica] });
 const settings = envGroup('settings', { env: { SESSION_SECRET: generated() } });
 
 const api = web('api', {
@@ -117,7 +118,7 @@ const admin = web('admin', {
   envGroups: [settings],
   env: (self) => ({
     DATABASE_URL: db.connectionString,
-    REPLICA_URL: readReplica('records-reader').connectionString,
+    REPLICA_URL: replica.connectionString,
     API_LOG_FORMAT: api.envVar('LOG_FORMAT'),
     PUBLIC_URL: self.renderVar('RENDER_EXTERNAL_URL'),
     LEGACY_AUTH_HOST: external.privateService('legacy-auth').host,
