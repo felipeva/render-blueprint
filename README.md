@@ -7,11 +7,11 @@ writes is the state.
 ## Install
 
 ```sh
-npm i -D render-blueprint
-pnpm add -D render-blueprint
+npm i -D render-blueprint      # npm
+pnpm add -D render-blueprint   # pnpm
 ```
 
-The package is ESM-only and needs Node 22.18.0 or newer.
+The package is ESM-only. It needs Node 22.18.0 or newer. On Node 23, it needs 23.6.0 or newer.
 
 ## Quick start
 
@@ -83,7 +83,7 @@ A `--file` or `--out` path resolves against the working directory, not the bluep
 | 1         | The blueprint is invalid, a file operation failed, the command line was wrong, or `--strict` turned a warning into a failure. |
 | 2         | The committed file drifted from the blueprint.                                                                                |
 
-`check` compares normalized YAML, so a change in formatting alone is not drift.
+`check` compares normalized YAML, so formatting alone is not drift.
 
 ## References and secrets
 
@@ -95,11 +95,12 @@ import {
   generated,
   literal,
   postgres,
+  readReplica,
   secret,
   web,
 } from 'render-blueprint';
 
-const db = postgres('records');
+const db = postgres('records', { readReplicas: [readReplica('records-reader')] });
 const settings = envGroup('settings', { env: { SESSION_SECRET: generated() } });
 
 const api = web('api', {
@@ -116,6 +117,7 @@ const admin = web('admin', {
   envGroups: [settings],
   env: (self) => ({
     DATABASE_URL: db.connectionString,
+    REPLICA_URL: readReplica('records-reader').connectionString,
     API_LOG_FORMAT: api.envVar('LOG_FORMAT'),
     PUBLIC_URL: self.renderVar('RENDER_EXTERNAL_URL'),
     LEGACY_AUTH_HOST: external.privateService('legacy-auth').host,
@@ -128,16 +130,16 @@ export default blueprint({ resources: [db, settings, api, admin] });
 ```
 
 A handle has only the properties that Render can reference, so a worker has no `.host`.
-`generated()` emits `generateValue: true`, and `secret()` emits `sync: false`.
+`generated()` emits `generateValue: true`.
 
 ## Projects and environments
 
 ```ts
-import { blueprint, environment, project, web } from 'render-blueprint';
+import { blueprint, environment, project, web, worker } from 'render-blueprint';
 
 const api = web('api', { runtime: 'image', image: { url: 'ghcr.io/acme/api:1.4.2' } });
 const staging = web('api-staging', { runtime: 'image', image: { url: 'ghcr.io/acme/api:1.5.0' } });
-const docs = web('docs', { runtime: 'image', image: { url: 'ghcr.io/acme/docs:2.0.0' } });
+const jobs = worker('jobs', { runtime: 'image', image: { url: 'ghcr.io/acme/jobs:2.0.0' } });
 
 export default blueprint({
   projects: [
@@ -148,7 +150,7 @@ export default blueprint({
       ],
     }),
   ],
-  ungrouped: [docs],
+  ungrouped: [jobs],
 });
 ```
 
@@ -183,12 +185,12 @@ const api = acme.web('api', {
 export default blueprint({ resources: [api, db] });
 ```
 
-Every factory on `acme` starts from these values. `plan` takes one key per kind. A value on a
-resource always wins. Scopes nest: `acme.withDefaults(...)` replaces only the values it sets.
+Each factory on `acme` takes the values its kind can hold. `plan` takes one key per kind. A value
+on a resource always wins. Scopes nest: `acme.withDefaults(...)` replaces only the values it sets.
 
 ## What it catches
 
-An invalid blueprint stops `synth` and `check`. They report every issue at once:
+`synth` and `check` report every issue at once on stderr:
 
 ```console
 $ npx render-blueprint check
@@ -200,20 +202,19 @@ $ echo $?
 1
 ```
 
-A warning does not stop `synth`. It prints the warning on stderr:
+With `previews` on at the root, `secret()` warns on stderr:
 
 ```console
 warning api.env.STRIPE_KEY: "api" sets "STRIPE_KEY" with secret() while previews are on. Render does not copy a sync: false variable into a preview environment, so declare it in an environment group the Dashboard manages instead.
 ```
 
-It prints the result on stdout and exits 0:
+`synth` still prints the result on stdout and exits 0:
 
 ```console
 Wrote /home/acme/mono/render.yaml
 ```
 
-The `ValidationCode` and `WarningCode` types list every code, in
-[`src/validation/issue.ts`](src/validation/issue.ts).
+[`src/validation/issue.ts`](src/validation/issue.ts) lists every code.
 
 ## Names in TypeScript and names in YAML
 
@@ -261,22 +262,23 @@ test('render.yaml matches the blueprint', async () => {
 `synthesize` returns a `better-result` `Result`. `writeBlueprint` and `checkBlueprint` return a
 `Promise` of one.
 
-| Export                                  | What it does                                                                         |
-| --------------------------------------- | ------------------------------------------------------------------------------------ |
-| `synthesize(value)`                     | Validates the blueprint, then returns the YAML text and the warnings.                |
-| `writeBlueprint(value, { path, port })` | Synthesizes the blueprint, then writes the file at `path`.                           |
-| `checkBlueprint(value, { path, port })` | Synthesizes the blueprint, then compares it with the file at `path`.                 |
-| `nodeFilePort`                          | The default `port`: the real filesystem.                                             |
-| `BlueprintInvalid`                      | The error that carries every validation issue.                                       |
-| `DriftReport`                           | The report of `checkBlueprint`: `status: 'clean'`, or `status: 'drift'` with a diff. |
+| Export                                  | What it does                                                                                                               |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `synthesize(value)`                     | Validates the blueprint, then returns the YAML text and the warnings.                                                      |
+| `writeBlueprint(value, { path, port })` | Synthesizes the blueprint, then writes the file at `path`.                                                                 |
+| `checkBlueprint(value, { path, port })` | Synthesizes the blueprint, then compares it with the file at `path`.                                                       |
+| `nodeFilePort`                          | The default `port`: the real filesystem.                                                                                   |
+| `BlueprintInvalid`                      | The error that carries every validation issue.                                                                             |
+| `DriftReport`                           | The report of `checkBlueprint`: `status: 'clean'`, or `status: 'drift'` with a diff and the immutable fields that changed. |
 
 ## Gotchas
 
-- Import another blueprint file with its `.ts` extension, because Node does not rewrite `.js` to
-  `.ts`. For `tsc`, set `allowImportingTsExtensions` with `noEmit`, or
-  `rewriteRelativeImportExtensions`.
-- Node strips the types without a compiler, so use erasable syntax only: no `enum`, no parameter
-  properties.
+- Import another blueprint file with its `.ts` extension. For `tsc`, set
+  `allowImportingTsExtensions` with `noEmit`, or `rewriteRelativeImportExtensions`.
+- Node strips the types, so use erasable syntax only, for example: no `enum`, no parameter
+  properties, no `namespace`.
+- Without `"type": "module"` in `package.json`, Node warns `MODULE_TYPELESS_PACKAGE_JSON`. Set the
+  field, or use `.mts` for every blueprint file.
 
 ## Docs
 
