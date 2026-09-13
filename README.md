@@ -7,222 +7,65 @@ writes is the state.
 ## Install
 
 ```sh
+npm i -D render-blueprint
 pnpm add -D render-blueprint
 ```
 
-The package holds the library and the `render-blueprint` binary. The binary needs Node 22.18.0 or
-newer, because it loads your blueprint file through Node's native type stripping.
+The package is ESM-only and needs Node 22.18.0 or newer.
 
-There is a second entry point for tests:
+## Quick start
 
-```ts
-import { memoryFilePort } from 'render-blueprint/testing';
-```
-
-`memoryFilePort()` is an in-memory filesystem. Give it to `writeBlueprint` or `checkBlueprint` and
-your test writes nothing to disk. It ships on its own path, so it never reaches your runtime
-bundle.
-
-## The scenario
-
-Each app declares its own resources in its own file. The root file assembles them. The two files
-below are the scenario the test suite freezes at `test/fixtures/canonical/`.
-
-An app exports a function of its dependencies. Every handle it receives keeps its type across the
-file boundary. `deps.db.connectionString` is a compile-checked reference, and `deps.cache.host`
-does not compile.
+Put this `render.ts` at the root of your repository:
 
 ```ts
-// apps/api/api-service.ts
-import {
-  literal,
-  secret,
-  type EnvironmentGroup,
-  type KeyValueStore,
-  type PostgresDatabase,
-  type PrivateService,
-  type ReadReplica,
-  type ResourceFactories,
-  type WebService,
-} from 'render-blueprint';
+import { blueprint, postgres, web } from 'render-blueprint';
 
-export interface ApiDependencies {
-  readonly factories: ResourceFactories;
-  readonly db: PostgresDatabase;
-  readonly replica: ReadReplica;
-  readonly cache: KeyValueStore;
-  readonly auth: PrivateService;
-  readonly settings: EnvironmentGroup;
-}
+const db = postgres('records', { plan: 'basic-1gb' });
 
-export const apiService = (deps: ApiDependencies): WebService =>
-  deps.factories.web('api', {
-    runtime: 'node',
-    rootDir: 'apps/api',
-    buildCommand: 'pnpm install --frozen-lockfile && pnpm build',
-    startCommand: 'pnpm start',
-    healthCheckPath: '/healthz',
-    scaling: { minInstances: 2, maxInstances: 6, targetCPUPercent: 70 },
-    domains: ['acme.dev'],
-    previews: { generation: 'automatic', plan: 'starter' },
-    envGroups: [deps.settings],
-    env: (self) => ({
-      NODE_ENV: 'production',
-      LOG_FORMAT: literal('json', { previewValue: 'pretty' }),
-      DATABASE_URL: deps.db.connectionString,
-      REPLICA_URL: deps.replica.connectionString,
-      CACHE_URL: deps.cache.connectionString,
-      AUTH_HOST: deps.auth.host,
-      STRIPE_KEY: secret(),
-      APP_HOST: self.renderVar('RENDER_EXTERNAL_HOSTNAME'),
-    }),
-  });
-```
-
-The root file creates the shared resources, calls each app function, and exports the blueprint as
-the default export. `withDefaults` sets the region, the repository, the build filter, the deploy
-trigger, the IP allow list and one plan per kind in one place. A value on a resource always wins
-over a default.
-
-```ts
-// render.ts
-import {
-  blueprint,
-  external,
-  generated,
-  literal,
-  readReplica,
-  withDefaults,
-  type Blueprint,
-  type ResourceFactories,
-} from 'render-blueprint';
-import { apiService } from './apps/api/api-service.ts';
-
-const acme: ResourceFactories = withDefaults({
-  region: 'oregon',
-  repo: 'https://github.com/acme/mono',
-  plan: {
-    web: 'standard',
-    privateService: '1c-2g',
-    worker: '1c-2g',
-    cron: 'starter',
-    keyValue: 'standard',
-    postgres: 'basic-1gb',
-  },
-});
-
-const replica = readReplica('records-replica');
-
-const db = acme.postgres('records', {
-  databaseName: 'records',
-  user: 'records_user',
-  postgresMajorVersion: '17',
-  diskSizeGB: 20,
-  highAvailability: { enabled: true },
-  ipAllowList: [{ source: '203.0.113.4/30', description: 'office' }],
-  previews: { plan: 'basic-256mb', diskSizeGB: 5 },
-  readReplicas: [replica],
-});
-
-const cache = acme.keyValue('cache', {
-  ipAllowList: [],
-  maxmemoryPolicy: 'allkeys-lru',
-  persistenceMode: 'journal-snapshot',
-});
-
-const settings = acme.envGroup('shared-settings', {
-  env: {
-    LOG_LEVEL: 'info',
-    FEATURE_FLAGS: literal('billing', { previewValue: 'billing,debug' }),
-    SESSION_SECRET: generated(),
-  },
-});
-
-const auth = acme.privateService('auth', {
-  runtime: 'image',
-  image: { url: 'docker.io/acme/auth:1.4.2', creds: external.registryCredential('acme-dockerhub') },
-  dockerCommand: './auth serve',
-  instances: 1,
-  disk: { name: 'keys', mountPath: '/var/keys', sizeGB: 5 },
-  previews: { generation: 'manual', plan: '1c-2g', instances: 1 },
-  env: { AUTH_LOG_LEVEL: 'info' },
-});
-
-const api = apiService({ factories: acme, db, replica, cache, auth, settings });
-
-const jobs = acme.worker('jobs', {
-  runtime: 'docker',
-  dockerfilePath: './apps/jobs/Dockerfile',
-  dockerContext: './',
-  dockerCommand: 'node jobs.js',
-  buildFilter: { paths: ['apps/jobs/**'], ignoredPaths: ['**/*.md'] },
-  env: {
-    QUEUE_URL: cache.connectionString,
-    API_HOSTPORT: api.hostport,
-    API_LOG_FORMAT: api.envVar('LOG_FORMAT'),
-    LEGACY_AUTH_HOST: external.privateService('legacy-auth').host,
-  },
-});
-
-const nightly = acme.cron('nightly-report', {
+const api = web('api', {
   runtime: 'node',
-  schedule: '0 2 * * *',
-  rootDir: 'apps/report',
-  buildCommand: 'pnpm install --frozen-lockfile',
-  startCommand: 'pnpm report',
-  env: { DATABASE_URL: db.connectionPoolString, REPORT_BUCKET: 'acme-reports' },
-});
-
-const marketing = acme.staticSite('marketing', {
-  rootDir: 'apps/marketing',
+  plan: 'starter',
   buildCommand: 'pnpm install --frozen-lockfile && pnpm build',
-  staticPublishPath: './dist',
-  routes: [{ type: 'rewrite', source: '/*', destination: '/index.html' }],
-  headers: [{ path: '/*', name: 'X-Frame-Options', value: 'DENY' }],
-  domains: ['acme.com'],
-  previews: { generation: 'automatic' },
-  env: { NODE_VERSION: '22', API_URL: api.hostport },
+  startCommand: 'pnpm start',
+  env: { DATABASE_URL: db.connectionString },
 });
 
-const value: Blueprint = blueprint({
-  previews: { generation: 'automatic', expireAfterDays: 7 },
-  resources: [db, cache, settings, auth, api, jobs, nightly, marketing],
-});
-
-export default value;
+export default blueprint({ resources: [api, db] });
 ```
 
-`replica` is referenceable but is not a resource, so `resources: [replica]` does not compile.
-`external.privateService('legacy-auth')` reaches a service in your Render workspace that this
-blueprint does not manage.
+`npx render-blueprint synth` writes this `render.yaml` beside it:
 
-Note: the root file imports the app file as `./apps/api/api-service.ts`, with the `.ts` extension.
-Node's type stripping resolves the file you name, and it does not rewrite `.js` to `.ts`. For
-`tsc` to accept that specifier, set `allowImportingTsExtensions` with `noEmit`, or set
-`rewriteRelativeImportExtensions`.
+```yaml
+# Generated by render-blueprint. Do not edit this file by hand.
+# Edit the TypeScript blueprint that produced it and synthesize again.
 
-## Warnings
-
-`render-blueprint synth` reports every issue at once, and every warning at once. A warning does
-not stop the run.
-
-```console
-$ render-blueprint synth
-warning api.env.STRIPE_KEY: "api" sets "STRIPE_KEY" with secret() while previews are on. Render does not copy a sync: false variable into a preview environment, so declare it in an environment group the Dashboard manages instead.
-Wrote /home/acme/mono/render.yaml
+services:
+  - type: web
+    name: api
+    plan: starter
+    runtime: node
+    buildCommand: pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm start
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: records
+          property: connectionString
+databases:
+  - name: records
+    plan: basic-1gb
 ```
 
 ## Command line
 
-Both commands walk up from the working directory and take the first `render.ts`, `render.mts`,
-`render.js` or `render.mjs` that they find. The file must have one default export: the value that
-`blueprint(...)` returns. It must also use erasable TypeScript syntax, because Node strips the
-types without a compiler.
-
 ```sh
-render-blueprint synth    # write the YAML file
-render-blueprint check    # compare the committed YAML file against the blueprint
+npx render-blueprint synth           # write render.yaml
+npx render-blueprint check           # compare the committed render.yaml with the blueprint
+npx render-blueprint check --strict  # also fail on a warning
 ```
+
+The CLI reads the first `render.ts`, `render.mts`, `render.js` or `render.mjs` from the working
+directory up. Its default export must be the value of `blueprint(...)`.
 
 Flags follow the command:
 
@@ -232,16 +75,145 @@ Flags follow the command:
 - `--help`, `-h` — print the help.
 - `--version`, `-v` — print the installed version.
 
+A `--file` or `--out` path resolves against the working directory, not the blueprint.
+
 | Exit code | Meaning                                                                                                                       |
 | --------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | 0         | `synth` wrote the file, or `check` found the committed file clean.                                                            |
 | 1         | The blueprint is invalid, a file operation failed, the command line was wrong, or `--strict` turned a warning into a failure. |
 | 2         | The committed file drifted from the blueprint.                                                                                |
 
-`check` is the CI command. The two failure codes are different numbers, so CI can tell a stale
-file from a broken one. `check` normalizes both sides before it compares them, so a reformatted
-file that says the same thing is still clean. After the diff, it lists the changes to fields that
-Render cannot alter in place.
+`check` compares normalized YAML, so a change in formatting alone is not drift.
+
+## References and secrets
+
+```ts
+import {
+  blueprint,
+  envGroup,
+  external,
+  generated,
+  literal,
+  postgres,
+  secret,
+  web,
+} from 'render-blueprint';
+
+const db = postgres('records');
+const settings = envGroup('settings', { env: { SESSION_SECRET: generated() } });
+
+const api = web('api', {
+  runtime: 'node',
+  buildCommand: 'pnpm build',
+  startCommand: 'pnpm start',
+  env: { LOG_FORMAT: 'json' },
+});
+
+const admin = web('admin', {
+  runtime: 'node',
+  buildCommand: 'pnpm build',
+  startCommand: 'pnpm start:admin',
+  envGroups: [settings],
+  env: (self) => ({
+    DATABASE_URL: db.connectionString,
+    API_LOG_FORMAT: api.envVar('LOG_FORMAT'),
+    PUBLIC_URL: self.renderVar('RENDER_EXTERNAL_URL'),
+    LEGACY_AUTH_HOST: external.privateService('legacy-auth').host,
+    STRIPE_KEY: secret(),
+    LOG_LEVEL: literal('info', { previewValue: 'debug' }),
+  }),
+});
+
+export default blueprint({ resources: [db, settings, api, admin] });
+```
+
+A handle has only the properties that Render can reference, so a worker has no `.host`.
+`generated()` emits `generateValue: true`, and `secret()` emits `sync: false`.
+
+## Projects and environments
+
+```ts
+import { blueprint, environment, project, web } from 'render-blueprint';
+
+const api = web('api', { runtime: 'image', image: { url: 'ghcr.io/acme/api:1.4.2' } });
+const staging = web('api-staging', { runtime: 'image', image: { url: 'ghcr.io/acme/api:1.5.0' } });
+const docs = web('docs', { runtime: 'image', image: { url: 'ghcr.io/acme/docs:2.0.0' } });
+
+export default blueprint({
+  projects: [
+    project('acme', {
+      environments: [
+        environment('production', { resources: [api], permissions: { protection: 'enabled' } }),
+        environment('staging', { resources: [staging] }),
+      ],
+    }),
+  ],
+  ungrouped: [docs],
+});
+```
+
+A resource goes in exactly one place: `resources`, one environment, or `ungrouped`.
+
+## Defaults
+
+```ts
+import { blueprint, withDefaults } from 'render-blueprint';
+
+const acme = withDefaults({
+  region: 'oregon',
+  repo: 'https://github.com/acme/mono',
+  branch: 'main',
+  rootDir: 'apps/api',
+  autoDeployTrigger: 'checksPass',
+  buildFilter: { paths: ['apps/api/**'], ignoredPaths: ['**/*.md'] },
+  ipAllowList: [{ source: '203.0.113.4/30', description: 'office' }],
+  plan: { web: 'starter', postgres: 'basic-1gb' },
+});
+
+const db = acme.postgres('records');
+
+const api = acme.web('api', {
+  runtime: 'node',
+  plan: 'standard', // wins over plan.web
+  buildCommand: 'pnpm install --frozen-lockfile && pnpm build',
+  startCommand: 'pnpm start',
+  env: { DATABASE_URL: db.connectionString },
+});
+
+export default blueprint({ resources: [api, db] });
+```
+
+Every factory on `acme` starts from these values. `plan` takes one key per kind. A value on a
+resource always wins. Scopes nest: `acme.withDefaults(...)` replaces only the values it sets.
+
+## What it catches
+
+An invalid blueprint stops `synth` and `check`. They report every issue at once:
+
+```console
+$ npx render-blueprint check
+The blueprint has 3 validation issues; nothing was synthesized.
+  records.diskSizeGB: A database disk size is 1 GB or a multiple of 5 GB, and Render never shrinks one.
+  nightly.schedule: A schedule is a cron expression of five fields — minute, hour, day of month, month and day of week, as in "0 2 * * *" — and "every night" is not one.
+  api.name: More than one resource is named "api". Render identifies a resource by its name, so every name in a blueprint must be unique.
+$ echo $?
+1
+```
+
+A warning does not stop `synth`. It prints the warning on stderr:
+
+```console
+warning api.env.STRIPE_KEY: "api" sets "STRIPE_KEY" with secret() while previews are on. Render does not copy a sync: false variable into a preview environment, so declare it in an environment group the Dashboard manages instead.
+```
+
+It prints the result on stdout and exits 0:
+
+```console
+Wrote /home/acme/mono/render.yaml
+```
+
+The `ValidationCode` and `WarningCode` types list every code, in
+[`src/validation/issue.ts`](src/validation/issue.ts).
 
 ## Names in TypeScript and names in YAML
 
@@ -259,6 +231,61 @@ Every field keeps Render's own name, except these nine.
 | `previews.plan` / `previews.diskSizeGB` on Postgres and Key Value | `previewPlan` / `previewDiskSizeGB`             |
 | `extraFields`                                                     | merged into the mapping, and not a Render field |
 
+## Testing
+
+`memoryFilePort()` keeps files in memory, so a test writes nothing to disk.
+
+```ts
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+
+import { blueprint, checkBlueprint, web, writeBlueprint } from 'render-blueprint';
+import { memoryFilePort } from 'render-blueprint/testing';
+
+const value = blueprint({
+  resources: [web('api', { runtime: 'image', image: { url: 'ghcr.io/acme/api:1.4.2' } })],
+});
+
+test('render.yaml matches the blueprint', async () => {
+  const port = memoryFilePort();
+  await writeBlueprint(value, { path: 'render.yaml', port });
+  const drift = await checkBlueprint(value, { path: 'render.yaml', port });
+
+  assert.equal(drift.unwrap().status, 'clean');
+  assert.match(port.files.get('render.yaml') ?? '', /name: api/);
+});
+```
+
+## Programmatic API
+
+`synthesize` returns a `better-result` `Result`. `writeBlueprint` and `checkBlueprint` return a
+`Promise` of one.
+
+| Export                                  | What it does                                                                         |
+| --------------------------------------- | ------------------------------------------------------------------------------------ |
+| `synthesize(value)`                     | Validates the blueprint, then returns the YAML text and the warnings.                |
+| `writeBlueprint(value, { path, port })` | Synthesizes the blueprint, then writes the file at `path`.                           |
+| `checkBlueprint(value, { path, port })` | Synthesizes the blueprint, then compares it with the file at `path`.                 |
+| `nodeFilePort`                          | The default `port`: the real filesystem.                                             |
+| `BlueprintInvalid`                      | The error that carries every validation issue.                                       |
+| `DriftReport`                           | The report of `checkBlueprint`: `status: 'clean'`, or `status: 'drift'` with a diff. |
+
+## Gotchas
+
+- Import another blueprint file with its `.ts` extension, because Node does not rewrite `.js` to
+  `.ts`. For `tsc`, set `allowImportingTsExtensions` with `noEmit`, or
+  `rewriteRelativeImportExtensions`.
+- Node strips the types without a compiler, so use erasable syntax only: no `enum`, no parameter
+  properties.
+
+## Docs
+
+- [`CONTEXT.md`](CONTEXT.md): the glossary.
+- [`docs/design/`](docs/design/): the requirements and the structure.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md): the files and the tests that a change touches.
+- [`test/fixtures/canonical/`](test/fixtures/canonical/): a full two-file blueprint that the tests
+  freeze.
+
 ## Develop
 
 ```sh
@@ -266,10 +293,7 @@ pnpm install
 git config core.hooksPath .githooks   # once per clone: the commit hooks
 pnpm check                            # format, lint, typecheck, tests, type tests
 pnpm build                            # the ESM bundle, the types and the bin, into dist/
-pnpm fixtures:update                  # rewrite the committed YAML expectations, then read the diff
 ```
-
-`CONTRIBUTING.md` says which files and which tests a given change touches.
 
 ## License
 
