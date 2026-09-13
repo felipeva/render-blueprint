@@ -89,4 +89,4 @@ to a branch.
 Branch as `<type>/<issue>-<slug>`, for example `feat/12-env-values`, where `<type>` is the
 Conventional Commits type the work lands under, so the branch, the commits and the pull request
 title all agree. Commit subjects are lowercase imperative, at most 72 characters, with a body that
-says why. Open the pull request against `main` and let a human merge it.
+says why. Open the pull request against `master` and let a human merge it.

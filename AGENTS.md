@@ -3,7 +3,7 @@
 `render-blueprint` is a TypeScript library of factories that describe Render.com resources and
 synthesize them to `render.yaml`. Generator only: it never calls the Render API. The npm package
 and the CLI binary are both named `render-blueprint`. Phases 1 to 4 are done: the spec is issue #1; the tickets #2 to #14 plus #17, #20, #22, and the
-bug #31 all landed as squash-merged PRs on `main` (last: #35 on 2026-09-06). v1.1 (spec #39, tickets
+bug #31 all landed as squash-merged PRs on `master` (last: #35 on 2026-09-06). v1.1 (spec #39, tickets
 #40 to #45, bugs #36 to #38) landed the same way, last #54 on 2026-09-07. An adversarial review against the raw spec and schema on 2026-09-07 produced
 bugs #57 to #62, landed as PRs #63 to #68 the same day; its two medium findings (cross-field rules
 suppressed by a type failure, `extraFields` against the schema's per-kind allow-lists) await a v1.2
@@ -41,13 +41,13 @@ order. Do not skip to code.
    Conventional Commits type the work will land under, so the branch, the commits and the PR
    title all agree.
 4. **Commit** per the rules under Codebase conventions. The `commit-msg` hook validates every one.
-5. **Open the PR** with `gh pr create` against `main`. The title is a Conventional Commits
+5. **Open the PR** with `gh pr create` against `master`. The title is a Conventional Commits
    subject; the body closes the issue (`Closes #12`). The agent opens it; the user merges it.
 
 Both skills are `disable-model-invocation: true` — **the user invokes them.** Ask for `/to-spec`
 rather than trying to run it, and never hand-roll a spec or a ticket to work around that.
 
-Straight-to-`main` is only for what has no issue behind it: docs corrections, formatting, CI
+Straight-to-`master` is only for what has no issue behind it: docs corrections, formatting, CI
 plumbing. Anything a spec was written for gets a branch and a PR.
 
 ## Delegation policy (read first)
@@ -82,7 +82,7 @@ Before the first dispatch of a session, read `~/.agents/skills/to-agents/SKILL.m
 `TRAPS.md`, and load the `herdr` skill. Where they disagree on CLI syntax, the `herdr` skill
 wins. `test "${HERDR_ENV:-}" = 1` must pass; if it does not, stop and say so.
 
-Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `main` is pushed to
+Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `master` is pushed to
 `origin` (dispatch refuses a local-only trunk); the working tree of the main checkout is clean.
 
 - Dispatch: `dispatch.sh <repo> <issue> <branch> <prompt-file> --name <name> --setup "pnpm install"`.
@@ -99,13 +99,13 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `main` is
   issue and its parent; `CONTEXT.md` and the ADRs that touch the slice; the phase plan with an
   explicit stop after each phase; what is out of scope; `pnpm check` as the test command and the
   commit convention below; the traps of that slice and which other slices are in flight; and
-  "open a PR against `main`, do not merge, never push to `main`". Ask the agent for its
+  "open a PR against `master`, do not merge, never push to `master`". Ask the agent for its
   objections to the issue.
 - Arm `watch.sh <agent> <worktree-path>` as a background task in the same turn as every prompt,
   dispatch included. A watcher fires once. Never sleep to poll an agent.
 - Read the agent's report at `/tmp/to-agents-<agent>.report.md`, then verify against ground
   truth before believing it: `git status --porcelain` in the worktree, `pnpm check` run by you,
-  the diff against `origin/main`, the acceptance criteria in the issue, and untracked files for
+  the diff against `origin/master`, the acceptance criteria in the issue, and untracked files for
   secrets. Summarize each returned agent to the user in five lines: verdict, what changed, what
   you verified yourself versus what is only claimed, what is red, what needs the user.
 - Before a PR reaches the user, run a read-only adversarial review by an Opus agent on any slice
@@ -117,7 +117,7 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `main` is
   slices bottom-up and delegate each resolve to the agent that owns the upper branch.
   A child stacked on a sibling's branch conflicts the moment that sibling squash-merges, because
   the child still carries the parent's original commits: after the parent lands, have the child
-  rebase its own commits onto `main` (`git rebase --onto origin/main <parent-tip>`) and re-verify
+  rebase its own commits onto `master` (`git rebase --onto origin/master <parent-tip>`) and re-verify
   before its merge.
 - Merge only on an instruction from the user that names the merge. A green CI is permission to
   ask, never to merge.
