@@ -1,6 +1,6 @@
 {
   "name": "render-blueprint",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Typed factories that describe Render resources and synthesize render.yaml",
   "keywords": [
     "blueprint",
@@ -37,7 +37,8 @@
     "./testing": {
       "types": "./dist/testing.d.ts",
       "default": "./dist/testing.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "publishConfig": {
     "access": "public"
@@ -56,10 +57,10 @@
     "prepublishOnly": "pnpm check && pnpm build"
   },
   "dependencies": {
-    "@drizzle-team/brocli": "0.12.1",
-    "better-result": "3.0.1",
-    "yaml": "2.9.0",
-    "zod": "4.5.4"
+    "@drizzle-team/brocli": "^0.12.1",
+    "better-result": "^3.0.1",
+    "yaml": "^2.9.0",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@oxlint/plugins": "1.81.0",
@@ -79,7 +80,7 @@
     }
   },
   "engines": {
-    "node": ">=22.18.0"
+    "node": "^22.18.0 || ^24.11.0 || >=26.0.0"
   },
   "packageManager": "pnpm@10.33.4"
 }

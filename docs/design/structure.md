@@ -49,8 +49,8 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 │   └── adopt-better-result/         NEW — vendored from .reference (§2.1)
 ├── .claude/skills/                  symlinks into ../../.agents/skills
 ├── .github/workflows/               ci.yml runs install, `pnpm check`, `pnpm build`, then
-│                                    `node dist/cli.js --help`; test.yml runs install, `pnpm test`
-│                                    and `pnpm test:types` on their own
+│                                    `node dist/cli.js --help`; release.yml publishes to npm on a
+│                                    `v*` tag that names the package.json version
 ├── docs/                            unchanged: adr/ agents/ design/ research/ research/raw/
 ├── scripts/                         refresh-render-schema.mjs re-downloads the Render JSON Schema
 │                                    into test/schema/ (§6.3); check-declarations.mjs fails the build
@@ -323,6 +323,7 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 ├── .githooks/                       pre-commit formats and lints the staged files; commit-msg
 │                                    validates the subject. `git config core.hooksPath .githooks`
 ├── AGENTS.md                        the conventions in force. CLAUDE.md is a symlink to it
+├── CHANGELOG.md                     the release notes, in Keep a Changelog form
 ├── CONTRIBUTING.md                  the contributor entry: the task-to-owner-to-tests map
 ├── CONTEXT.md                       the glossary
 ├── README.md                        the consumer's document
@@ -728,9 +729,9 @@ it stands, and the manifest that follows it is the manifest.
 | `.oxlintrc.json` | `plugins: ["typescript","unicorn","oxc"]`, `categories.correctness: "error"`, the `jsPlugins` entry pointing at `./tools/oxlint/anti-slop/index.ts`, and all 15 `anti-slop/*` rules at `"error"`. `anti-slop-effect` stays omitted — no direct `effect` dependency. `ignorePatterns` covers the agent directories, `.reference/**`, `dist/**`, `docs/**`, `test/schema/**` and `tools/oxlint/anti-slop/**`. `test/fixtures/**` is **not** ignored: the fixtures are consumer-style code, and holding them to the same rules is what proves the rules are livable. |
 | `.oxfmtrc.json` | `printWidth` 100, `tabWidth` 2, `semi`, **single quotes**, `trailingComma: "all"`, `sortImports: true`, `sortPackageJson: true`. `ignorePatterns` covers the agent directories, `.reference/**`, `dist/**`, `docs/**`, `test/fixtures/**/*.yaml`, `test/schema/**`, `tools/oxlint/anti-slop/**`, `pnpm-lock.yaml`, `CLAUDE.md` and `CONTEXT.md`. oxfmt formats Markdown, so `AGENTS.md`, `README.md` and `CONTRIBUTING.md` go through it and the documents under `docs/` do not. |
 | `vitest.config.ts` | `test.include: ["src/**/*.test.ts","test/**/*.test.ts"]`, `test.typecheck.include: ["src/**/*.test-d.ts","test/**/*.test-d.ts"]`, `test.typecheck.tsconfig: "tsconfig.check.json"`. INFERRED — the toolchain doc verifies vitest 5 with `--typecheck` but ships no config skeleton. |
-| `tsdown.config.ts` | `entry: { index: "src/index.ts", testing: "src/testing.ts", cli: "src/cli/main.ts" }`, `format: "esm"`, `fixedExtension: false`, `dts: true`, `treeshake: { moduleSideEffects: false }`, `deps: { neverBundle: ["@drizzle-team/brocli", "yaml", "better-result", "zod"] }`, shebang on the `cli` entry. `fixedExtension: false` is required: tsdown 0.23 defaults it to true on the node platform and emits `.mjs` and `.d.mts`, which `exports`, `bin`, and CI would not find (verified in PR #15). `neverBundle` is mandatory — the default bundles dependencies and the toolchain doc measured 234 kB of `yaml` inlined. |
-| `.github/workflows/ci.yml` | `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm build`, then `node dist/cli.js --help` as a smoke test that the built binary starts. |
-| `.github/workflows/test.yml` | `pnpm install --frozen-lockfile`, `pnpm test`, `pnpm test:types` — the two suites on their own, so a failing test is legible without reading past a format or lint failure. |
+| `tsdown.config.ts` | `entry: { index: "src/index.ts", testing: "src/testing.ts", cli: "src/cli/main.ts" }`, `format: "esm"`, `fixedExtension: false`, `dts: { sourcemap: false, entry: ["src/index.ts", "src/testing.ts"] }`, `treeshake: { moduleSideEffects: false }`, `deps: { neverBundle: ["@drizzle-team/brocli", "yaml", "better-result", "zod"] }`, shebang on the `cli` entry. `fixedExtension: false` is required: tsdown 0.23 defaults it to true on the node platform and emits `.mjs` and `.d.mts`, which `exports`, `bin`, and CI would not find (verified in PR #15). `neverBundle` is mandatory — the default bundles dependencies and the toolchain doc measured 234 kB of `yaml` inlined. `dts.sourcemap: false` ships no source maps at all: rolldown-plugin-dts defaults it to the tsconfig's `declarationMap` and then turns the JavaScript maps on too, whose `sourcesContent` carried the whole source into the tarball. `dts.entry` limits declarations to the two public entries, so the binary gets no empty `cli.d.ts`; a third public entry goes into both `entry` and `dts.entry`. |
+| `.github/workflows/ci.yml` | `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm build`, then `node dist/cli.js --help` as a smoke test that the built binary starts. It is the one workflow on pushes and pull requests: `pnpm check` already runs both test suites, so no second workflow repeats them. |
+| `.github/workflows/release.yml` | Runs only on a pushed `v*` tag, with `id-token: write` and `contents: read`. It fails first unless the tag is `v` followed by the exact `package.json` version, then runs `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm build` and `npm publish --provenance --access public`, with `NODE_AUTH_TOKEN` read from the `NPM_TOKEN` repository secret. `npm publish` runs `prepublishOnly` a second time; that cost is accepted. |
 | `.githooks/` | `pre-commit` formats the staged files with oxfmt, re-stages them, and runs oxlint on the staged source. `commit-msg` validates the Conventional Commits subject. Git does not version hooks, so each clone runs `git config core.hooksPath .githooks` once. |
 | `.gitignore` | Covers `node_modules/`, `dist/`, `coverage/`, `*.tsbuildinfo`, `.reference/`. |
 
@@ -741,15 +742,16 @@ it stands, and the manifest that follows it is the manifest.
   "sideEffects": false,
   "exports": {
     ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
-    "./testing": { "types": "./dist/testing.d.ts", "default": "./dist/testing.js" }
+    "./testing": { "types": "./dist/testing.d.ts", "default": "./dist/testing.js" },
+    "./package.json": "./package.json"
   },
   "bin": { "render-blueprint": "dist/cli.js" },
   "files": ["dist"],
-  "engines": { "node": ">=22.18.0" },
+  "engines": { "node": "^22.18.0 || ^24.11.0 || >=26.0.0" },
   "devEngines": { "runtime": { "name": "node", "version": "^22.18.0 || ^24.11.0 || >=26.0.0" } },
   "packageManager": "pnpm@10.33.4",
-  "dependencies": { "@drizzle-team/brocli": "0.12.1", "better-result": "3.0.1",
-    "yaml": "2.9.0", "zod": "4.5.4" },
+  "dependencies": { "@drizzle-team/brocli": "^0.12.1", "better-result": "^3.0.1",
+    "yaml": "^2.9.0", "zod": "^4.5.4" },
   "devDependencies": { "@oxlint/plugins": "1.81.0", "@types/node": "26.4.1", "ajv": "8.20.0",
     "ajv-formats": "3.0.1", "oxfmt": "0.66.0", "oxlint": "1.81.0", "tsdown": "0.23.0",
     "typescript": "7.0.2", "vitest": "5.0.0" },
@@ -772,7 +774,12 @@ it stands, and the manifest that follows it is the manifest.
 **Two export paths, both re-exports only.** `.` is the library and `./testing` publishes
 `memoryFilePort` alone, so a consumer's runtime bundle never carries the in-memory port. There is
 no third: a deep import into `dist/` is what a re-export-only surface avoids, and `bin` is a
-binary, not an import path. Every dependency is pinned exactly; `oxlint` and `@oxlint/plugins` must
+binary, not an import path. `./package.json` is the manifest, exported for tools that read it; it
+is not a code entry.
+
+The four runtime dependencies carry caret ranges, so a consumer already on a compatible version
+keeps one copy instead of installing a second; `better-result`'s types cross the public entry, and
+`CHANGELOG.md` says so. Dev dependencies stay pinned exactly: `oxlint` and `@oxlint/plugins` must
 stay equal, and vitest exact because `--typecheck` is experimental.
 
 ## 8. Not settled here
