@@ -80,6 +80,33 @@ is the conformance oracle that `pnpm schema:refresh` refreshes — all three sta
 last two bullets of [`AGENTS.md`](AGENTS.md). The part worth repeating: a fixture diff you did not
 intend is a bug you have just found, not an expectation to accept.
 
+## Releasing
+
+A pull request that changes the published package adds a changeset. Run `pnpm changeset`, pick
+the bump, and write the line the changelog will show. Without a terminal, run
+`pnpm changeset add --patch render-blueprint -m '<summary>'`, or `--minor` or `--major`. Commit the
+file it writes under `.changeset/`. A pull request without a changeset adds nothing to the next
+version, so docs, tests and chores need none, and CI does not ask for one. `pnpm changeset status`
+counts only changes under `src/`, so a runtime dependency bump in `package.json` still gets a
+changeset, by judgment.
+
+On every push to `master`, `.github/workflows/release.yml` runs the changesets action. While
+changesets are pending, it keeps one pull request open, `chore: version packages`, that bumps
+`package.json`, writes the `CHANGELOG.md` entry with a link to each pull request, and deletes the
+changesets. Merging that pull request publishes: the next run finds no changesets and runs
+`pnpm release`, which publishes any version npm does not have yet, with provenance, then pushes the
+`v<version>` tag and creates the GitHub Release. Do not bump the version, edit a released changelog
+entry or push a tag by hand.
+
+The action opens the version pull request with the default `GITHUB_TOKEN`, so its `ci` run waits
+until someone with write access selects **Approve workflows to run**. Approve it before you merge.
+The publish has its own gate: `changeset publish` runs `pnpm publish`, which runs `prepublishOnly`
+(`pnpm check && pnpm build`), so a red check stops the publish.
+
+Two repository settings must stay on: the `NPM_TOKEN` secret, and **Allow GitHub Actions to create
+and approve pull requests** under Settings → Actions → General. Without the second, the action
+cannot open the version pull request.
+
 ## Opening a change
 
 Anything with a design decision behind it starts as an issue, not as a branch —

@@ -54,7 +54,8 @@
     "build": "tsdown && node scripts/check-declarations.mjs",
     "schema:refresh": "node scripts/refresh-render-schema.mjs",
     "fixtures:update": "UPDATE_FIXTURES=1 vitest run test/fixtures.test.ts test/cli.test.ts",
-    "prepublishOnly": "pnpm check && pnpm build"
+    "prepublishOnly": "pnpm check && pnpm build",
+    "release": "changeset publish"
   },
   "dependencies": {
     "@drizzle-team/brocli": "^0.12.1",
@@ -63,6 +64,8 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@changesets/changelog-github": "1.0.1",
+    "@changesets/cli": "3.0.2",
     "@oxlint/plugins": "1.81.0",
     "@types/node": "26.4.1",
     "ajv": "8.20.0",

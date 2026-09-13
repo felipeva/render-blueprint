@@ -1,0 +1,8 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@4.0.0/schema.json",
+  "changelog": ["@changesets/changelog-github", { "repo": "felipeva/render-blueprint" }],
+  "commit": false,
+  "access": "public",
+  "baseBranch": "master",
+  "changedFilePatterns": ["src/**"]
+}
