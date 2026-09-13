@@ -12,7 +12,13 @@ emission, defaults scope capture, the CLI split and the shared test helpers: tic
 landed as PRs #77 to #81 on 2026-09-08, #70 (this guidance) as #82 and #76 (the dependency gate in
 `.oxlintrc.json`) as #83 the same day; spec #69 is complete. The v1.2 schema-conformance spec #84 (tickets #85 to #92) landed as PRs #93 to #98,
 #101 and #103 on 2026-09-09, each after an adversarial review whose findings the worker applied; follow-ups
-#99, #100 and #102 came out of those reviews. New work starts with
+#99, #100 and #102 came out of those reviews. Those landed on 2026-09-12 as PRs #104, #105 and #108 (#106
+came out of the #104 review; #100 was researched in #107 and closed as out of scope; #109 closed wontfix).
+On 2026-09-13 the four spec parents were closed, the trunk was renamed to `master`, and the first release
+was prepared: #112 (version 0.1.0, caret ranges on runtime deps, no source maps, `CHANGELOG.md`, a
+tag-triggered `release.yml` that publishes with provenance from a public repo) and #113 (the example-led
+README). A release is a `v<version>` tag push with the `NPM_TOKEN` repository secret in place; the
+workflow refuses a tag that does not match `package.json`. New work starts with
 `/to-spec` for a feature or a plain `ready-for-agent` issue for a bug, then a Herdr dispatch.
 
 - `CONTRIBUTING.md` — which files and which tests a given task touches. Read it before changing code.
@@ -85,14 +91,15 @@ wins. `test "${HERDR_ENV:-}" = 1` must pass; if it does not, stop and say so.
 Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `master` is pushed to
 `origin` (dispatch refuses a local-only trunk); the working tree of the main checkout is clean.
 
-- Dispatch: `dispatch.sh <repo> <issue> <branch> <prompt-file> --name <name> --setup "pnpm install"`.
-  Branch is `<type>/<issue>-<slug>` (`feat/12-env-values`). Agent name starts with the slugged
+- Dispatch: `dispatch.sh <issue> <branch> <prompt-file> --kind claude --model opus --repo <dir>
+--name <name> --setup 'pnpm install --frozen-lockfile'`. Run `dispatch.sh --help` first: the scripts
+  change. Branch is `<type>/<issue>-<slug>` (`feat/12-env-values`). Agent name starts with the slugged
   issue, lowercase letters, digits and hyphens, 32 characters at most (`i12-env-values`).
   Pass the setup every time; there is no Makefile. Workers run on Opus per the delegation
-  policy, and the dispatch script has no model flag, so the setup command pins it through a
-  per-worktree settings file that `.gitignore` already excludes:
-  `--setup 'pnpm install --frozen-lockfile && mkdir -p .claude && printf "{\"model\":\"opus\"}\n" > .claude/settings.local.json'`.
-  Confirm the pane's status line reads `Model: Opus` on the first read.
+  policy through the `--model` flag. Confirm the pane's status line reads `Model: Opus` on the
+  first read. Every later turn goes through `prompt.sh <pane> <worktree> <prompt-file>`, which
+  records a turn id and sends with `--wait --until working`; arm `track.sh <pane> <worktree>
+--turn <id>` as a background task in the same turn.
 - After `herdr agent prompt`, `agent get` can still report `idle` for a few seconds. Re-read the
   status and the pane before concluding the prompt was lost; a second send duplicates the work.
 - Write every prompt to a file under the scratchpad and pass the path. The brief carries: the
@@ -101,7 +108,7 @@ Preconditions for a dispatch: the issue is labelled `ready-for-agent`; `master` 
   commit convention below; the traps of that slice and which other slices are in flight; and
   "open a PR against `master`, do not merge, never push to `master`". Ask the agent for its
   objections to the issue.
-- Arm `watch.sh <agent> <worktree-path>` as a background task in the same turn as every prompt,
+- Arm `track.sh <pane> <worktree-path> --turn <id>` as a background task in the same turn as every prompt,
   dispatch included. A watcher fires once. Never sleep to poll an agent.
 - Read the agent's report at `/tmp/to-agents-<agent>.report.md`, then verify against ground
   truth before believing it: `git status --porcelain` in the worktree, `pnpm check` run by you,
