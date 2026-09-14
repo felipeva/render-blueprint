@@ -17,8 +17,10 @@ came out of the #104 review; #100 was researched in #107 and closed as out of sc
 On 2026-09-13 the four spec parents were closed, the trunk was renamed to `master`, and the first release
 was prepared: #112 (version 0.1.0, caret ranges on runtime deps, no source maps, `CHANGELOG.md`, a
 tag-triggered `release.yml` that publishes with provenance from a public repo) and #113 (the example-led
-README). A release is a `v<version>` tag push with the `NPM_TOKEN` repository secret in place; the
-workflow refuses a tag that does not match `package.json`. New work starts with
+README). Since #115 a release runs through changesets: a pull request that changes the package adds a
+changeset, `release.yml` keeps a `chore: version packages` pull request open on `master`, and merging it
+publishes with provenance, pushes the `v<version>` tag and creates the GitHub Release; `0.1.0` publishes
+on the first push to `master` after the `NPM_TOKEN` secret exists. New work starts with
 `/to-spec` for a feature or a plain `ready-for-agent` issue for a bug, then a Herdr dispatch.
 
 - `CONTRIBUTING.md` — which files and which tests a given task touches. Read it before changing code.

@@ -47,10 +47,14 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 ├── .agents/skills/                  vendored agent skills — the source of truth
 │   ├── install-anti-slop/           existing; scripts/install.mjs writes tools/oxlint/anti-slop/
 │   └── adopt-better-result/         NEW — vendored from .reference (§2.1)
+├── .changeset/                      config.json, a README.md that says what a changeset is, and the
+│                                    pending changesets, which `changeset version` turns into the
+│                                    version bump and the changelog entry
 ├── .claude/skills/                  symlinks into ../../.agents/skills
 ├── .github/workflows/               ci.yml runs install, `pnpm check`, `pnpm build`, then
-│                                    `node dist/cli.js --help`; release.yml publishes to npm on a
-│                                    `v*` tag that names the package.json version
+│                                    `node dist/cli.js --help`; release.yml runs the changesets
+│                                    action on every push to master: it keeps the version pull
+│                                    request open, or publishes the version npm lacks
 ├── docs/                            unchanged: adr/ agents/ design/ research/ research/raw/
 ├── scripts/                         refresh-render-schema.mjs re-downloads the Render JSON Schema
 │                                    into test/schema/ (§6.3); check-declarations.mjs fails the build
@@ -323,7 +327,8 @@ declarations, so library-only consumers install it too. It is a zero-dependency 
 ├── .githooks/                       pre-commit formats and lints the staged files; commit-msg
 │                                    validates the subject. `git config core.hooksPath .githooks`
 ├── AGENTS.md                        the conventions in force. CLAUDE.md is a symlink to it
-├── CHANGELOG.md                     the release notes, in Keep a Changelog form
+├── CHANGELOG.md                     the release notes, written by `changeset version`; the 0.1.0
+│                                    section is hand-written
 ├── CONTRIBUTING.md                  the contributor entry: the task-to-owner-to-tests map
 ├── CONTEXT.md                       the glossary
 ├── README.md                        the consumer's document
@@ -731,7 +736,8 @@ it stands, and the manifest that follows it is the manifest.
 | `vitest.config.ts` | `test.include: ["src/**/*.test.ts","test/**/*.test.ts"]`, `test.typecheck.include: ["src/**/*.test-d.ts","test/**/*.test-d.ts"]`, `test.typecheck.tsconfig: "tsconfig.check.json"`. INFERRED — the toolchain doc verifies vitest 5 with `--typecheck` but ships no config skeleton. |
 | `tsdown.config.ts` | `entry: { index: "src/index.ts", testing: "src/testing.ts", cli: "src/cli/main.ts" }`, `format: "esm"`, `fixedExtension: false`, `dts: { sourcemap: false, entry: ["src/index.ts", "src/testing.ts"] }`, `treeshake: { moduleSideEffects: false }`, `deps: { neverBundle: ["@drizzle-team/brocli", "yaml", "better-result", "zod"] }`, shebang on the `cli` entry. `fixedExtension: false` is required: tsdown 0.23 defaults it to true on the node platform and emits `.mjs` and `.d.mts`, which `exports`, `bin`, and CI would not find (verified in PR #15). `neverBundle` is mandatory — the default bundles dependencies and the toolchain doc measured 234 kB of `yaml` inlined. `dts.sourcemap: false` ships no source maps at all: rolldown-plugin-dts defaults it to the tsconfig's `declarationMap` and then turns the JavaScript maps on too, whose `sourcesContent` carried the whole source into the tarball. `dts.entry` limits declarations to the two public entries, so the binary gets no empty `cli.d.ts`; a third public entry goes into both `entry` and `dts.entry`. |
 | `.github/workflows/ci.yml` | `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm build`, then `node dist/cli.js --help` as a smoke test that the built binary starts. It is the one workflow on pushes and pull requests: `pnpm check` already runs both test suites, so no second workflow repeats them. |
-| `.github/workflows/release.yml` | Runs only on a pushed `v*` tag, with `id-token: write` and `contents: read`. It fails first unless the tag is `v` followed by the exact `package.json` version, then runs `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm build` and `npm publish --access public`, with `NODE_AUTH_TOKEN` read from the `NPM_TOKEN` repository secret. It adds `--provenance` only when the repository is public: npm rejects provenance from a private repository, and the CLI writes the statement to the public Rekor log before the registry rejects it. It restores no dependency cache, because its output is the published package. `npm publish` runs `prepublishOnly` a second time; that cost is accepted. |
+| `.github/workflows/release.yml` | Runs `changesets/action@v2.1.2` on every push to `master`, one run at a time, with `contents: write`, `pull-requests: write` and `id-token: write`. The action is pinned to a release tag rather than a major like the other actions: in its repository `v2` is a development branch, not a tag, and this job holds write access and the npm token. It checks out the full history, so `changeset version` finds the commit behind each changeset without deepening the clone, runs `pnpm install --frozen-lockfile`, and restores no dependency cache, because its output is the published package. While changesets are pending, the action runs `changeset version` and opens or updates one pull request; `commit-message` and `pr-title` are both `chore: version packages`, so its commit passes the Conventional Commits rule. With none pending, it runs `pnpm release` (`changeset publish`), which publishes any version the registry lacks, then the action pushes the `v<version>` tag and creates the GitHub Release. `changeset publish` runs `pnpm publish`, which runs `prepublishOnly` once, so `pnpm check && pnpm build` gates every publish; the version pull request's own `ci` run waits for approval, because the default `GITHUB_TOKEN` opened it. The npm token is `NODE_AUTH_TOKEN`, read from the `NPM_TOKEN` secret, which setup-node's `registry-url` writes into the npm config; the v2 action reads no `NPM_TOKEN` itself. `NPM_CONFIG_PROVENANCE: true` turns on provenance, and pnpm 10 passes it to the npm CLI that uploads the tarball; npm rejects provenance from a private repository, and this one is public. |
+| `.changeset/config.json`, `.changeset/README.md` | The README says what a changeset is and points at CONTRIBUTING's "Releasing"; changesets does not read it as a changeset. In the config, `changelog` is `@changesets/changelog-github` for `felipeva/render-blueprint`, so each entry links its pull request, commit and author; the generator needs a `GITHUB_TOKEN`, which the action supplies. `commit: false`, `access: "public"`, `baseBranch: "master"`, and `changedFilePatterns: ["src/**"]`, so `changeset status` counts only `src/` as a change to the package and a docs, test or CI change needs no changeset. `format` stays `auto`, which finds oxfmt. `CHANGELOG.md` opens with its title and then the version headings, with nothing between them: `changeset version` puts each new entry right after the first line, and the action takes a release's body from under the heading that is exactly its version. |
 | `.githooks/` | `pre-commit` formats the staged files with oxfmt, re-stages them, and runs oxlint on the staged source. `commit-msg` validates the Conventional Commits subject. Git does not version hooks, so each clone runs `git config core.hooksPath .githooks` once. |
 | `.gitignore` | Covers `node_modules/`, `dist/`, `coverage/`, `*.tsbuildinfo`, `.reference/`. |
 
@@ -752,9 +758,10 @@ it stands, and the manifest that follows it is the manifest.
   "packageManager": "pnpm@10.33.4",
   "dependencies": { "@drizzle-team/brocli": "^0.12.1", "better-result": "^3.0.1",
     "yaml": "^2.9.0", "zod": "^4.5.4" },
-  "devDependencies": { "@oxlint/plugins": "1.81.0", "@types/node": "26.4.1", "ajv": "8.20.0",
-    "ajv-formats": "3.0.1", "oxfmt": "0.66.0", "oxlint": "1.81.0", "tsdown": "0.23.0",
-    "typescript": "7.0.2", "vitest": "5.0.0" },
+  "devDependencies": { "@changesets/changelog-github": "1.0.1", "@changesets/cli": "3.0.2",
+    "@oxlint/plugins": "1.81.0", "@types/node": "26.4.1", "ajv": "8.20.0", "ajv-formats": "3.0.1",
+    "oxfmt": "0.66.0", "oxlint": "1.81.0", "tsdown": "0.23.0", "typescript": "7.0.2",
+    "vitest": "5.0.0" },
   "scripts": {
     "typecheck": "tsc -p tsconfig.check.json",
     "lint": "oxlint",
@@ -766,7 +773,8 @@ it stands, and the manifest that follows it is the manifest.
     "build": "tsdown && node scripts/check-declarations.mjs",
     "schema:refresh": "node scripts/refresh-render-schema.mjs",
     "fixtures:update": "UPDATE_FIXTURES=1 vitest run test/fixtures.test.ts test/cli.test.ts",
-    "prepublishOnly": "pnpm check && pnpm build"
+    "prepublishOnly": "pnpm check && pnpm build",
+    "release": "changeset publish"
   }
 }
 ```
