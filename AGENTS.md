@@ -19,8 +19,9 @@ was prepared: #112 (version 0.1.0, caret ranges on runtime deps, no source maps,
 tag-triggered `release.yml` that publishes with provenance from a public repo) and #113 (the example-led
 README). Since #115 a release runs through changesets: a pull request that changes the package adds a
 changeset, `release.yml` keeps a `chore: version packages` pull request open on `master`, and merging it
-publishes with provenance, pushes the `v<version>` tag and creates the GitHub Release; `0.1.0` publishes
-on the first push to `master` after the `NPM_TOKEN` secret exists. New work starts with
+publishes with provenance, pushes the `v<version>` tag and creates the GitHub Release. `0.1.0` was
+published by hand on 2026-09-14, and since #117 `release.yml` publishes through an npm trusted publisher
+over OIDC on Node 24, with no npm token. New work starts with
 `/to-spec` for a feature or a plain `ready-for-agent` issue for a bug, then a Herdr dispatch.
 
 - `CONTRIBUTING.md` — which files and which tests a given task touches. Read it before changing code.

@@ -21,8 +21,7 @@ jobs:
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
-          registry-url: https://registry.npmjs.org
+          node-version: 24
       - run: pnpm install --frozen-lockfile
       - uses: changesets/action@v2.1.2
         with:
@@ -31,5 +30,4 @@ jobs:
           pr-title: 'chore: version packages'
           create-github-releases: true
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: true

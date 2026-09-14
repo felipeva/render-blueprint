@@ -103,12 +103,17 @@ until someone with write access selects **Approve workflows to run**. Approve it
 The publish has its own gate: `changeset publish` runs `pnpm publish`, which runs `prepublishOnly`
 (`pnpm check && pnpm build`), so a red check stops the publish.
 
-The workflow needs two things from the repository. The setting **Allow GitHub Actions to create and
-approve pull requests**, under Settings → Actions → General, lets the action open the version pull
-request, and it must stay on. The `NPM_TOKEN` secret lets it publish, and it does not exist yet.
-Until it does, every push to `master` ends with a red `release` job and leaves no tag, no release
-and no partial state. The first push to `master` after the secret exists publishes the version in
-`package.json`.
+The workflow needs two things outside the repository. The setting **Allow GitHub Actions to create
+and approve pull requests**, under Settings → Actions → General, lets the action open the version
+pull request, and it must stay on. A trusted publisher on npmjs.com lets the workflow publish with
+no npm token. Under the package's Settings → Trusted publishing, it is a GitHub Actions publisher
+with user `felipeva`, repository `render-blueprint`, workflow filename `release.yml`, no
+environment, and `npm publish` among its allowed actions. A publisher saved after 2026-09-03 allows
+only `npm stage publish` until you select `npm publish`, and changesets cannot publish through
+staging. npm does not check these fields when you save them, so a mistake shows only as a failed
+publish. With the `id-token: write` permission, npm trades the job's OIDC identity for a
+short-lived publish token. That needs npm 11.5.1 or later, so the job runs on Node 24, because
+Node 22 ships npm 10.
 
 ## Opening a change
 
