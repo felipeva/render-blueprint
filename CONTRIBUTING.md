@@ -105,7 +105,7 @@ The publish has its own gate: `changeset publish` runs `pnpm publish`, which run
 
 The workflow needs two things from the repository. The setting **Allow GitHub Actions to create and
 approve pull requests**, under Settings → Actions → General, lets the action open the version pull
-request, and it must stay on. The `NODE_AUTH_TOKEN` secret lets it publish, and it does not exist yet.
+request, and it must stay on. The `NPM_TOKEN` secret lets it publish, and it does not exist yet.
 Until it does, every push to `master` ends with a red `release` job and leaves no tag, no release
 and no partial state. The first push to `master` after the secret exists publishes the version in
 `package.json`.
